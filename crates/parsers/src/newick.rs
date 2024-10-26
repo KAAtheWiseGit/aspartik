@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use base::newick::{Attributes, Node, Tree};
+use base::newick::{Node, Tree};
 
 pub fn parse_tree<S: AsRef<str>>(tree: S) -> Tree {
 	let _s = tree.as_ref();
@@ -49,13 +49,12 @@ fn parse_node<'a>(
 	s = s.trim();
 	let attributes = if s.starts_with("[") {
 		// TODO: error on malformed unclosed attributes
-		let (_attr_s, rest) = s.split_once(']').unwrap();
+		let (attributes, rest) = s.split_once(']').unwrap();
 		s = rest;
 
-		// TODO: parse attributes
-		HashMap::new()
+		attributes.to_owned()
 	} else {
-		HashMap::new()
+		"".to_owned()
 	};
 
 	s = s.trim();

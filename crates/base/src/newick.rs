@@ -1,17 +1,12 @@
-use std::collections::HashMap;
-
-// There isn't a particular rhyme or reason to attributes, they are interpreted
-// on per-software basis.  So, the hash map stores the source string
-// representation to be interpreted by individual methods.
-pub type Attributes = HashMap<String, String>;
-
-// XXX: maybe get rid of it in favor of struct of vectors
 #[derive(Clone, Debug, Default)]
 pub struct Node {
 	name: Option<String>,
 	distance: Option<f64>,
 	parent: Option<usize>,
-	attributes: Attributes,
+	// There are several different encoding schemes for attributes, which
+	// depend on the processing software.  Therefore, they are stored
+	// verbatim to be processed on per-method basis.
+	attributes: String,
 }
 
 impl Node {
@@ -19,7 +14,7 @@ impl Node {
 		name: Option<String>,
 		distance: Option<f64>,
 		parent: Option<usize>,
-		attributes: Attributes,
+		attributes: String,
 	) -> Self {
 		Self {
 			name,
@@ -61,7 +56,7 @@ impl Tree {
 		self.nodes[i].name.as_deref()
 	}
 
-	pub fn get_attributes(&self, i: usize) -> &Attributes {
+	pub fn get_attributes(&self, i: usize) -> &str {
 		&self.nodes[i].attributes
 	}
 
@@ -77,7 +72,7 @@ impl Tree {
 		self.nodes[i].name = name;
 	}
 
-	pub fn set_attributes(&mut self, i: usize, attributes: Attributes) {
+	pub fn set_attributes(&mut self, i: usize, attributes: String) {
 		self.nodes[i].attributes = attributes;
 	}
 }
