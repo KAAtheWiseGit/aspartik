@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub type Attributes = HashMap<String, String>;
 
 // XXX: maybe get rid of it in favor of struct of vectors
+#[derive(Clone, Debug, Default)]
 struct Node {
 	parent: Option<usize>,
 	distance: Option<f64>,
@@ -13,6 +14,7 @@ struct Node {
 	attributes: Attributes,
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct Tree {
 	nodes: Vec<Node>,
 }
