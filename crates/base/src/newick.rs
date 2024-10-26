@@ -3,7 +3,7 @@ use std::collections::HashMap;
 // There isn't a particular rhyme or reason to attributes, they are interpreted
 // on per-software basis.  So, the hash map stores the source string
 // representation to be interpreted by individual methods.
-type Attributes = HashMap<String, String>;
+pub type Attributes = HashMap<String, String>;
 
 // XXX: maybe get rid of it in favor of struct of vectors
 struct Node {
