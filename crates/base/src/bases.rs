@@ -1,4 +1,4 @@
-pub(crate) trait Base {
+pub(crate) trait Base: Copy {
 	fn as_u8(&self) -> u8;
 }
 
