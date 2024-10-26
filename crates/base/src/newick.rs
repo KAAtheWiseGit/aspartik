@@ -44,35 +44,15 @@ impl Tree {
 		self.nodes.len() - 1
 	}
 
-	pub fn get_parent(&self, i: usize) -> Option<usize> {
-		self.nodes[i].parent
+	pub fn get(&self, idx: usize) -> &Node {
+		&self.nodes[idx]
 	}
 
-	pub fn get_distance(&self, i: usize) -> Option<f64> {
-		self.nodes[i].distance
+	pub fn get_mut(&mut self, idx: usize) -> &mut Node {
+		&mut self.nodes[idx]
 	}
 
-	pub fn get_name(&self, i: usize) -> Option<&str> {
-		self.nodes[i].name.as_deref()
-	}
-
-	pub fn get_attributes(&self, i: usize) -> &str {
-		&self.nodes[i].attributes
-	}
-
-	pub fn set_parent(&mut self, i: usize, parent: Option<usize>) {
-		self.nodes[i].parent = parent;
-	}
-
-	pub fn set_distance(&mut self, i: usize, distance: Option<f64>) {
-		self.nodes[i].distance = distance;
-	}
-
-	pub fn set_name(&mut self, i: usize, name: Option<String>) {
-		self.nodes[i].name = name;
-	}
-
-	pub fn set_attributes(&mut self, i: usize, attributes: String) {
-		self.nodes[i].attributes = attributes;
+	pub fn set(&mut self, node: Node, idx: usize) {
+		self.nodes[idx] = node;
 	}
 }
