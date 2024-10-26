@@ -18,7 +18,7 @@ pub struct Tree {
 }
 
 impl Tree {
-	pub fn new() -> Self {
+	pub fn empty() -> Self {
 		Self { nodes: vec![] }
 	}
 
