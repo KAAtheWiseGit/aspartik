@@ -35,10 +35,7 @@ impl Tree {
 		Self { nodes: vec![] }
 	}
 
-	pub fn push(
-		&mut self,
-		node: Node
-	) -> usize {
+	pub fn push(&mut self, node: Node) -> usize {
 		self.nodes.push(node);
 
 		self.nodes.len() - 1
