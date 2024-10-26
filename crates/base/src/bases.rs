@@ -1,5 +1,7 @@
-pub(crate) trait Base: Copy {
-	fn as_u8(&self) -> u8;
+pub(crate) trait Base: Into<u8> + Copy {
+	fn as_u8(&self) -> u8 {
+		(*self).into()
+	}
 }
 
 #[repr(u8)]
@@ -26,11 +28,13 @@ pub enum DnaNucleoBase {
 	Gap = 0b1_0000,
 }
 
-impl Base for DnaNucleoBase {
-	fn as_u8(&self) -> u8 {
-		*self as u8
+impl Into<u8> for DnaNucleoBase {
+	fn into(self) -> u8 {
+		self as u8
 	}
 }
+
+impl Base for DnaNucleoBase {}
 
 impl DnaNucleoBase {
 	pub fn complement(&self) -> Self {
