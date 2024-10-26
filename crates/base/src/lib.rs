@@ -1,1 +1,2 @@
 mod bases;
+mod seq;
