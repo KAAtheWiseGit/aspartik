@@ -17,10 +17,21 @@ fn parse_node<'a>(
 ) -> &'a str {
 	let mut s = s.trim();
 
+	let this_idx = tree.push(Node::new(None, None, None, "".to_owned()));
+
 	if s.starts_with('(') {
-		// TODO
+		s = &s[1..];
+		while !s.starts_with(')') && s != "" {
+			s = parse_node(s, tree, Some(this_idx));
+		}
+		if s.starts_with(')') {
+			s = &s[1..];
+		}
 	}
 
+	dbg!(s);
+
+	// Doesn't work on nodes without a distance
 	let name: Option<String> = if s.starts_with('"') {
 		// Quoted name
 
@@ -62,12 +73,16 @@ fn parse_node<'a>(
 		.char_indices()
 		.take_while(|(i, ch)| ch.is_ascii_alphanumeric() || *ch == '.')
 		.last()
-		.map(|(i, _)| i)
+		// End should not be inclusive
+		.map(|(i, _)| i + 1)
 		.unwrap_or(0);
 	let distance = str::parse(&s[..end]).ok();
 	s = &s[end..];
 
-	tree.push(Node::new(name, distance, parent, attributes));
+	let this_node = tree
+		.set(Node::new(name, distance, parent, attributes), this_idx);
+
+	s = s.trim().trim_start_matches(',').trim();
 
 	s
 }
@@ -102,11 +117,6 @@ mod tests {
 	#[test]
 	fn p() {
 		let s = "(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F";
-	}
-
-	#[test]
-	fn node() {
-		let s = "A : [&attrs...] 0.5";
 		let mut tree = Tree::empty();
 		parse_node(s, &mut tree, None);
 
