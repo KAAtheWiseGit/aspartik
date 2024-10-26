@@ -1,3 +1,7 @@
+pub(crate) trait Base {
+	fn as_u8(&self) -> u8;
+}
+
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum DnaNucleoBase {
@@ -20,6 +24,12 @@ pub enum DnaNucleoBase {
 	Any = 0b1111,
 
 	Gap = 0b1_0000,
+}
+
+impl Base for DnaNucleoBase {
+	fn as_u8(&self) -> u8 {
+		*self as u8
+	}
 }
 
 impl DnaNucleoBase {
@@ -47,11 +57,7 @@ impl DnaNucleoBase {
 		}
 	}
 
-	fn u8(&self) -> u8 {
-		*self as u8
-	}
-
 	pub fn includes(&self, other: &Self) -> bool {
-		(self.u8() & other.u8()) == other.u8()
+		(self.as_u8() & other.as_u8()) == other.as_u8()
 	}
 }
