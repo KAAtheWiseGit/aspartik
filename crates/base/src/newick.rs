@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, Default)]
 pub struct Node {
-	name: Option<String>,
+	name: String,
 	distance: Option<f64>,
 	parent: Option<usize>,
 	// There are several different encoding schemes for attributes, which
@@ -11,7 +11,7 @@ pub struct Node {
 
 impl Node {
 	pub fn new(
-		name: Option<String>,
+		name: String,
 		distance: Option<f64>,
 		parent: Option<usize>,
 		attributes: String,

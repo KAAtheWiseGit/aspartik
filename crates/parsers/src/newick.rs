@@ -48,10 +48,14 @@ fn distance(s: &str) -> (Option<f64>, &str) {
 	(str::parse(&s[..end]).ok(), &s[end..].trim_start())
 }
 
+const EMPTY: String = String::new();
+
 fn node<'a>(s: &'a str, tree: &mut Tree, parent: Option<usize>) -> &'a str {
 	let mut s = s.trim();
 
-	let this_idx = tree.push(Node::new(None, None, None, "".to_owned()));
+	// Insert a placeholder node before we finish parsing all of the
+	// descendants
+	let this_idx = tree.push(Node::new(EMPTY, None, None, EMPTY));
 
 	if s.starts_with('(') {
 		s = &s[1..];
@@ -70,7 +74,7 @@ fn node<'a>(s: &'a str, tree: &mut Tree, parent: Option<usize>) -> &'a str {
 
 	tree.set(
 		Node::new(
-			Some(name.to_owned()),
+			name.to_owned(),
 			distance,
 			parent,
 			attributes.to_owned(),
