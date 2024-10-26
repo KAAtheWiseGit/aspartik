@@ -87,29 +87,6 @@ fn parse_node<'a>(
 	s
 }
 
-fn find_matching_paren(s: &str) -> usize {
-	let mut num_parens = 0;
-	let mut num_brackets = 0;
-
-	let mut out = 0;
-
-	for ch in s.chars() {
-		if num_brackets > 0 {
-			if ch == '[' {
-				num_brackets += 1;
-			} else if ch == ']' {
-				// TODO: this might underflow if the comments
-				// aren't well-formed
-				num_brackets -= 1;
-			}
-		} else {
-			if ch == '[' {}
-		}
-	}
-
-	out
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
