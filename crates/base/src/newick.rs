@@ -30,13 +30,15 @@ impl Tree {
 		distance: Option<f64>,
 		name: Option<String>,
 		attributes: Attributes,
-	) {
+	) -> usize {
 		self.nodes.push(Node {
 			parent,
 			distance,
 			name,
 			attributes,
-		})
+		});
+
+		self.nodes.len() - 1
 	}
 
 	pub fn get_parent(&self, i: usize) -> Option<usize> {
