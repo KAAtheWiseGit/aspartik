@@ -12,4 +12,3 @@ license = "AGPL-3.0-only"
 authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
-chumsky = "0.9.3"
