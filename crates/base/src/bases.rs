@@ -28,9 +28,9 @@ pub enum DnaNucleoBase {
 	Gap = 0b1_0000,
 }
 
-impl Into<u8> for DnaNucleoBase {
-	fn into(self) -> u8 {
-		self as u8
+impl From<DnaNucleoBase> for u8 {
+	fn from(value: DnaNucleoBase) -> Self {
+		value as u8
 	}
 }
 
