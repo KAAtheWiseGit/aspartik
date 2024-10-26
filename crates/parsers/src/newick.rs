@@ -11,18 +11,16 @@ pub fn parse_tree<S: AsRef<str>>(tree: S) -> Tree {
 }
 
 fn name(s: &str) -> (&str, &str) {
-	if s.starts_with('"') {
+	if let Some(s) = s.strip_prefix('"') {
 		// quoted
-		// TODO: error on malformed unclosed quotes
-		// +1 because it skips the first quote
-		let end = s[1..].find('"').unwrap() + 1;
+		let end = s.find('"').unwrap();
 
-		(&s[1..end], &s[end + 1..].trim_start())
+		(&s[..end], s[end..].trim_start())
 	} else {
 		// bare
 		let end = s.find([',', ';', ')', ':']).unwrap_or(s.len());
 
-		(&s[..end].trim(), &s[end..].trim())
+		(s[..end].trim(), s[end..].trim())
 	}
 }
 
@@ -33,7 +31,7 @@ fn attributes(s: &str) -> (&str, &str) {
 		return ("", s);
 	};
 
-	(&s[1..end], &s[end + 1..].trim_start())
+	(&s[1..end], s[end + 1..].trim_start())
 }
 
 fn distance(s: &str) -> (Option<f64>, &str) {
@@ -45,7 +43,7 @@ fn distance(s: &str) -> (Option<f64>, &str) {
 		})
 		.unwrap_or(s.len());
 
-	(str::parse(&s[..end]).ok(), &s[end..].trim_start())
+	(str::parse(&s[..end]).ok(), s[end..].trim_start())
 }
 
 const EMPTY: String = String::new();
@@ -59,7 +57,7 @@ fn node<'a>(s: &'a str, tree: &mut Tree, parent: Option<usize>) -> &'a str {
 
 	if s.starts_with('(') {
 		s = &s[1..];
-		while !s.starts_with(')') && s != "" {
+		while !s.starts_with(')') && !s.is_empty() {
 			s = node(s, tree, Some(this_idx));
 		}
 		if s.starts_with(')') {
