@@ -7,11 +7,27 @@ pub type Attributes = HashMap<String, String>;
 
 // XXX: maybe get rid of it in favor of struct of vectors
 #[derive(Clone, Debug, Default)]
-struct Node {
-	parent: Option<usize>,
-	distance: Option<f64>,
+pub struct Node {
 	name: Option<String>,
+	distance: Option<f64>,
+	parent: Option<usize>,
 	attributes: Attributes,
+}
+
+impl Node {
+	pub fn new(
+		name: Option<String>,
+		distance: Option<f64>,
+		parent: Option<usize>,
+		attributes: Attributes,
+	) -> Self {
+		Self {
+			name,
+			distance,
+			parent,
+			attributes,
+		}
+	}
 }
 
 #[derive(Clone, Debug, Default)]
@@ -26,17 +42,9 @@ impl Tree {
 
 	pub fn push(
 		&mut self,
-		parent: Option<usize>,
-		distance: Option<f64>,
-		name: Option<String>,
-		attributes: Attributes,
+		node: Node
 	) -> usize {
-		self.nodes.push(Node {
-			parent,
-			distance,
-			name,
-			attributes,
-		});
+		self.nodes.push(node);
 
 		self.nodes.len() - 1
 	}
