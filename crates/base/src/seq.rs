@@ -23,12 +23,16 @@ pub trait Character:
 impl Character for DnaNucleoBase {}
 pub type DnaSeq = Seq<DnaNucleoBase>;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct Seq<T: Character> {
 	value: Vec<T>,
 }
 
 impl<T: Character> Seq<T> {
+	pub fn new() -> Self {
+		Seq { value: Vec::new() }
+	}
+
 	pub fn reverse(&self) -> Self {
 		let mut out = self.clone();
 		out.value.reverse();
