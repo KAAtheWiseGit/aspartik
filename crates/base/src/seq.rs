@@ -15,6 +15,7 @@ pub(crate) trait Sealed:
 }
 
 impl Sealed for DnaNucleoBase {}
+pub type DnaSeq = Seq<DnaNucleoBase>;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[allow(private_bounds)]
@@ -57,7 +58,7 @@ impl<T: Sealed> TryFrom<&str> for Seq<T> {
 	}
 }
 
-impl Seq<DnaNucleoBase> {
+impl DnaSeq {
 	fn complement(&self) -> Self {
 		let mut out = self.clone();
 		for base in out.value.iter_mut() {
