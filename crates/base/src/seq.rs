@@ -17,10 +17,12 @@ pub(crate) trait Sealed:
 impl Sealed for DnaNucleoBase {}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[allow(private_bounds)]
 pub struct Seq<T: Sealed> {
 	value: Vec<T>,
 }
 
+#[allow(private_bounds)]
 impl<T: Sealed> Seq<T> {
 	pub fn reverse(&self) -> Self {
 		let mut out = self.clone();
