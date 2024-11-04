@@ -2,7 +2,8 @@
 
 mod bases;
 mod error;
-mod seq;
+pub mod seq;
 mod tree;
 
+pub use bases::DnaNucleoBase;
 pub use error::{Error, Result};

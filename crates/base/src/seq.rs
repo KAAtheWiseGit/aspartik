@@ -2,7 +2,13 @@ use std::fmt::Display;
 
 use crate::{bases::DnaNucleoBase, Error, Result};
 
-pub(crate) trait Sealed:
+/// A character in a sequence alphabet.
+///
+/// # Safety
+///
+/// Must be identical to a `u8`.  `Into<u8>` must be a simple type cast, with no
+/// layout changes.
+pub trait Character:
 	TryFrom<u8, Error = Error>
 	+ TryFrom<char, Error = Error>
 	+ Into<u8>
@@ -14,17 +20,15 @@ pub(crate) trait Sealed:
 {
 }
 
-impl Sealed for DnaNucleoBase {}
+impl Character for DnaNucleoBase {}
 pub type DnaSeq = Seq<DnaNucleoBase>;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-#[allow(private_bounds)]
-pub struct Seq<T: Sealed> {
+pub struct Seq<T: Character> {
 	value: Vec<T>,
 }
 
-#[allow(private_bounds)]
-impl<T: Sealed> Seq<T> {
+impl<T: Character> Seq<T> {
 	pub fn reverse(&self) -> Self {
 		let mut out = self.clone();
 		out.value.reverse();
@@ -32,7 +36,7 @@ impl<T: Sealed> Seq<T> {
 	}
 }
 
-impl<T: Sealed> Display for Seq<T> {
+impl<T: Character> Display for Seq<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let mut s = String::new();
 
@@ -44,7 +48,7 @@ impl<T: Sealed> Display for Seq<T> {
 	}
 }
 
-impl<T: Sealed> TryFrom<&str> for Seq<T> {
+impl<T: Character> TryFrom<&str> for Seq<T> {
 	type Error = Error;
 
 	fn try_from(value: &str) -> Result<Self> {
