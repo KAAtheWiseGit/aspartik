@@ -84,4 +84,19 @@ impl<N> Tree<N> {
 			self.set_parent(b, a_parent);
 		}
 	}
+
+	/// Modify nodes in place.
+	pub fn apply<F>(&mut self, mut f: F)
+	where
+		// XXX: taking the value by reference a bit awkward, but the
+		// only other way to modify it is to take `&mut N`.  Revisit
+		// this after getting a feel of the API.
+		F: FnMut(&N) -> N,
+	{
+		let nodes = self.graph.node_indices().clone();
+
+		for node in nodes {
+			self.graph[node] = f(&self.graph[node]);
+		}
+	}
 }
