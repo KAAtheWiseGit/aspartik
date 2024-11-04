@@ -1,11 +1,5 @@
 use crate::Error;
 
-pub(crate) trait Base: Into<u8> + Copy {
-	fn as_u8(&self) -> u8 {
-		(*self).into()
-	}
-}
-
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum DnaNucleoBase {
@@ -65,8 +59,6 @@ impl TryFrom<u8> for DnaNucleoBase {
 	}
 }
 
-impl Base for DnaNucleoBase {}
-
 impl TryFrom<char> for DnaNucleoBase {
 	type Error = Error;
 
@@ -123,6 +115,10 @@ impl From<DnaNucleoBase> for char {
 }
 
 impl DnaNucleoBase {
+	fn as_u8(&self) -> u8 {
+		*self as u8
+	}
+
 	pub fn complement(&self) -> Self {
 		match self {
 			Self::Guanine => Self::Cytosine,
