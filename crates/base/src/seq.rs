@@ -38,6 +38,10 @@ impl<T: Character> Seq<T> {
 		out.value.reverse();
 		out
 	}
+
+	pub fn append(&mut self, mut other: Self) {
+		self.value.append(&mut other.value);
+	}
 }
 
 impl<T: Character> Display for Seq<T> {
