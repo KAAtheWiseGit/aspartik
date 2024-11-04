@@ -13,3 +13,4 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
 petgraph = "0.6.5"
+thiserror = "1.0.67"

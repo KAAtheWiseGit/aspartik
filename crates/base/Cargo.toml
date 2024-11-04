@@ -7,3 +7,4 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [dependencies]
 petgraph = { workspace = true }
+thiserror = { workspace = true }
