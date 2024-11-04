@@ -12,3 +12,4 @@ license = "AGPL-3.0-only"
 authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
+petgraph = "0.6.5"
