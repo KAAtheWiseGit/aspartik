@@ -36,6 +36,35 @@ impl From<DnaNucleoBase> for u8 {
 	}
 }
 
+impl TryFrom<u8> for DnaNucleoBase {
+	type Error = Error;
+
+	fn try_from(value: u8) -> Result<Self, Self::Error> {
+		Ok(match value {
+			0b0001 => Self::Guanine,
+			0b0010 => Self::Adenine,
+			0b0100 => Self::Thymine,
+			0b1000 => Self::Cytosine,
+
+			0b0011 => Self::Purine,
+			0b1100 => Self::Pyrimidine,
+			0b1010 => Self::Amino,
+			0b0101 => Self::Keto,
+			0b1001 => Self::Strong,
+			0b0110 => Self::Weak,
+			0b1110 => Self::NotGuanine,
+			0b1101 => Self::NotAdenine,
+			0b1011 => Self::NotThymine,
+			0b0111 => Self::NotCytosine,
+
+			0b1111 => Self::Any,
+			0b1_0000 => Self::Gap,
+
+			_ => Err(Error::InvalidNucleoBaseByte(value))?,
+		})
+	}
+}
+
 impl Base for DnaNucleoBase {}
 
 impl TryFrom<char> for DnaNucleoBase {
