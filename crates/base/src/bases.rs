@@ -1,3 +1,5 @@
+use crate::Error;
+
 pub(crate) trait Base: Into<u8> + Copy {
 	fn as_u8(&self) -> u8 {
 		(*self).into()
@@ -35,6 +37,61 @@ impl From<DnaNucleoBase> for u8 {
 }
 
 impl Base for DnaNucleoBase {}
+
+impl TryFrom<char> for DnaNucleoBase {
+	type Error = Error;
+
+	// https://genome.ucsc.edu/goldenPath/help/iupac.html
+	fn try_from(value: char) -> Result<Self, Self::Error> {
+		Ok(match value {
+			'G' => Self::Guanine,
+			'A' => Self::Adenine,
+			'T' => Self::Thymine,
+			'C' => Self::Cytosine,
+
+			'R' => Self::Purine,
+			'Y' => Self::Pyrimidine,
+			'M' => Self::Amino,
+			'K' => Self::Keto,
+			'S' => Self::Strong,
+			'W' => Self::Weak,
+			'H' => Self::NotGuanine,
+			'B' => Self::NotAdenine,
+			'V' => Self::NotThymine,
+			'D' => Self::NotCytosine,
+
+			'N' => Self::Any,
+			'-' => Self::Gap,
+
+			_ => Err(Error::InvalidNucleoBaseChar(value))?,
+		})
+	}
+}
+
+impl From<DnaNucleoBase> for char {
+	fn from(value: DnaNucleoBase) -> char {
+		match value {
+			DnaNucleoBase::Guanine => 'G',
+			DnaNucleoBase::Adenine => 'A',
+			DnaNucleoBase::Thymine => 'T',
+			DnaNucleoBase::Cytosine => 'C',
+
+			DnaNucleoBase::Purine => 'R',
+			DnaNucleoBase::Pyrimidine => 'Y',
+			DnaNucleoBase::Amino => 'M',
+			DnaNucleoBase::Keto => 'K',
+			DnaNucleoBase::Strong => 'S',
+			DnaNucleoBase::Weak => 'W',
+			DnaNucleoBase::NotGuanine => 'H',
+			DnaNucleoBase::NotAdenine => 'B',
+			DnaNucleoBase::NotThymine => 'V',
+			DnaNucleoBase::NotCytosine => 'D',
+
+			DnaNucleoBase::Any => 'N',
+			DnaNucleoBase::Gap => '-',
+		}
+	}
+}
 
 impl DnaNucleoBase {
 	pub fn complement(&self) -> Self {
