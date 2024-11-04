@@ -13,4 +13,4 @@ pub enum Error {
 	IO(#[from] io::Error),
 }
 
-type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;

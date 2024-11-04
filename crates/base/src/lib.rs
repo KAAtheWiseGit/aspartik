@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 mod bases;
+mod error;
 mod seq;
 mod tree;
-mod error;
+
+pub use error::{Error, Result};
