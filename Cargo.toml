@@ -1,7 +1,7 @@
 [workspace]
 members = [
 	"crates/base",
-	"crates/parsers",
+	"crates/io",
 ]
 
 [package]
