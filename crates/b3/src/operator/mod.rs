@@ -1,4 +1,11 @@
-pub enum Proposal {
+use crate::state::State;
+
+pub struct Proposal {
+	status: Status,
+	// TODO: return a set of updated parameters
+}
+
+pub enum Status {
 	Accept,
 	Reject,
 	// TODO: decide if it should be log or not
@@ -7,5 +14,5 @@ pub enum Proposal {
 
 pub trait Operator {
 	// TODO: rng
-	fn propose() -> Proposal;
+	fn propose(state: &State) -> Proposal;
 }
