@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{parameter::Parameter, state::State};
+use crate::{
+	parameter::Parameter,
+	state::{Index, State},
+};
 
 pub enum Status {
 	Accept,
@@ -13,7 +16,7 @@ pub struct Proposal {
 	status: Status,
 	// XXX: index type
 	/// A hash map of updated parameters with their indexes as keys.
-	params: HashMap<usize, Parameter>,
+	params: HashMap<Index, Parameter>,
 	// Might require additional optimisations, so it's separate
 	// tree: Option<Tree>,
 }
