@@ -1,14 +1,13 @@
+use std::collections::HashMap;
+
 use crate::parameter::Parameter;
 
-pub type Index = usize;
-
 pub struct State {
-	params: Vec<Parameter>,
+	params: HashMap<String, Parameter>,
 }
 
 impl State {
-	// TODO: how do we index parameters?
-	pub fn get_parameter(id: Index) -> Parameter {
+	pub fn get_parameter(name: String) -> Parameter {
 		todo!()
 	}
 
