@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parameter::Parameter;
+use crate::{operator::Proposal, parameter::Parameter};
 
 pub struct State {
 	params: HashMap<String, Parameter>,
@@ -20,4 +20,13 @@ impl State {
 
 	// XXX: Distinct?
 	// pub fn get_tree() -> Tree
+
+	/// Updates the state by accepting a proposal.
+	pub fn update(&mut self, mut proposal: Proposal) {
+		for (name, param) in proposal.take_params() {
+			self.params.insert(name, param);
+		}
+
+		// TODO: tree
+	}
 }
