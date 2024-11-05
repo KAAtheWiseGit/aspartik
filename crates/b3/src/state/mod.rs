@@ -7,8 +7,15 @@ pub struct State {
 }
 
 impl State {
-	pub fn get_parameter(name: String) -> Parameter {
-		todo!()
+	/// # Panics
+	///
+	/// Panics if `name` is not a valid parameter name.
+	pub fn get_parameter<S: AsRef<str>>(&self, name: S) -> &Parameter {
+		&self.params[name.as_ref()]
+	}
+
+	pub fn has_parameter<S: AsRef<str>>(&self, name: S) -> bool {
+		self.params.contains_key(name.as_ref())
 	}
 
 	// XXX: Distinct?
