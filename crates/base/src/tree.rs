@@ -4,6 +4,8 @@ use petgraph::{
 	Incoming,
 };
 
+use std::ops::{Index, IndexMut};
+
 #[derive(Clone, Debug, Default)]
 pub struct Tree<N> {
 	graph: DiGraph<N, ()>,
@@ -98,5 +100,19 @@ impl<N> Tree<N> {
 		for node in nodes {
 			self.graph[node] = f(&self.graph[node]);
 		}
+	}
+}
+
+impl<N> Index<usize> for Tree<N> {
+	type Output = N;
+
+	fn index(&self, index: usize) -> &Self::Output {
+		&self.graph[NodeIndex::new(index)]
+	}
+}
+
+impl<N> IndexMut<usize> for Tree<N> {
+	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+		&mut self.graph[NodeIndex::new(index)]
 	}
 }
