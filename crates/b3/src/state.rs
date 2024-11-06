@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{operator::Proposal, parameter::Parameter};
+use crate::{
+	operator::Proposal,
+	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+};
 
 pub struct State {
 	params: HashMap<String, Parameter>,
@@ -21,6 +24,36 @@ impl State {
 		}
 
 		&self.params[name]
+	}
+
+	pub fn get_real_parameter<S: AsRef<str>>(
+		&self,
+		name: S,
+	) -> Option<&RealParam> {
+		match self.get_parameter(name) {
+			Parameter::Real(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn get_integer_parameter<S: AsRef<str>>(
+		&self,
+		name: S,
+	) -> Option<&IntegerParam> {
+		match self.get_parameter(name) {
+			Parameter::Integer(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn get_boolean_parameter<S: AsRef<str>>(
+		&self,
+		name: S,
+	) -> Option<&BooleanParam> {
+		match self.get_parameter(name) {
+			Parameter::Boolean(p) => Some(p),
+			_ => None,
+		}
 	}
 
 	pub fn has_parameter<S: AsRef<str>>(&self, name: S) -> bool {
