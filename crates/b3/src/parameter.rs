@@ -1,16 +1,19 @@
-// XXX: should this include the tree?
-#[derive(Debug, Clone)]
-pub enum Parameter {
-	Real(Param<f64>),
-	Integer(Param<i64>),
-	Boolean(Param<bool>),
-}
-
 #[derive(Debug, Clone)]
 pub struct Param<T: Copy + PartialOrd> {
 	pub values: Vec<T>,
 	pub min: Option<T>,
 	pub max: Option<T>,
+}
+
+pub type RealParam = Param<f64>;
+pub type IntegerParam = Param<i64>;
+pub type BooleanParam = Param<bool>;
+
+#[derive(Debug, Clone)]
+pub enum Parameter {
+	Real(RealParam),
+	Integer(IntegerParam),
+	Boolean(BooleanParam),
 }
 
 impl<T: Copy + PartialOrd> Param<T> {
