@@ -17,11 +17,12 @@ use crate::state::State;
 //   - [ ] Normal
 //   - [ ] One on X
 //   - [ ] Poisson
-//   - [ ] Uniform
+//   - [x] Uniform
 //
 // - Tree likelihood.  This one might need a separate module or an
 //   implementation in another crate.
 mod compound;
+mod uniform;
 
 pub trait Probability {
 	// Because we pass `State` here, this can be implemented for both
