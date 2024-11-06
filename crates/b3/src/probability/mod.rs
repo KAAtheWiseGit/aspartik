@@ -16,12 +16,13 @@ use crate::state::State;
 //   - [ ] Log normal
 //   - [ ] Normal
 //   - [ ] One on X
-//   - [ ] Poisson
+//   - [x] Poisson
 //   - [x] Uniform
 //
 // - Tree likelihood.  This one might need a separate module or an
 //   implementation in another crate.
 mod compound;
+mod poisson;
 mod uniform;
 
 pub trait Probability {
