@@ -9,13 +9,6 @@ pub type RealParam = Param<f64>;
 pub type IntegerParam = Param<i64>;
 pub type BooleanParam = Param<bool>;
 
-#[derive(Debug, Clone)]
-pub enum Parameter {
-	Real(RealParam),
-	Integer(IntegerParam),
-	Boolean(BooleanParam),
-}
-
 impl<T: Copy + PartialOrd> Param<T> {
 	/// Returns `false` if any value inside the parameter is out of bounds.
 	pub fn is_valid(&self) -> bool {
@@ -33,5 +26,22 @@ impl<T: Copy + PartialOrd> Param<T> {
 			})
 			// all items are true
 			.all(|x| x)
+	}
+}
+
+#[derive(Debug, Clone)]
+pub enum Parameter {
+	Real(RealParam),
+	Integer(IntegerParam),
+	Boolean(BooleanParam),
+}
+
+impl Parameter {
+	pub fn is_valid(&self) -> bool {
+		match self {
+			Parameter::Real(p) => p.is_valid(),
+			Parameter::Integer(p) => p.is_valid(),
+			Parameter::Boolean(p) => p.is_valid(),
+		}
 	}
 }
