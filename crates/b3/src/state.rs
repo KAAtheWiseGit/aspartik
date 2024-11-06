@@ -4,6 +4,7 @@ use crate::{operator::Proposal, parameter::Parameter};
 
 pub struct State {
 	params: HashMap<String, Parameter>,
+	proposal: Option<Proposal>,
 }
 
 impl State {
@@ -21,8 +22,16 @@ impl State {
 	// XXX: Distinct?
 	// pub fn get_tree() -> Tree
 
-	/// Updates the state by accepting a proposal.
-	pub fn update(&mut self, mut proposal: Proposal) {
+	pub fn propose(&mut self, proposal: Proposal) {
+		self.proposal = Some(proposal);
+	}
+
+	/// Accept the current proposal
+	pub fn accept(&mut self) {
+		let Some(mut proposal) = self.proposal.take() else {
+			return;
+		};
+
 		for (name, param) in proposal.take_params() {
 			self.params.insert(name, param);
 		}
