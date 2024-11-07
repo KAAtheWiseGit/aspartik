@@ -32,12 +32,23 @@ pub enum Status {
 	Hastings(f64),
 }
 
+// TODO: node height type, tree nodo type
+type NodeHeight = ();
+type NodeIndex = ();
+
+pub struct TreeEdit {
+	heights: HashMap<NodeIndex, NodeHeight>,
+	// TODO: verify this is enough for arbitrary edits
+	/// The key is the old child.  The value is the new child.
+	children: HashMap<NodeIndex, NodeIndex>,
+}
+
 pub struct Proposal {
 	status: Status,
 	/// A hash map of parameters updated by the operator.
 	params: HashMap<String, Parameter>,
 	// Might require additional optimisations, so it's separate
-	// tree: Option<Tree>,
+	wree: Option<TreeEdit>,
 }
 
 impl Proposal {
