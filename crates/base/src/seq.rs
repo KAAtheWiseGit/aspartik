@@ -42,6 +42,10 @@ impl<T: Character> Seq<T> {
 	pub fn append(&mut self, mut other: Self) {
 		self.value.append(&mut other.value);
 	}
+
+	pub fn iter(&self) -> std::slice::Iter<'_, T> {
+		self.value.iter()
+	}
 }
 
 impl<T: Character> Display for Seq<T> {
