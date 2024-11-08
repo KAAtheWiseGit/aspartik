@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod coalescent;
 mod mcmc;
 mod operator;
 mod parameter;
