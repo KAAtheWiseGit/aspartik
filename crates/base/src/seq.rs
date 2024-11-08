@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+	fmt::Display,
+	ops::{Index, IndexMut},
+};
 
 use crate::{bases::DnaNucleoBase, Error, Result};
 
@@ -46,6 +49,10 @@ impl<T: Character> Seq<T> {
 	pub fn iter(&self) -> std::slice::Iter<'_, T> {
 		self.value.iter()
 	}
+
+	pub fn length(&self) -> usize {
+		self.value.len()
+	}
 }
 
 impl<T: Character> Display for Seq<T> {
@@ -71,6 +78,20 @@ impl<T: Character> TryFrom<&str> for Seq<T> {
 		}
 
 		Ok(out)
+	}
+}
+
+impl<T: Character> Index<usize> for Seq<T> {
+	type Output = T;
+
+	fn index(&self, index: usize) -> &Self::Output {
+		&self.value[index]
+	}
+}
+
+impl<T: Character> IndexMut<usize> for Seq<T> {
+	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+		&mut self.value[index]
 	}
 }
 
