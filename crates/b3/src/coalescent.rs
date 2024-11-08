@@ -47,13 +47,15 @@ fn prune_likelihood(bases: Vec<DnaNucleoBase>, tree: &[(usize, usize)]) -> f64 {
 	}
 
 	for (i, (left, right)) in tree.iter().enumerate() {
-		let rows = (t.row(*left) + t.row(*right)) * 0.5;
-		let pr = jk.exp();
-		let new = rows * pr;
+		let len_left = 1.0;
+		let len_right = 1.0;
+
+		let prob_left = t.row(*left) * (jk * len_left).exp();
+		let prob_right = t.row(*right) * (jk * len_right).exp();
+
+		let new = prob_left.component_mul(&prob_right);
 		t.set_row(i + bases.len(), &new);
 	}
-
-	println!("{}", t);
 
 	t.row(t.shape().0 - 1).product()
 }
@@ -74,6 +76,6 @@ mod test {
 
 		let tree = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
 
-		prune_likelihood(bases, &tree);
+		prune_likelihood(bases.clone(), &tree);
 	}
 }
