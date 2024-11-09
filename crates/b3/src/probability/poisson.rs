@@ -33,7 +33,8 @@ impl Probability for Poisson {
 				lambda.powi(k as i32) * E.powf(-lambda)
 					/ FACTORIAL[k as usize]
 			})
-			.product()
+			.map(|p| p.ln())
+			.sum()
 	}
 }
 

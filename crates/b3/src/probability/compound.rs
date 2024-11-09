@@ -21,8 +21,8 @@ impl Probability for Compound {
 		self.probabilities
 			.iter()
 			.map(|p| p.probability(state))
-			// This returns 1 if the iterator is empty
-			// https://doc.rust-lang.org/src/core/iter/traits/accum.rs.html#114-123
-			.product()
+			// This returns 0 if the iterator is empty
+			// https://doc.rust-lang.org/src/core/iter/traits/accum.rs.html#104-112
+			.sum()
 	}
 }

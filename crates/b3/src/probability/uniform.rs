@@ -23,6 +23,7 @@ impl Probability for Uniform {
 			return 1.0;
 		};
 
-		1.0 / (max - min)
+		let prob = 1.0 / (max - min);
+		prob.ln()
 	}
 }

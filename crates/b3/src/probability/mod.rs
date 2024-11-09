@@ -25,9 +25,10 @@ mod compound;
 mod poisson;
 mod uniform;
 
+pub type LogProb = f64;
+
 pub trait Probability {
 	// Because we pass `State` here, this can be implemented for both
 	// parameter priors and for the tree likelihood.
-	// TODO: log or not?
-	fn probability(&self, state: &State) -> f64;
+	fn probability(&self, state: &State) -> LogProb;
 }
