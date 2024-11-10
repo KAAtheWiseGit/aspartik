@@ -46,12 +46,20 @@ impl<T: Character> Seq<T> {
 		self.value.append(&mut other.value);
 	}
 
+	pub fn push(&mut self, character: T) {
+		self.value.push(character);
+	}
+
 	pub fn iter(&self) -> std::slice::Iter<'_, T> {
 		self.value.iter()
 	}
 
 	pub fn len(&self) -> usize {
 		self.value.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.value.is_empty()
 	}
 }
 
