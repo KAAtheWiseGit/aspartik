@@ -28,5 +28,9 @@ fn bench(c: &mut Criterion) {
 	c.bench_function("likelihood", |b| b.iter(|| likelihood()));
 }
 
-criterion_group!(benches, bench);
+criterion_group!(
+	name = benches;
+	config = Criterion::default().sample_size(10);
+	targets = bench
+);
 criterion_main!(benches);
