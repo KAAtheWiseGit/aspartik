@@ -99,22 +99,3 @@ impl Coalescent {
 		out
 	}
 }
-
-#[cfg(test)]
-mod test {
-	#[test]
-	fn glam() {
-		use glam::{DMat4, DVec4};
-
-		let v = DVec4::new(0.5, 0.1, 0.2, 0.4);
-		let m = DMat4::from_cols_array_2d(&[
-			[1.0, 2.0, 3.0, 4.0],
-			[0.3, 2.0, 3.0, 4.0],
-			[1.2, 2.0, 3.0, 4.0],
-			[1.0, 2.0, 5.0, 4.0],
-		]);
-
-		let mul = m * v;
-		println!("{mul}");
-	}
-}
