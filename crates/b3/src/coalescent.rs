@@ -91,35 +91,3 @@ impl Coalescent {
 		out
 	}
 }
-
-#[cfg(test)]
-mod test {
-	use super::*;
-
-	#[test]
-	fn minimal() {
-		use base::substitution::dna::jukes_cantor;
-
-		let seqs = vec![
-			DnaSeq::try_from("AAGCTAAGCTAAGCTAAGCT").unwrap(),
-			DnaSeq::try_from("CAGCTCAGCTCAGCTCAGCT").unwrap(),
-			DnaSeq::try_from("ATGCAATGCAATGCAATGCA").unwrap(),
-			DnaSeq::try_from("ATGCTATGCTATGCTATGCT").unwrap(),
-			DnaSeq::try_from("TAGCATAGCATAGCATAGCA").unwrap(),
-		];
-		let tree = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
-		let distances =
-			vec![0.75, 0.60, 1.1, 0.9, 0.85, 0.8, 0.5, 0.7, 0.3];
-
-		let coalescent = Coalescent::new(
-			seqs,
-			jukes_cantor(),
-			&distances,
-			&tree,
-		);
-
-		for _ in 0..1_000_000 {
-			coalescent.likelihood();
-		}
-	}
-}

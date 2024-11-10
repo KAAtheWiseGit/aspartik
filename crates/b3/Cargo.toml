@@ -8,3 +8,10 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 [dependencies]
 base = { path ="../base" }
 nalgebra = { workspace = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "likelihood"
+harness = false
