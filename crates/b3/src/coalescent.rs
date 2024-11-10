@@ -125,12 +125,18 @@ fn multiply(row: Row, sub: Substitution) -> f64x4 {
 	let g = sub[2] * row.as_array_ref()[2];
 	let t = sub[3] * row.as_array_ref()[3];
 
-	f64x4::new([
-		a.reduce_add(),
-		c.reduce_add(),
-		g.reduce_add(),
-		t.reduce_add(),
-	])
+	/// The reason we need this function is because the `wide` `reduce_add`
+	/// method is marked `inline` and, unlike the `glam` methods, it seems
+	/// that rustc doesn't inline it.  So, this naive implementation
+	/// compiles to a faster binary.
+	#[inline(always)]
+	fn reduce(vec: f64x4) -> f64 {
+		let vec = vec.as_array_ref();
+
+		vec[0] + vec[1] + vec[2] + vec[3]
+	}
+
+	f64x4::new([reduce(a), reduce(c), reduce(g), reduce(t)])
 }
 
 fn to_sub(sub: Matrix4<f64>) -> Substitution {
