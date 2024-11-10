@@ -7,7 +7,8 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [dependencies]
 base = { path ="../base" }
-nalgebra = { workspace = true }
+glam = "0.29.2"
+nalgebra = { workspace = true, features = ["convert-glam029"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

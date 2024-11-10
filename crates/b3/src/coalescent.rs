@@ -1,4 +1,5 @@
-use nalgebra::{Dyn, Matrix4, OMatrix, RowVector4, U4};
+use glam::{DMat4, DVec4};
+use nalgebra::Matrix4;
 
 use base::{seq::DnaSeq, DnaNucleoBase};
 
@@ -7,7 +8,7 @@ type Substitution = Matrix4<f64>;
 pub struct Coalescent {
 	columns: Vec<DnaSeq>,
 	children: Vec<(usize, usize)>,
-	substitutions: Vec<(Substitution, Substitution)>,
+	substitutions: Vec<(DMat4, DMat4)>,
 }
 
 impl Coalescent {
@@ -43,7 +44,7 @@ impl Coalescent {
 			let left = (substitution_model * left_distance).exp();
 			let right = (substitution_model * right_distance).exp();
 
-			substitutions.push((left, right));
+			substitutions.push((left.into(), right.into()));
 		}
 
 		Self {
@@ -56,53 +57,64 @@ impl Coalescent {
 	pub fn likelihood(&self) -> f64 {
 		let mut out = 0.0;
 
-		type Table = OMatrix<f64, Dyn, U4>;
-		let mut t =
-			Table::zeros(self.columns.len() + self.children.len());
+		let any = DVec4::new(0.25, 0.25, 0.25, 0.25);
+
+		let mut t = vec![
+			DVec4::ZERO;
+			self.columns.len() + self.children.len()
+		];
 
 		for column in &self.columns {
 			for (i, base) in column.iter().enumerate() {
-				const ADENINE: RowVector4<f64> =
-					RowVector4::new(1.0, 0.0, 0.0, 0.0);
-				const CYTOSINE: RowVector4<f64> =
-					RowVector4::new(0.0, 1.0, 0.0, 0.0);
-				const GUANINE: RowVector4<f64> =
-					RowVector4::new(0.0, 0.0, 1.0, 0.0);
-				const THYMINE: RowVector4<f64> =
-					RowVector4::new(0.0, 0.0, 0.0, 1.0);
-				const ANY: RowVector4<f64> =
-					RowVector4::new(0.25, 0.25, 0.25, 0.25);
-
 				match base {
 					DnaNucleoBase::Adenine => {
-						t.set_row(i, &ADENINE)
+						t[i] = DVec4::X;
 					}
 					DnaNucleoBase::Cytosine => {
-						t.set_row(i, &CYTOSINE)
+						t[i] = DVec4::Y;
 					}
 					DnaNucleoBase::Guanine => {
-						t.set_row(i, &GUANINE)
+						t[i] = DVec4::Z;
 					}
 					DnaNucleoBase::Thymine => {
-						t.set_row(i, &THYMINE)
+						t[i] = DVec4::W;
 					}
-					_ => t.set_row(i, &ANY),
+					_ => t[i] = any,
 				}
 			}
 
 			for i in 0..self.children.len() {
-				let left = t.row(self.children[i].0)
-					* self.substitutions[i].0;
-				let right = t.row(self.children[i].1)
-					* self.substitutions[i].1;
+				let left = self.substitutions[i].0
+					* t[self.children[i].0];
+				let right = self.substitutions[i].1
+					* t[self.children[i].1];
 
-				let parent = left.component_mul(&right);
-				t.set_row(i + column.len(), &parent);
+				let parent = left * right;
+				t[i + column.len()] = parent;
 			}
 
-			out += t.row(t.shape().0 - 1).sum().ln();
+			out += t.last().unwrap().element_sum().ln();
 		}
 
 		out
+	}
+}
+
+#[cfg(test)]
+mod test {
+	#[test]
+	fn glam() {
+		use glam::{DMat4, DVec4};
+
+		let v = DVec4::new(0.5, 0.1, 0.2, 0.4);
+		let m = DMat4::from_cols_array_2d(&[
+			[1.0, 2.0, 3.0, 4.0],
+			[0.3, 2.0, 3.0, 4.0],
+			[1.2, 2.0, 3.0, 4.0],
+			[1.0, 2.0, 5.0, 4.0],
+		]);
+
+		let mul = m * v;
+		println!("{mul}");
 	}
 }
