@@ -118,6 +118,7 @@ impl Coalescent {
 	}
 }
 
+#[inline(always)]
 fn multiply(row: Row, sub: Substitution) -> f64x4 {
 	let a = sub[0] * row.as_array_ref()[0];
 	let c = sub[1] * row.as_array_ref()[1];
