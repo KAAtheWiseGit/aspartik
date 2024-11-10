@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use b3::coalescent::*;
+use b3::tree::*;
 use base::seq::DnaSeq;
 
 fn likelihood() {
