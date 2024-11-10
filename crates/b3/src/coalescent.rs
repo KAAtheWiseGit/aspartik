@@ -1,4 +1,4 @@
-use nalgebra::{Dyn, Matrix4, OMatrix, U4};
+use nalgebra::{Dyn, Matrix4, OMatrix, RowVector4, U4};
 
 use base::{seq::DnaSeq, DnaNucleoBase};
 
@@ -62,15 +62,32 @@ impl Coalescent {
 
 		for column in &self.columns {
 			for (i, base) in column.iter().enumerate() {
-				let j = match base {
-					DnaNucleoBase::Adenine => 0,
-					DnaNucleoBase::Cytosine => 1,
-					DnaNucleoBase::Guanine => 2,
-					DnaNucleoBase::Thymine => 3,
-					_ => unreachable!(),
-				};
+				const ADENINE: RowVector4<f64> =
+					RowVector4::new(1.0, 0.0, 0.0, 0.0);
+				const CYTOSINE: RowVector4<f64> =
+					RowVector4::new(0.0, 1.0, 0.0, 0.0);
+				const GUANINE: RowVector4<f64> =
+					RowVector4::new(0.0, 0.0, 1.0, 0.0);
+				const THYMINE: RowVector4<f64> =
+					RowVector4::new(0.0, 0.0, 0.0, 1.0);
+				const ANY: RowVector4<f64> =
+					RowVector4::new(0.25, 0.25, 0.25, 0.25);
 
-				t[(i, j)] = 1.0;
+				match base {
+					DnaNucleoBase::Adenine => {
+						t.set_row(i, &ADENINE)
+					}
+					DnaNucleoBase::Cytosine => {
+						t.set_row(i, &CYTOSINE)
+					}
+					DnaNucleoBase::Guanine => {
+						t.set_row(i, &GUANINE)
+					}
+					DnaNucleoBase::Thymine => {
+						t.set_row(i, &THYMINE)
+					}
+					_ => t.set_row(i, &ANY),
+				}
 			}
 
 			for i in 0..self.children.len() {
@@ -84,8 +101,6 @@ impl Coalescent {
 			}
 
 			out += t.row(t.shape().0 - 1).sum().ln();
-
-			t.fill(0.0);
 		}
 
 		out
