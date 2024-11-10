@@ -3,19 +3,17 @@ use nalgebra::{Dyn, Matrix4, OMatrix, U4};
 use base::{seq::DnaSeq, DnaNucleoBase};
 
 pub struct Coalescent {
-	sequences: Vec<DnaSeq>,
-	tree: Vec<(usize, usize)>,
+	columns: Vec<DnaSeq>,
+	children: Vec<(usize, usize)>,
+	parents: Vec<usize>,
 }
 
 impl Coalescent {
 	pub fn likelihood(&self) -> f64 {
 		let mut out = 1.0;
 
-		for i in 0..self.sequences[0].length() {
-			let bases: Vec<DnaNucleoBase> =
-				self.sequences.iter().map(|s| s[i]).collect();
-
-			out *= prune_likelihood(bases, &self.tree);
+		for column in &self.columns {
+			out *= prune_likelihood(column, &self.children);
 		}
 
 		out
@@ -24,7 +22,7 @@ impl Coalescent {
 
 type Table = OMatrix<f64, Dyn, U4>;
 
-fn prune_likelihood(bases: Vec<DnaNucleoBase>, tree: &[(usize, usize)]) -> f64 {
+fn prune_likelihood(bases: &DnaSeq, children: &[(usize, usize)]) -> f64 {
 	let mut jk = Matrix4::from_element(1.0 / 3.0);
 	jk[(0, 0)] = -1.0;
 	jk[(1, 1)] = -1.0;
@@ -32,7 +30,7 @@ fn prune_likelihood(bases: Vec<DnaNucleoBase>, tree: &[(usize, usize)]) -> f64 {
 	jk[(3, 3)] = -1.0;
 	let jk = jk;
 
-	let mut t = Table::repeat(bases.len() + tree.len(), 0.0);
+	let mut t = Table::repeat(bases.length() + children.len(), 0.0);
 
 	for (i, base) in bases.iter().enumerate() {
 		let j = match base {
@@ -46,7 +44,7 @@ fn prune_likelihood(bases: Vec<DnaNucleoBase>, tree: &[(usize, usize)]) -> f64 {
 		t[(i, j)] = 1.0;
 	}
 
-	for (i, (left, right)) in tree.iter().enumerate() {
+	for (i, (left, right)) in children.iter().enumerate() {
 		let len_left = 1.0;
 		let len_right = 1.0;
 
@@ -54,10 +52,10 @@ fn prune_likelihood(bases: Vec<DnaNucleoBase>, tree: &[(usize, usize)]) -> f64 {
 		let prob_right = t.row(*right) * (jk * len_right).exp();
 
 		let new = prob_left.component_mul(&prob_right);
-		t.set_row(i + bases.len(), &new);
+		t.set_row(i + bases.length(), &new);
 	}
 
-	t.row(t.shape().0 - 1).product()
+	t.row(t.shape().0 - 1).sum().ln()
 }
 
 #[cfg(test)]
@@ -66,16 +64,10 @@ mod test {
 
 	#[test]
 	fn minimal() {
-		let bases = vec![
-			DnaNucleoBase::Adenine,
-			DnaNucleoBase::Adenine,
-			DnaNucleoBase::Guanine,
-			DnaNucleoBase::Cytosine,
-			DnaNucleoBase::Thymine,
-		];
+		let bases = DnaSeq::try_from("AAGCT").unwrap();
 
 		let tree = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
 
-		prune_likelihood(bases.clone(), &tree);
+		prune_likelihood(&bases, &tree);
 	}
 }
