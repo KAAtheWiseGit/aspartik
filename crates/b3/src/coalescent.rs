@@ -31,7 +31,7 @@ fn prune_likelihood(
 	bases: &DnaSeq,
 	children: &[(usize, usize)],
 ) -> f64 {
-	let mut t = Table::repeat(bases.length() + children.len(), 0.0);
+	let mut t = Table::repeat(bases.len() + children.len(), 0.0);
 
 	for (i, base) in bases.iter().enumerate() {
 		let j = match base {
@@ -53,7 +53,7 @@ fn prune_likelihood(
 		let prob_right = t.row(*right) * (sub * len_right).exp();
 
 		let new = prob_left.component_mul(&prob_right);
-		t.set_row(i + bases.length(), &new);
+		t.set_row(i + bases.len(), &new);
 	}
 
 	t.row(t.shape().0 - 1).sum().ln()

@@ -50,7 +50,7 @@ impl<T: Character> Seq<T> {
 		self.value.iter()
 	}
 
-	pub fn length(&self) -> usize {
+	pub fn len(&self) -> usize {
 		self.value.len()
 	}
 }
