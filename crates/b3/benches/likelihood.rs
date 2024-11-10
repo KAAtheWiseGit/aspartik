@@ -19,7 +19,7 @@ fn likelihood() {
 	let coalescent =
 		Coalescent::new(seqs, jukes_cantor(), &distances, &tree);
 
-	for _ in 0..100_000 {
+	for _ in 0..1_000_000 {
 		coalescent.likelihood();
 	}
 }

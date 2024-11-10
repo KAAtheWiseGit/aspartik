@@ -119,41 +119,17 @@ impl Coalescent {
 }
 
 fn multiply(row: Row, sub: Substitution) -> f64x4 {
-	let out = f64x4::ZERO;
-	unsafe {
-		let m = 4;
-		let k = 4;
-		let n = 1;
-		let alpha = 1.0;
-		let a = std::mem::transmute::<_, [f64; 16]>(sub);
-		let rsa = 1;
-		let csa = 1;
-		let b = std::mem::transmute::<_, [f64; 4]>(row);
-		let rsb = 1;
-		let csb = 1;
-		let beta = 1.0;
-		let mut c = std::mem::transmute::<_, [f64; 4]>(out);
-		let rsc = 1;
-		let csc = 1;
-		matrixmultiply::dgemm(
-			m,
-			k,
-			n,
-			alpha,
-			&a[0] as *const f64,
-			rsa,
-			csa,
-			&b[0] as *const f64,
-			rsb,
-			csb,
-			beta,
-			&mut c[0] as *mut f64,
-			rsc,
-			csc,
-		);
-	}
+	let a = sub[0] * row.as_array_ref()[0];
+	let c = sub[1] * row.as_array_ref()[1];
+	let g = sub[2] * row.as_array_ref()[2];
+	let t = sub[3] * row.as_array_ref()[3];
 
-	out
+	f64x4::new([
+		a.reduce_add(),
+		c.reduce_add(),
+		g.reduce_add(),
+		t.reduce_add(),
+	])
 }
 
 fn to_sub(sub: Matrix4<f64>) -> Substitution {
