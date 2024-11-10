@@ -7,6 +7,7 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [dependencies]
 base = { path ="../base" }
+matrixmultiply = "0.3.9"
 nalgebra = { workspace = true }
 wide = "0.7.28"
 
