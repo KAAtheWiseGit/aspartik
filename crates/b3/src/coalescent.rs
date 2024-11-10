@@ -57,7 +57,7 @@ impl Coalescent {
 	pub fn likelihood(&self) -> f64 {
 		let mut out = 0.0;
 
-		let any = DVec4::new(0.25, 0.25, 0.25, 0.25);
+		const ANY: DVec4 = DVec4::new(0.25, 0.25, 0.25, 0.25);
 
 		let mut t = vec![
 			DVec4::ZERO;
@@ -79,7 +79,7 @@ impl Coalescent {
 					DnaNucleoBase::Thymine => {
 						t[i] = DVec4::W;
 					}
-					_ => t[i] = any,
+					_ => t[i] = ANY,
 				}
 			}
 
