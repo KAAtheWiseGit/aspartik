@@ -6,14 +6,17 @@ pub struct Coalescent {
 	columns: Vec<DnaSeq>,
 	children: Vec<(usize, usize)>,
 	parents: Vec<usize>,
+	substitutions: Vec<Substitution>,
 }
 
 impl Coalescent {
 	pub fn likelihood(&self) -> f64 {
 		let mut out = 1.0;
 
-		for column in &self.columns {
-			out *= prune_likelihood(column, &self.children);
+		for (column, sub) in
+			self.columns.iter().zip(&self.substitutions)
+		{
+			out *= prune_likelihood(sub, column, &self.children);
 		}
 
 		out
@@ -21,15 +24,13 @@ impl Coalescent {
 }
 
 type Table = OMatrix<f64, Dyn, U4>;
+type Substitution = Matrix4<f64>;
 
-fn prune_likelihood(bases: &DnaSeq, children: &[(usize, usize)]) -> f64 {
-	let mut jk = Matrix4::from_element(1.0 / 3.0);
-	jk[(0, 0)] = -1.0;
-	jk[(1, 1)] = -1.0;
-	jk[(2, 2)] = -1.0;
-	jk[(3, 3)] = -1.0;
-	let jk = jk;
-
+fn prune_likelihood(
+	sub: &Substitution,
+	bases: &DnaSeq,
+	children: &[(usize, usize)],
+) -> f64 {
 	let mut t = Table::repeat(bases.length() + children.len(), 0.0);
 
 	for (i, base) in bases.iter().enumerate() {
@@ -48,8 +49,8 @@ fn prune_likelihood(bases: &DnaSeq, children: &[(usize, usize)]) -> f64 {
 		let len_left = 1.0;
 		let len_right = 1.0;
 
-		let prob_left = t.row(*left) * (jk * len_left).exp();
-		let prob_right = t.row(*right) * (jk * len_right).exp();
+		let prob_left = t.row(*left) * (sub * len_left).exp();
+		let prob_right = t.row(*right) * (sub * len_right).exp();
 
 		let new = prob_left.component_mul(&prob_right);
 		t.set_row(i + bases.length(), &new);
@@ -64,10 +65,12 @@ mod test {
 
 	#[test]
 	fn minimal() {
+		use base::substitution::dna::jukes_cantor;
+
 		let bases = DnaSeq::try_from("AAGCT").unwrap();
 
 		let tree = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
 
-		prune_likelihood(&bases, &tree);
+		prune_likelihood(&jukes_cantor(), &bases, &tree);
 	}
 }
