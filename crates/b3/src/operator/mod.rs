@@ -26,6 +26,8 @@ use crate::{parameter::Parameter, state::State};
 //   - [ ] Bactrian versions for all distribution dependent operators from the
 //     above
 
+pub mod scheduler;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Status {
 	Accept,
@@ -56,5 +58,5 @@ pub struct Proposal {
 }
 
 pub trait Operator {
-	fn propose(state: &State, rng: &mut Rng) -> Proposal;
+	fn propose(&self, state: &State, rng: &mut Rng) -> Proposal;
 }
