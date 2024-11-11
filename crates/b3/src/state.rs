@@ -20,7 +20,7 @@ impl State {
 		let name = name.as_ref();
 
 		if let Some(proposal) = &self.proposal {
-			if let Some(param) = proposal.params().get(name) {
+			if let Some(param) = proposal.params.get(name) {
 				return param;
 			}
 		}
@@ -77,7 +77,7 @@ impl State {
 			return;
 		};
 
-		for (name, param) in proposal.take_params() {
+		for (name, param) in std::mem::take(&mut proposal.params) {
 			self.params.insert(name, param);
 		}
 
