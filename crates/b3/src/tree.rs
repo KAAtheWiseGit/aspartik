@@ -160,8 +160,10 @@ impl Tree {
 	}
 
 	// TODO: return reverse edit
-	pub fn update_with(&mut self, edit: TreeEdit) {
+	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
+		let mut old_weights = Vec::with_capacity(edit.weights.len());
 		for (node, weight) in edit.weights.iter().copied() {
+			old_weights.push((node, self.weights[node]));
 			self.weights[node] = weight;
 		}
 
@@ -191,6 +193,11 @@ impl Tree {
 
 		self.update_affected(edit.weights.iter().map(|(n, _)| n));
 		self.update_affected(edit.parents.iter().map(|(n, _)| n));
+
+		TreeEdit {
+			weights: old_weights,
+			parents: edit.parents,
+		}
 	}
 
 	fn update_affected<'a, I>(&mut self, nodes: I)
