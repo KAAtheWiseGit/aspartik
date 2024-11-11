@@ -7,9 +7,13 @@ type Row = f64x4;
 type Substitution = [f64x4; 4];
 
 pub struct Coalescent {
+	/// Leaf node DNA sequences.
 	columns: Vec<DnaSeq>,
+	/// Tuples of left and right children indices of the internal nodes.
 	children: Vec<(usize, usize)>,
+	/// Substitution matrices for edges, specified in `children`.
 	substitutions: Vec<(Substitution, Substitution)>,
+	probabilities: Vec<Vec<Row>>,
 }
 
 impl Coalescent {
@@ -51,71 +55,76 @@ impl Coalescent {
 			substitutions.push((left, right));
 		}
 
+		let probabilities = vec![
+			vec![
+				f64x4::new([0.0, 0.0, 0.0, 0.0]);
+				columns.len() + edges.len()
+			];
+			columns[0].len()
+		];
+
 		Self {
 			columns,
 			children: edges.into(),
 			substitutions,
+			probabilities,
 		}
+	}
+
+	pub fn num_leaves(&self) -> usize {
+		self.columns[0].len()
+	}
+
+	pub fn num_internals(&self) -> usize {
+		self.children.len()
 	}
 
 	pub fn likelihood(&self) -> f64 {
-		let mut out = 0.0;
+		self.probabilities
+			.iter()
+			.map(|p| p.last().unwrap().reduce_add().ln())
+			.sum()
+	}
 
-		let mut t = vec![
-			f64x4::new([0.0, 0.0, 0.0, 0.0]);
-			self.columns.len() + self.children.len()
-		];
-
-		for column in &self.columns {
+	pub fn update_leaf_probabilites(&mut self) {
+		for (column, probability) in
+			self.columns.iter().zip(&mut self.probabilities)
+		{
 			for (i, base) in column.iter().enumerate() {
-				match base {
-					DnaNucleoBase::Adenine => {
-						t[i] = f64x4::new([
-							1.0, 0.0, 0.0, 0.0,
-						]);
-					}
-					DnaNucleoBase::Cytosine => {
-						t[i] = f64x4::new([
-							0.0, 0.0, 1.0, 0.0,
-						]);
-					}
-					DnaNucleoBase::Guanine => {
-						t[i] = f64x4::new([
-							0.0, 0.0, 1.0, 0.0,
-						]);
-					}
-					DnaNucleoBase::Thymine => {
-						t[i] = f64x4::new([
-							0.0, 0.0, 0.0, 1.0,
-						]);
-					}
-					_ => {
-						t[i] = f64x4::new([
-							0.25, 0.25, 0.25, 0.25,
-						])
-					}
-				}
+				probability[i] = to_row(base);
 			}
+		}
+	}
 
-			for i in 0..self.children.len() {
+	pub fn update_internal_probabilities<I>(&mut self, nodes: &[usize]) {
+		let num_leaves = self.num_leaves();
+
+		for probability in &mut self.probabilities {
+			for i in nodes {
 				let left = multiply(
-					t[self.children[i].0],
-					self.substitutions[i].0,
+					probability[self.children[*i].0],
+					self.substitutions[*i].0,
 				);
 				let right = multiply(
-					t[self.children[i].1],
-					self.substitutions[i].1,
+					probability[self.children[*i].1],
+					self.substitutions[*i].1,
 				);
-
-				let parent = left * right;
-				t[i + column.len()] = parent;
+				probability[i + num_leaves] = left * right;
 			}
-
-			out += t.last().unwrap().reduce_add().ln();
 		}
-
-		out
 	}
+}
+
+fn to_row(base: &DnaNucleoBase) -> Row {
+	match base {
+		DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
+		DnaNucleoBase::Cytosine => [0.0, 0.0, 1.0, 0.0],
+		DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
+		DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
+		// TODO: other types
+		_ => [0.25, 0.25, 0.25, 0.25],
+	}
+	.into()
 }
 
 #[inline(always)]
