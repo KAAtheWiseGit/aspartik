@@ -161,8 +161,8 @@ impl Tree {
 
 	// TODO: return reverse edit
 	pub fn update_with(&mut self, edit: TreeEdit) {
-		for (node, weight) in edit.weights() {
-			self.weights[*node] = *weight;
+		for (node, weight) in edit.weights.iter().copied() {
+			self.weights[node] = weight;
 		}
 
 		/// Swap the children of parent of `x`
@@ -178,7 +178,7 @@ impl Tree {
 			};
 		}
 
-		for (a, b) in edit.parents().iter().copied() {
+		for (a, b) in edit.parents.iter().copied() {
 			let parent_a = self.parents[a];
 			let parent_b = self.parents[b];
 
@@ -189,8 +189,8 @@ impl Tree {
 			self.parents[b] = parent_a;
 		}
 
-		self.update_affected(edit.weights().iter().map(|(n, _)| n));
-		self.update_affected(edit.parents().iter().map(|(n, _)| n));
+		self.update_affected(edit.weights.iter().map(|(n, _)| n));
+		self.update_affected(edit.parents.iter().map(|(n, _)| n));
 	}
 
 	fn update_affected<'a, I>(&mut self, nodes: I)
