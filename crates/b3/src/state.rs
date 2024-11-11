@@ -9,7 +9,7 @@ use crate::{
 pub struct State {
 	params: HashMap<String, Parameter>,
 	tree: Tree,
-	proposal: Option<Proposal>,
+	proposal: Proposal,
 }
 
 impl State {
@@ -19,10 +19,8 @@ impl State {
 	pub fn get_parameter<S: AsRef<str>>(&self, name: S) -> &Parameter {
 		let name = name.as_ref();
 
-		if let Some(proposal) = &self.proposal {
-			if let Some(param) = proposal.params.get(name) {
-				return param;
-			}
+		if let Some(param) = self.proposal.params.get(name) {
+			return param;
 		}
 
 		&self.params[name]
@@ -68,19 +66,25 @@ impl State {
 	}
 
 	pub fn propose(&mut self, proposal: Proposal) {
-		self.proposal = Some(proposal);
+		self.proposal = proposal;
+
+		let reverse = self
+			.tree
+			.update_with(self.proposal.tree.take().unwrap());
+		self.proposal.tree = Some(reverse);
 	}
 
 	/// Accept the current proposal
 	pub fn accept(&mut self) {
-		let Some(mut proposal) = self.proposal.take() else {
-			return;
-		};
-
-		for (name, param) in std::mem::take(&mut proposal.params) {
+		for (name, param) in std::mem::take(&mut self.proposal.params) {
 			self.params.insert(name, param);
 		}
+	}
 
-		// TODO: tree
+	pub fn reject(&mut self) {
+		self.proposal.params.clear();
+
+		// Roll the tree back
+		self.tree.update_with(self.proposal.tree.take().unwrap());
 	}
 }
