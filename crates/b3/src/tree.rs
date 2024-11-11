@@ -159,7 +159,6 @@ impl Tree {
 		}
 	}
 
-	// TODO: return reverse edit
 	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
 		let mut old_weights = Vec::with_capacity(edit.weights.len());
 		for (node, weight) in edit.weights.iter().copied() {

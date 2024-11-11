@@ -3,13 +3,19 @@ use std::collections::HashMap;
 use crate::{
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+	probability::Probability,
 	tree::Tree,
 };
 
 pub struct State {
+	/// Map of parameters by name.
 	params: HashMap<String, Parameter>,
+	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
+	/// Currently active proposal, or one opposite to it.
 	proposal: Proposal,
+	/// Priors against which the state should be evaluated.
+	prior: Box<dyn Probability>,
 }
 
 impl State {

@@ -19,8 +19,8 @@ use crate::state::State;
 //   - [x] Poisson
 //   - [x] Uniform
 //
-// - Tree likelihood.  This one might need a separate module or an
-//   implementation in another crate.
+// - Tree taxa groupings, which check the tree and return -inf if the conditions
+//   aren't met.
 mod compound;
 mod poisson;
 mod uniform;
