@@ -11,6 +11,7 @@ pub struct Tree {
 	columns: Vec<DnaSeq>,
 	/// Tuples of left and right children indices of the internal nodes.
 	children: Vec<(usize, usize)>,
+	parents: Vec<usize>,
 	probabilities: Vec<Vec<Row>>,
 	weights: Vec<f64>,
 
@@ -31,7 +32,6 @@ impl Tree {
 	{
 		let sequences: Vec<DnaSeq> = sequences.into_iter().collect();
 		let mut columns = Vec::new();
-
 		for i in 0..sequences[0].len() {
 			let mut column = DnaSeq::new();
 			for sequence in &sequences {
@@ -40,25 +40,27 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let substitutions = vec![
-			(
-				[f64x4::new([0.0, 0.0, 0.0, 0.0]); 4],
-				[f64x4::new([0.0, 0.0, 0.0, 0.0]); 4],
-			);
-			edges.len()
-		];
+		let num_leaves = columns.len();
+		let num_internals = edges.len();
+		let num_nodes = weights.len();
 
-		let probabilities = vec![
-			vec![
-				f64x4::new([0.0, 0.0, 0.0, 0.0]);
-				columns.len() + edges.len()
-			];
-			columns[0].len()
-		];
+		let mut parents = vec![usize::MAX; num_nodes];
+		for (i, (left, right)) in edges.iter().enumerate() {
+			parents[*left] = i + num_leaves;
+			parents[*right] = i + num_leaves;
+		}
+
+		let zero_row = f64x4::new([0.0, 0.0, 0.0, 0.0]);
+
+		let substitutions =
+			vec![([zero_row; 4], [zero_row; 4],); num_internals];
+
+		let probabilities = vec![vec![zero_row; num_nodes]; num_leaves];
 
 		let mut out = Self {
 			columns,
 			children: edges.into(),
+			parents,
 			probabilities,
 			weights: weights.into(),
 			substitutions,
