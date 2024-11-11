@@ -8,6 +8,7 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 [dependencies]
 base = { path ="../base" }
 nalgebra = { workspace = true }
+rand_xoshiro = "0.6.0"
 wide = "0.7.28"
 
 [dev-dependencies]

@@ -1,3 +1,5 @@
+use rand_xoshiro::Xoshiro256StarStar;
+
 use std::collections::HashMap;
 
 use crate::{parameter::Parameter, state::State};
@@ -33,6 +35,8 @@ pub enum Status {
 
 type NodeWeight = f64;
 type NodeIndex = usize;
+
+pub type Rng = Xoshiro256StarStar;
 
 #[derive(Default, Debug, Clone)]
 pub struct TreeEdit {
@@ -70,6 +74,5 @@ impl Proposal {
 }
 
 pub trait Operator {
-	// TODO: rng
-	fn propose(state: &State) -> Proposal;
+	fn propose(state: &State, rng: &mut Rng) -> Proposal;
 }
