@@ -70,8 +70,8 @@ impl State {
 
 		let reverse = self
 			.tree
-			.update_with(self.proposal.tree.take().unwrap());
-		self.proposal.tree = Some(reverse);
+			.update_with(std::mem::take(&mut self.proposal.tree));
+		self.proposal.tree = reverse;
 	}
 
 	/// Accept the current proposal
@@ -85,6 +85,7 @@ impl State {
 		self.proposal.params.clear();
 
 		// Roll the tree back
-		self.tree.update_with(self.proposal.tree.take().unwrap());
+		self.tree
+			.update_with(std::mem::take(&mut self.proposal.tree));
 	}
 }

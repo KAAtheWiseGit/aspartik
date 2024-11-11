@@ -52,7 +52,7 @@ pub struct Proposal {
 	/// A hash map of parameters updated by the operator.
 	pub params: HashMap<String, Parameter>,
 	/// A proposed edit of the tree.
-	pub tree: Option<TreeEdit>,
+	pub tree: TreeEdit,
 }
 
 pub trait Operator {
