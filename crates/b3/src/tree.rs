@@ -56,14 +56,22 @@ impl Tree {
 			columns[0].len()
 		];
 
-		Self {
+		let mut out = Self {
 			columns,
 			children: edges.into(),
 			probabilities,
 			weights: weights.into(),
 			substitutions,
 			model: substitution_model,
-		}
+		};
+
+		out.update_substitutions(out.num_leaves()..out.num_nodes());
+		out.update_leaf_probabilites();
+		out.update_internal_probabilities(
+			out.num_leaves()..out.num_nodes(),
+		);
+
+		out
 	}
 
 	pub fn num_leaves(&self) -> usize {
@@ -72,6 +80,10 @@ impl Tree {
 
 	pub fn num_internals(&self) -> usize {
 		self.children.len()
+	}
+
+	pub fn num_nodes(&self) -> usize {
+		self.num_leaves() + self.num_internals()
 	}
 
 	pub fn likelihood(&self) -> f64 {
