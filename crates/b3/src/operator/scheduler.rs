@@ -16,11 +16,11 @@ impl TurnScheduler {
 		}
 	}
 
-	pub fn get_operator(&mut self) -> &Box<dyn Operator> {
+	pub fn get_operator(&mut self) -> &dyn Operator {
 		let out = &self.operators[self.current];
 
 		self.current = (self.current + 1) % self.operators.len();
 
-		out
+		Box::as_ref(out)
 	}
 }
