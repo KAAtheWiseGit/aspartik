@@ -6,7 +6,7 @@ use base::{seq::DnaSeq, DnaNucleoBase};
 type Row = f64x4;
 type Substitution = [f64x4; 4];
 
-pub struct Coalescent {
+pub struct Tree {
 	/// Leaf node DNA sequences.
 	columns: Vec<DnaSeq>,
 	/// Tuples of left and right children indices of the internal nodes.
@@ -16,7 +16,7 @@ pub struct Coalescent {
 	probabilities: Vec<Vec<Row>>,
 }
 
-impl Coalescent {
+impl Tree {
 	pub fn new<S>(
 		sequences: S,
 		substitution_model: Matrix4<f64>,

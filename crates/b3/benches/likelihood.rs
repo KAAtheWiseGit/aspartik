@@ -17,10 +17,10 @@ fn likelihood() {
 	let distances = vec![0.75, 0.60, 1.1, 0.9, 0.85, 0.8, 0.5, 0.7, 0.3];
 
 	let coalescent =
-		Coalescent::new(seqs, jukes_cantor(), &distances, &tree);
+		Tree::new(seqs, jukes_cantor(), &distances, &tree);
 
 	for _ in 0..1_000_000 {
-		coalescent.likelihood();
+		coalescent.likelihood_();
 	}
 }
 
