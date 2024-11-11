@@ -1,3 +1,5 @@
+use serde_json::{json, Value as Json};
+
 use std::collections::HashMap;
 
 use crate::{
@@ -93,5 +95,12 @@ impl State {
 		// Roll the tree back
 		self.tree
 			.update_with(std::mem::take(&mut self.proposal.tree));
+	}
+
+	pub fn serialize(&self) -> Json {
+		json!({
+			"tree": self.tree.serialize(),
+			"parameters": self.params,
+		})
 	}
 }

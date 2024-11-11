@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Param<T: Copy + PartialOrd> {
 	pub values: Vec<T>,
 	pub min: Option<T>,
@@ -29,7 +31,7 @@ impl<T: Copy + PartialOrd> Param<T> {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Parameter {
 	Real(RealParam),
 	Integer(IntegerParam),

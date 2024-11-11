@@ -1,4 +1,5 @@
 use nalgebra::Matrix4;
+use serde_json::{json, Value as Json};
 use wide::f64x4;
 
 use std::collections::{HashSet, VecDeque};
@@ -236,6 +237,13 @@ impl Tree {
 		let slice = deq.make_contiguous();
 		self.update_substitutions(slice.iter().copied());
 		self.update_internal_probabilities(slice.iter().copied());
+	}
+
+	pub fn serialize(&self) -> Json {
+		json!({
+			"children": self.children,
+			"weights": self.weights,
+		})
 	}
 }
 
