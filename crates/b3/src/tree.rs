@@ -1,6 +1,9 @@
 use nalgebra::Matrix4;
 use wide::f64x4;
 
+use std::collections::{HashSet, VecDeque};
+
+use crate::operator::TreeEdit;
 use base::{seq::DnaSeq, DnaNucleoBase};
 
 type Row = f64x4;
@@ -154,6 +157,68 @@ impl Tree {
 				probability[i + num_leaves] = left * right;
 			}
 		}
+	}
+
+	// TODO: return reverse edit
+	pub fn update_with(&mut self, edit: TreeEdit) {
+		let num_leaves = self.num_leaves();
+
+		for (node, weight) in edit.weights() {
+			self.weights[*node] = *weight;
+		}
+
+		for (node, new_parent) in edit.parents() {
+			self.parents[*node] = *new_parent;
+			let r = &mut self.children[new_parent - num_leaves];
+
+			if r.0 == *node {
+				r.0 = *node;
+			} else if r.1 == *node {
+				r.1 = *node;
+			}
+		}
+
+		self.update_affected(edit.weights().iter().map(|(n, _)| n));
+		self.update_affected(edit.parents().iter().map(|(n, _)| n));
+	}
+
+	fn update_affected<'a, I>(&mut self, nodes: I)
+	where
+		I: IntoIterator<Item = &'a usize> + 'a,
+	{
+		let mut deq = VecDeque::<usize>::new();
+		let mut set = HashSet::<usize>::new();
+
+		for node in nodes {
+			let mut curr = *node;
+			let mut chain = Vec::new();
+
+			// Walk up from the starting nodes until the root, stop
+			// when we encounter a node we have already walked.
+			while !set.contains(&curr) && curr != usize::MAX {
+				set.insert(curr);
+
+				// If the node is internal, add it to the
+				// current chain.
+				if curr >= self.num_leaves() {
+					chain.push(curr);
+				}
+
+				curr = self.parents[curr];
+			}
+
+			// Prepend the chain to the deque.  The first chain will
+			// insert the root node and walk backwards.  All of the
+			// rest will also go in the front, ensuring that
+			// children always go befor their parents.
+			while let Some(val) = chain.pop() {
+				deq.push_front(val);
+			}
+		}
+
+		let slice = deq.make_contiguous();
+		self.update_substitutions(slice.iter().copied());
+		self.update_internal_probabilities(slice.iter().copied());
 	}
 }
 
