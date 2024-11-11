@@ -115,18 +115,23 @@ impl Tree {
 		}
 	}
 
-	pub fn update_internal_probabilities<I>(&mut self, nodes: &[usize]) {
+	pub fn update_internal_probabilities<I>(&mut self, nodes: I)
+	where
+		I: IntoIterator<Item = usize> + Clone,
+	{
 		let num_leaves = self.num_leaves();
 
 		for probability in &mut self.probabilities {
-			for i in nodes {
+			// This should be fast for ranges and a cheap copy for
+			// slice iterators.
+			for i in nodes.clone() {
 				let left = multiply(
-					probability[self.children[*i].0],
-					self.substitutions[*i].0,
+					probability[self.children[i].0],
+					self.substitutions[i].0,
 				);
 				let right = multiply(
-					probability[self.children[*i].1],
-					self.substitutions[*i].1,
+					probability[self.children[i].1],
+					self.substitutions[i].1,
 				);
 				probability[i + num_leaves] = left * right;
 			}
