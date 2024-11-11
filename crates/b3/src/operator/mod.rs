@@ -28,27 +28,38 @@ use crate::{parameter::Parameter, state::State};
 pub enum Status {
 	Accept,
 	Reject,
-	// TODO: decide if it should be log or not
 	Hastings(f64),
 }
 
-// TODO: node height type, tree nodo type
-type NodeHeight = ();
-type NodeIndex = ();
+type NodeWeight = f64;
+type NodeIndex = usize;
 
+#[derive(Default, Debug, Clone)]
 pub struct TreeEdit {
-	heights: HashMap<NodeIndex, NodeHeight>,
-	// TODO: verify this is enough for arbitrary edits
-	/// The key is the old child.  The value is the new child.
-	children: HashMap<NodeIndex, NodeIndex>,
+	/// Update the weight of nodes on the left to values on the right.
+	weights: Vec<(NodeIndex, NodeWeight)>,
+	/// Update the parents of nodes on the left to nodes specified on the
+	/// right.
+	parents: Vec<(NodeIndex, NodeIndex)>,
 }
 
+impl TreeEdit {
+	pub fn weights(&self) -> &[(NodeIndex, NodeWeight)] {
+		&self.weights
+	}
+
+	pub fn parents(&self) -> &[(NodeIndex, NodeIndex)] {
+		&self.parents
+	}
+}
+
+#[derive(Debug, Clone)]
 pub struct Proposal {
 	status: Status,
 	/// A hash map of parameters updated by the operator.
 	params: HashMap<String, Parameter>,
 	// Might require additional optimisations, so it's separate
-	wree: Option<TreeEdit>,
+	tree: Option<TreeEdit>,
 }
 
 impl Proposal {
@@ -62,6 +73,10 @@ impl Proposal {
 
 	pub fn take_params(&mut self) -> HashMap<String, Parameter> {
 		std::mem::take(&mut self.params)
+	}
+
+	pub fn take_tree_edit(&mut self) -> Option<TreeEdit> {
+		std::mem::take(&mut self.tree)
 	}
 }
 
