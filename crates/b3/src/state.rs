@@ -3,9 +3,8 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	operator::Proposal,
+	operator::{Proposal, Status},
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	probability::Probability,
 	tree::Tree,
 };
 
@@ -16,11 +15,13 @@ pub struct State {
 	tree: Tree,
 	/// Currently active proposal, or one opposite to it.
 	proposal: Proposal,
-	/// Priors against which the state should be evaluated.
-	prior: Box<dyn Probability>,
 }
 
 impl State {
+	pub fn likelihood(&self) -> f64 {
+		self.tree.likelihood()
+	}
+
 	/// # Panics
 	///
 	/// Panics if `name` is not a valid parameter name.
@@ -71,6 +72,10 @@ impl State {
 
 	pub fn get_tree(&self) -> &Tree {
 		&self.tree
+	}
+
+	pub fn get_proposal_status(&self) -> Status {
+		self.proposal.status
 	}
 
 	pub fn propose(&mut self, proposal: Proposal) {
