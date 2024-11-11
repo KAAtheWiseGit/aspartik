@@ -46,6 +46,8 @@ dependencies = [
  "criterion",
  "nalgebra",
  "rand_xoshiro",
+ "serde",
+ "serde_json",
  "wide",
 ]
 
