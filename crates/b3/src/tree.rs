@@ -11,16 +11,19 @@ pub struct Tree {
 	columns: Vec<DnaSeq>,
 	/// Tuples of left and right children indices of the internal nodes.
 	children: Vec<(usize, usize)>,
+	probabilities: Vec<Vec<Row>>,
+	weights: Vec<f64>,
+
 	/// Substitution matrices for edges, specified in `children`.
 	substitutions: Vec<(Substitution, Substitution)>,
-	probabilities: Vec<Vec<Row>>,
+	model: Matrix4<f64>,
 }
 
 impl Tree {
 	pub fn new<S>(
 		sequences: S,
 		substitution_model: Matrix4<f64>,
-		nodes: &[f64],
+		weights: &[f64],
 		edges: &[(usize, usize)],
 	) -> Self
 	where
@@ -37,23 +40,13 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let mut substitutions = Vec::new();
-		for (i, (left, right)) in edges
-			.iter()
-			.enumerate()
-			.map(|(i, lr)| (i + sequences.len(), lr))
-		{
-			let left_distance = nodes[*left] - nodes[i];
-			let right_distance = nodes[*right] - nodes[i];
-
-			let left = (substitution_model * left_distance).exp();
-			let right = (substitution_model * right_distance).exp();
-
-			let left = to_sub(left);
-			let right = to_sub(right);
-
-			substitutions.push((left, right));
-		}
+		let substitutions = vec![
+			(
+				[f64x4::new([0.0, 0.0, 0.0, 0.0]); 4],
+				[f64x4::new([0.0, 0.0, 0.0, 0.0]); 4],
+			);
+			edges.len()
+		];
 
 		let probabilities = vec![
 			vec![
@@ -66,8 +59,10 @@ impl Tree {
 		Self {
 			columns,
 			children: edges.into(),
-			substitutions,
 			probabilities,
+			weights: weights.into(),
+			substitutions,
+			model: substitution_model,
 		}
 	}
 
@@ -84,6 +79,30 @@ impl Tree {
 			.iter()
 			.map(|p| p.last().unwrap().reduce_add().ln())
 			.sum()
+	}
+
+	pub fn update_substitutions<I>(&mut self, nodes: I)
+	where
+		I: IntoIterator<Item = usize>,
+	{
+		let num_leaves = self.num_leaves();
+
+		for i in nodes {
+			let (left, right) = self.children[i - num_leaves];
+
+			let left_distance =
+				self.weights[left] - self.weights[i];
+			let right_distance =
+				self.weights[right] - self.weights[i];
+
+			let left = (self.model * left_distance).exp();
+			let right = (self.model * right_distance).exp();
+
+			let left = to_sub(left);
+			let right = to_sub(right);
+
+			self.substitutions[i - num_leaves] = (left, right);
+		}
 	}
 
 	pub fn update_leaf_probabilites(&mut self) {
