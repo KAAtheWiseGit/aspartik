@@ -99,8 +99,8 @@ impl Tree {
 	{
 		let num_leaves = self.num_leaves();
 
-		for i in nodes {
-			let (left, right) = self.children[i - num_leaves];
+		for i in nodes.into_iter().map(|i| i - num_leaves) {
+			let (left, right) = self.children[i];
 
 			let left_distance =
 				self.weights[left] - self.weights[i];
@@ -113,7 +113,7 @@ impl Tree {
 			let left = to_sub(left);
 			let right = to_sub(right);
 
-			self.substitutions[i - num_leaves] = (left, right);
+			self.substitutions[i] = (left, right);
 		}
 	}
 
@@ -136,7 +136,11 @@ impl Tree {
 		for probability in &mut self.probabilities {
 			// This should be fast for ranges and a cheap copy for
 			// slice iterators.
-			for i in nodes.clone() {
+			for i in nodes
+				.clone()
+				.into_iter()
+				.map(|i| i - num_leaves)
+			{
 				let left = multiply(
 					probability[self.children[i].0],
 					self.substitutions[i].0,
