@@ -38,8 +38,7 @@ type NodeIndex = usize;
 pub struct TreeEdit {
 	/// Update the weight of nodes on the left to values on the right.
 	weights: Vec<(NodeIndex, NodeWeight)>,
-	/// Update the parents of nodes on the left to nodes specified on the
-	/// right.
+	/// Swap the parents of nodes on the left and on the right.
 	parents: Vec<(NodeIndex, NodeIndex)>,
 }
 

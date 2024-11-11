@@ -161,21 +161,32 @@ impl Tree {
 
 	// TODO: return reverse edit
 	pub fn update_with(&mut self, edit: TreeEdit) {
-		let num_leaves = self.num_leaves();
-
 		for (node, weight) in edit.weights() {
 			self.weights[*node] = *weight;
 		}
 
-		for (node, new_parent) in edit.parents() {
-			self.parents[*node] = *new_parent;
-			let r = &mut self.children[new_parent - num_leaves];
+		/// Swap the children of parent of `x`
+		macro_rules! swap {
+			($parent_x:ident, $x:ident, $y:ident) => {
+				if $parent_x != usize::MAX {
+					if self.children[$parent_x].0 == $y {
+						self.children[$parent_x].0 = $y;
+					} else {
+						self.children[$parent_x].1 = $y;
+					}
+				}
+			};
+		}
 
-			if r.0 == *node {
-				r.0 = *node;
-			} else if r.1 == *node {
-				r.1 = *node;
-			}
+		for (a, b) in edit.parents().iter().copied() {
+			let parent_a = self.parents[a];
+			let parent_b = self.parents[b];
+
+			swap!(parent_a, a, b);
+			swap!(parent_b, b, a);
+
+			self.parents[a] = parent_b;
+			self.parents[b] = parent_a;
 		}
 
 		self.update_affected(edit.weights().iter().map(|(n, _)| n));
