@@ -3,10 +3,12 @@ use std::collections::HashMap;
 use crate::{
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+	tree::Tree,
 };
 
 pub struct State {
 	params: HashMap<String, Parameter>,
+	tree: Tree,
 	proposal: Option<Proposal>,
 }
 
@@ -57,12 +59,13 @@ impl State {
 	}
 
 	pub fn has_parameter<S: AsRef<str>>(&self, name: S) -> bool {
-		// proposal can't have parameters not already in state
+		// Proposal can't have parameters not already in state.
 		self.params.contains_key(name.as_ref())
 	}
 
-	// XXX: Distinct?
-	// pub fn get_tree() -> Tree
+	pub fn get_tree(&self) -> &Tree {
+		&self.tree
+	}
 
 	pub fn propose(&mut self, proposal: Proposal) {
 		self.proposal = Some(proposal);
