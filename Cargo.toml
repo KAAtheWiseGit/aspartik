@@ -13,9 +13,14 @@ license = "AGPL-3.0-only"
 authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
-petgraph = "0.6.5"
-thiserror = "1.0.67"
+criterion = "0.5"
 nalgebra = "0.33.2"
+petgraph = "0.6.5"
+rand_xoshiro = "0.6.0"
+serde = "1.0.214"
+serde_json = "1.0.132"
+thiserror = "1.0.67"
+wide = "0.7.28"
 
 [profile.bench]
 debug = true

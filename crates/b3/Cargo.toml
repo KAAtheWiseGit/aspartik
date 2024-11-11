@@ -7,14 +7,15 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [dependencies]
 base = { path ="../base" }
+
 nalgebra = { workspace = true }
-rand_xoshiro = "0.6.0"
-serde = { version = "1.0.214", features = ["derive"] }
-serde_json = "1.0.132"
-wide = "0.7.28"
+rand_xoshiro = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+wide = { workspace = true }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { workspace = true, features = ["html_reports"] }
 
 [[bench]]
 name = "likelihood"
