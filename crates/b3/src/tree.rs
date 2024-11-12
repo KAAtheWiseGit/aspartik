@@ -163,10 +163,23 @@ impl Tree {
 		let i = range.sample(rng);
 		Internal(i)
 	}
+
 	pub fn sample_leaf<R: Rng + ?Sized>(&self, rng: &mut R) -> Leaf {
 		let range = Uniform::from(0..self.num_leaves());
 		let i = range.sample(rng);
 		Leaf(i)
+	}
+
+	pub fn nodes(&self) -> impl Iterator<Item = Node> {
+		(0..self.num_nodes()).map(Node)
+	}
+
+	pub fn internals(&self) -> impl Iterator<Item = Internal> {
+		(self.num_leaves()..self.num_nodes()).map(Internal)
+	}
+
+	pub fn leaves(&self) -> impl Iterator<Item = Leaf> {
+		(0..self.num_leaves()).map(Leaf)
 	}
 
 	pub fn likelihood(&self) -> f64 {
