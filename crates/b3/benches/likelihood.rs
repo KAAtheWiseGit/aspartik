@@ -11,11 +11,11 @@ use base::{seq::DnaSeq, substitution::dna::jukes_cantor};
 
 fn likelihood() {
 	let seqs = vec![
-		DnaSeq::try_from("AAGCT".repeat(10).as_ref()).unwrap(),
-		DnaSeq::try_from("CAGCT".repeat(10).as_ref()).unwrap(),
-		DnaSeq::try_from("ATGCA".repeat(10).as_ref()).unwrap(),
-		DnaSeq::try_from("ATGCT".repeat(10).as_ref()).unwrap(),
-		DnaSeq::try_from("TAGCA".repeat(10).as_ref()).unwrap(),
+		DnaSeq::try_from("AAGCT".repeat(350).as_ref()).unwrap(),
+		DnaSeq::try_from("CAGCT".repeat(350).as_ref()).unwrap(),
+		DnaSeq::try_from("ATGCA".repeat(350).as_ref()).unwrap(),
+		DnaSeq::try_from("ATGCT".repeat(350).as_ref()).unwrap(),
+		DnaSeq::try_from("TAGCA".repeat(350).as_ref()).unwrap(),
 	];
 	let children = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
 	let weights = vec![0.75, 0.60, 1.1, 0.9, 0.85, 0.8, 0.5, 0.7, 0.3];
