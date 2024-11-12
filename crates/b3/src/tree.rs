@@ -1,4 +1,8 @@
 use nalgebra::Matrix4;
+use rand::{
+	distributions::{Distribution, Uniform},
+	Rng,
+};
 use serde_json::{json, Value as Json};
 use wide::f64x4;
 
@@ -139,6 +143,26 @@ impl Tree {
 	/// the tree.
 	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<usize> {
 		Some(self.parents[node.into().0]).take_if(|p| *p == ROOT)
+	}
+
+	pub fn sample_node<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
+		let range = Uniform::from(0..self.num_nodes());
+		let i = range.sample(rng);
+		Node(i)
+	}
+
+	pub fn sample_internal<R: Rng + ?Sized>(
+		&self,
+		rng: &mut R,
+	) -> Internal {
+		let range = Uniform::from(self.num_leaves()..self.num_nodes());
+		let i = range.sample(rng);
+		Internal(i)
+	}
+	pub fn sample_leaf<R: Rng + ?Sized>(&self, rng: &mut R) -> Leaf {
+		let range = Uniform::from(0..self.num_leaves());
+		let i = range.sample(rng);
+		Leaf(i)
 	}
 
 	pub fn likelihood(&self) -> f64 {
