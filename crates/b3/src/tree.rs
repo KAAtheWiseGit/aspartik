@@ -26,6 +26,24 @@ pub struct Tree {
 	model: Matrix4<f64>,
 }
 
+pub struct Node(usize);
+
+impl From<Internal> for Node {
+	fn from(internal: Internal) -> Node {
+		Self(internal.0)
+	}
+}
+
+impl From<Leaf> for Node {
+	fn from(leaf: Leaf) -> Node {
+		Node(leaf.0)
+	}
+}
+
+pub struct Internal(usize);
+
+pub struct Leaf(usize);
+
 impl Tree {
 	pub fn new<S>(
 		sequences: S,
@@ -94,38 +112,33 @@ impl Tree {
 		self.num_leaves() + self.num_internals()
 	}
 
-	pub fn is_leaf(&self, node: usize) -> bool {
-		node < self.num_leaves()
+	pub fn is_leaf<N: Into<Node>>(&self, node: N) -> bool {
+		node.into().0 < self.num_leaves()
 	}
 
-	pub fn is_internal(&self, node: usize) -> bool {
-		node >= self.num_leaves()
+	pub fn is_internal<N: Into<Node>>(&self, node: N) -> bool {
+		node.into().0 >= self.num_leaves()
 	}
 
 	/// Returns the index of the root node.
-	pub fn root(&self) -> usize {
+	pub fn root(&self) -> Internal {
 		// There must always be a rooted element in the tree.
-		self.parents.iter().position(|p| *p == ROOT).unwrap()
+		let i = self.parents.iter().position(|p| *p == ROOT).unwrap();
+		Internal(i)
 	}
 
-	pub fn weight_of(&self, node: usize) -> f64 {
-		self.weights[node]
+	pub fn weight_of<N: Into<Node>>(&self, node: N) -> f64 {
+		self.weights[node.into().0]
 	}
 
-	/// Returns the left and right children of an internal node, or `None`
-	/// if the node is a leaf.
-	pub fn children_of(&self, node: usize) -> Option<(usize, usize)> {
-		if self.is_internal(node) {
-			Some(self.children[node - self.num_leaves()])
-		} else {
-			None
-		}
+	pub fn children_of(&self, node: Internal) -> (usize, usize) {
+		self.children[node.0 - self.num_leaves()]
 	}
 
 	/// Returns the parent of `node`, or `None` if the node is the root of
 	/// the tree.
-	pub fn parent_of(&self, node: usize) -> Option<usize> {
-		Some(self.parents[node]).take_if(|p| *p == ROOT)
+	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<usize> {
+		Some(self.parents[node.into().0]).take_if(|p| *p == ROOT)
 	}
 
 	pub fn likelihood(&self) -> f64 {
