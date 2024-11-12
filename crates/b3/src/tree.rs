@@ -135,14 +135,18 @@ impl Tree {
 		self.weights[node.into().0]
 	}
 
-	pub fn children_of(&self, node: Internal) -> (usize, usize) {
-		self.children[node.0 - self.num_leaves()]
+	pub fn children_of(&self, node: Internal) -> (Node, Node) {
+		let (left, right) = self.children[node.0 - self.num_leaves()];
+
+		(Node(left), Node(right))
 	}
 
 	/// Returns the parent of `node`, or `None` if the node is the root of
 	/// the tree.
-	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<usize> {
-		Some(self.parents[node.into().0]).take_if(|p| *p == ROOT)
+	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<Internal> {
+		Some(self.parents[node.into().0])
+			.take_if(|p| *p == ROOT)
+			.map(Internal)
 	}
 
 	pub fn sample_node<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
