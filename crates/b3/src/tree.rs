@@ -30,6 +30,7 @@ pub struct Tree {
 	model: Matrix4<f64>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -44,8 +45,10 @@ impl From<Leaf> for Node {
 	}
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Internal(usize);
 
+#[derive(Debug, Clone, Copy)]
 pub struct Leaf(usize);
 
 impl Tree {
@@ -122,6 +125,24 @@ impl Tree {
 
 	pub fn is_internal<N: Into<Node>>(&self, node: N) -> bool {
 		node.into().0 >= self.num_leaves()
+	}
+
+	pub fn as_leaf<N: Into<Node>>(&self, node: N) -> Option<Leaf> {
+		let node = node.into();
+		if self.is_leaf(node) {
+			Some(Leaf(node.0))
+		} else {
+			None
+		}
+	}
+
+	pub fn as_internal<N: Into<Node>>(&self, node: N) -> Option<Internal> {
+		let node = node.into();
+		if self.is_internal(node) {
+			Some(Internal(node.0))
+		} else {
+			None
+		}
 	}
 
 	/// Returns the index of the root node.
