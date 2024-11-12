@@ -10,6 +10,8 @@ use base::{seq::DnaSeq, DnaNucleoBase};
 type Row = f64x4;
 type Substitution = [f64x4; 4];
 
+const ROOT: usize = usize::MAX;
+
 pub struct Tree {
 	/// Leaf node DNA sequences.
 	columns: Vec<DnaSeq>,
@@ -48,7 +50,7 @@ impl Tree {
 		let num_internals = edges.len();
 		let num_nodes = weights.len();
 
-		let mut parents = vec![usize::MAX; num_nodes];
+		let mut parents = vec![ROOT; num_nodes];
 		for (i, (left, right)) in edges.iter().enumerate() {
 			parents[*left] = i + num_leaves;
 			parents[*right] = i + num_leaves;
@@ -57,7 +59,7 @@ impl Tree {
 		let zero_row = f64x4::new([0.0, 0.0, 0.0, 0.0]);
 
 		let substitutions =
-			vec![([zero_row; 4], [zero_row; 4],); num_internals];
+			vec![([zero_row; 4], [zero_row; 4]); num_internals];
 
 		let probabilities = vec![vec![zero_row; num_nodes]; num_leaves];
 
@@ -90,6 +92,40 @@ impl Tree {
 
 	pub fn num_nodes(&self) -> usize {
 		self.num_leaves() + self.num_internals()
+	}
+
+	pub fn is_leaf(&self, node: usize) -> bool {
+		node < self.num_leaves()
+	}
+
+	pub fn is_internal(&self, node: usize) -> bool {
+		node >= self.num_leaves()
+	}
+
+	/// Returns the index of the root node.
+	pub fn root(&self) -> usize {
+		// There must always be a rooted element in the tree.
+		self.parents.iter().position(|p| *p == ROOT).unwrap()
+	}
+
+	pub fn weight_of(&self, node: usize) -> f64 {
+		self.weights[node]
+	}
+
+	/// Returns the left and right children of an internal node, or `None`
+	/// if the node is a leaf.
+	pub fn children_of(&self, node: usize) -> Option<(usize, usize)> {
+		if self.is_internal(node) {
+			Some(self.children[node - self.num_leaves()])
+		} else {
+			None
+		}
+	}
+
+	/// Returns the parent of `node`, or `None` if the node is the root of
+	/// the tree.
+	pub fn parent_of(&self, node: usize) -> Option<usize> {
+		Some(self.parents[node]).take_if(|p| *p == ROOT)
 	}
 
 	pub fn likelihood(&self) -> f64 {
@@ -170,7 +206,7 @@ impl Tree {
 		/// Swap the children of parent of `x`
 		macro_rules! swap {
 			($parent_x:ident, $x:ident, $y:ident) => {
-				if $parent_x != usize::MAX {
+				if $parent_x != ROOT {
 					if self.children[$parent_x].0 == $y {
 						self.children[$parent_x].0 = $y;
 					} else {
@@ -213,7 +249,7 @@ impl Tree {
 
 			// Walk up from the starting nodes until the root, stop
 			// when we encounter a node we have already walked.
-			while !set.contains(&curr) && curr != usize::MAX {
+			while !set.contains(&curr) && curr != ROOT {
 				set.insert(curr);
 
 				// If the node is internal, add it to the
