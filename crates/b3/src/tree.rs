@@ -166,7 +166,7 @@ impl Tree {
 	/// the tree.
 	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<Internal> {
 		Some(self.parents[node.into().0])
-			.take_if(|p| *p == ROOT)
+			.take_if(|p| *p != ROOT)
 			.map(Internal)
 	}
 
