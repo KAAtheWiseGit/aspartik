@@ -29,6 +29,8 @@ mod exchange;
 
 pub mod scheduler;
 
+pub use exchange::NarrowExchange;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Status {
 	Accept,

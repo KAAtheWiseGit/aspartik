@@ -25,6 +25,10 @@ mod compound;
 mod poisson;
 mod uniform;
 
+pub use compound::Compound;
+pub use poisson::Poisson;
+pub use uniform::Uniform;
+
 pub type LogProb = f64;
 
 pub trait Probability {

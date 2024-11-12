@@ -18,6 +18,14 @@ pub struct State {
 }
 
 impl State {
+	pub fn new(tree: Tree) -> State {
+		State {
+			params: HashMap::new(),
+			tree,
+			proposal: Proposal::reject(),
+		}
+	}
+
 	pub fn likelihood(&self) -> f64 {
 		self.tree.likelihood()
 	}

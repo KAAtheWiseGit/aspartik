@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-pub mod tree;
-mod mcmc;
-mod operator;
+pub mod mcmc;
+pub mod operator;
 mod parameter;
-mod probability;
-mod state;
+pub mod probability;
+pub mod state;
+pub mod tree;

@@ -13,7 +13,6 @@ pub struct Config {
 
 	pub state: usize,
 	pub trees: usize,
-
 	// TODO: logger
 }
 

@@ -1,7 +1,7 @@
 use super::Probability;
 use crate::state::State;
 
-struct Compound {
+pub struct Compound {
 	probabilities: Vec<Box<dyn Probability>>,
 }
 
