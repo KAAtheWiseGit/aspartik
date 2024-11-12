@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod mcmc;
 pub mod operator;
 mod parameter;

@@ -42,8 +42,8 @@ impl Operator for NarrowExchange {
 			return Proposal::reject();
 		}
 
-		// TODO: proper hastings
-		let num_grandparents_before: usize = (tree.num_leaves()
+		// TODO: proper Hastings ratio
+		let _num_grandparents_before: usize = (tree.num_leaves()
 			..tree.num_nodes())
 			.map(|node| is_grandparent(tree, node))
 			.map(|is_gp| is_gp as usize)
