@@ -2,7 +2,7 @@ use rand_xoshiro::Xoshiro256StarStar;
 
 use std::collections::HashMap;
 
-use crate::{parameter::Parameter, state::State};
+use crate::{parameter::Parameter, state::State, tree::Node};
 
 // Operators:
 // - [ ] Parameter operators
@@ -39,16 +39,15 @@ pub enum Status {
 }
 
 type NodeWeight = f64;
-type NodeIndex = usize;
 
 pub type Rng = Xoshiro256StarStar;
 
 #[derive(Debug, Clone, Default)]
 pub struct TreeEdit {
 	/// Update the weight of nodes on the left to values on the right.
-	pub weights: Vec<(NodeIndex, NodeWeight)>,
+	pub weights: Vec<(Node, NodeWeight)>,
 	/// Swap the parents of nodes on the left and on the right.
-	pub parents: Vec<(NodeIndex, NodeIndex)>,
+	pub parents: Vec<(Node, Node)>,
 }
 
 #[derive(Debug, Clone)]

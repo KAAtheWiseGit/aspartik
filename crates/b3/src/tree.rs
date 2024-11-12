@@ -30,7 +30,7 @@ pub struct Tree {
 	model: Matrix4<f64>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -45,10 +45,10 @@ impl From<Leaf> for Node {
 	}
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Internal(usize);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Leaf(usize);
 
 impl Tree {
@@ -274,43 +274,47 @@ impl Tree {
 	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
 		let mut old_weights = Vec::with_capacity(edit.weights.len());
 		for (node, weight) in edit.weights.iter().copied() {
-			old_weights.push((node, self.weights[node]));
-			self.weights[node] = weight;
+			old_weights.push((node, self.weights[node.0]));
+			self.weights[node.0] = weight;
 		}
 
 		/// Swap the children of parent of `x`
 		macro_rules! swap {
 			($parent_x:ident, $x:ident, $y:ident) => {
 				let num_leaves = self.num_leaves();
-				if $parent_x != ROOT {
-					if self.children[$parent_x - num_leaves]
-						.0 == $y
-					{
-						self.children[$parent_x
+				if let Some(parent) = $parent_x {
+					if self.children_of(parent).0 == $y {
+						self.children[parent.0
 							- num_leaves]
-							.0 = $y;
+							.0 = $y.0;
 					} else {
-						self.children[$parent_x
+						self.children[parent.0
 							- num_leaves]
-							.1 = $y;
+							.1 = $y.0;
 					}
 				}
 			};
 		}
 
 		for (a, b) in edit.parents.iter().copied() {
-			let parent_a = self.parents[a];
-			let parent_b = self.parents[b];
+			let parent_a = self.parent_of(a);
+			let parent_b = self.parent_of(b);
 
 			swap!(parent_a, a, b);
 			swap!(parent_b, b, a);
 
-			self.parents[a] = parent_b;
-			self.parents[b] = parent_a;
+			self.parents[a.0] =
+				parent_b.map(|p| p.0).unwrap_or(ROOT);
+			self.parents[b.0] =
+				parent_a.map(|p| p.0).unwrap_or(ROOT);
 		}
 
-		self.update_affected(edit.weights.iter().map(|(n, _)| n));
-		self.update_affected(edit.parents.iter().map(|(n, _)| n));
+		self.update_affected(
+			edit.weights.iter().map(|(n, _)| n).copied(),
+		);
+		self.update_affected(
+			edit.parents.iter().map(|(n, _)| n).copied(),
+		);
 
 		TreeEdit {
 			weights: old_weights,
@@ -318,15 +322,15 @@ impl Tree {
 		}
 	}
 
-	fn update_affected<'a, I>(&mut self, nodes: I)
+	fn update_affected<I>(&mut self, nodes: I)
 	where
-		I: IntoIterator<Item = &'a usize> + 'a,
+		I: IntoIterator<Item = Node>,
 	{
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();
 
 		for node in nodes {
-			let mut curr = *node;
+			let mut curr = node.0;
 			let mut chain = Vec::new();
 
 			// Walk up from the starting nodes until the root, stop
