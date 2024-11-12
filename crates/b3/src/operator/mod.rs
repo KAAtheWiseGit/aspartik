@@ -25,6 +25,7 @@ use crate::{parameter::Parameter, state::State};
 //   - [ ] Wilson-Balding branch swapping move
 //   - [ ] Bactrian versions for all distribution dependent operators from the
 //     above
+mod exchange;
 
 pub mod scheduler;
 
@@ -40,7 +41,7 @@ type NodeIndex = usize;
 
 pub type Rng = Xoshiro256StarStar;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TreeEdit {
 	/// Update the weight of nodes on the left to values on the right.
 	pub weights: Vec<(NodeIndex, NodeWeight)>,
@@ -55,6 +56,23 @@ pub struct Proposal {
 	pub params: HashMap<String, Parameter>,
 	/// A proposed edit of the tree.
 	pub tree: TreeEdit,
+}
+
+impl Proposal {
+	pub fn reject() -> Self {
+		Self {
+			status: Status::Reject,
+			params: HashMap::new(),
+			tree: TreeEdit::default(),
+		}
+	}
+
+	pub fn accept() -> Self {
+		Self {
+			status: Status::Reject,
+			..Proposal::reject()
+		}
+	}
 }
 
 pub trait Operator {
