@@ -46,7 +46,7 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let num_leaves = columns.len();
+		let num_leaves = columns[0].len();
 		let num_internals = edges.len();
 		let num_nodes = weights.len();
 
@@ -206,11 +206,18 @@ impl Tree {
 		/// Swap the children of parent of `x`
 		macro_rules! swap {
 			($parent_x:ident, $x:ident, $y:ident) => {
+				let num_leaves = self.num_leaves();
 				if $parent_x != ROOT {
-					if self.children[$parent_x].0 == $y {
-						self.children[$parent_x].0 = $y;
+					if self.children[$parent_x - num_leaves]
+						.0 == $y
+					{
+						self.children[$parent_x
+							- num_leaves]
+							.0 = $y;
 					} else {
-						self.children[$parent_x].1 = $y;
+						self.children[$parent_x
+							- num_leaves]
+							.1 = $y;
 					}
 				}
 			};
