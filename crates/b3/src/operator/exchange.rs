@@ -1,12 +1,12 @@
-use rand::{
-	distributions::{Distribution, Uniform},
-	Rng,
-};
+use rand::Rng;
 
 use std::collections::HashMap;
 
 use super::{Operator, Proposal, Rng as RngT, Status, TreeEdit};
-use crate::{state::State, tree::Tree};
+use crate::{
+	state::State,
+	tree::{Internal, Tree},
+};
 
 pub struct NarrowExchange();
 
@@ -18,17 +18,15 @@ impl Operator for NarrowExchange {
 			return Proposal::reject();
 		}
 
-		let range = Uniform::from(tree.num_leaves()..tree.num_nodes());
-
 		// An internal node which has at least one internal node child.
 		let grandparent = loop {
-			let node = range.sample(rng);
+			let node = tree.sample_internal(rng);
 			if is_grandparent(tree, node) {
 				break node;
 			}
 		};
 
-		let (left, right) = tree.children_of(grandparent).unwrap();
+		let (left, right) = tree.children_of(grandparent);
 
 		let (parent, uncle) =
 			if tree.weight_of(left) < tree.weight_of(right) {
@@ -38,21 +36,21 @@ impl Operator for NarrowExchange {
 			};
 
 		// If the lower child isn't internal, abort.
-		if tree.is_leaf(parent) {
+		let Some(parent) = tree.as_internal(parent) else {
 			return Proposal::reject();
-		}
+		};
 
 		// TODO: proper Hastings ratio
-		let _num_grandparents_before: usize = (tree.num_leaves()
-			..tree.num_nodes())
+		let _num_grandparents_before: usize = tree
+			.internals()
 			.map(|node| is_grandparent(tree, node))
 			.map(|is_gp| is_gp as usize)
 			.sum();
 
 		let child = if rng.gen_bool(0.5) {
-			tree.children_of(parent).unwrap().0
+			tree.children_of(parent).0
 		} else {
-			tree.children_of(parent).unwrap().1
+			tree.children_of(parent).1
 		};
 
 		Proposal {
@@ -66,10 +64,7 @@ impl Operator for NarrowExchange {
 	}
 }
 
-fn is_grandparent(tree: &Tree, node: usize) -> bool {
-	let Some((left, right)) = tree.children_of(node) else {
-		return false;
-	};
-
+fn is_grandparent(tree: &Tree, node: Internal) -> bool {
+	let (left, right) = tree.children_of(node);
 	tree.is_internal(left) || tree.is_internal(right)
 }
