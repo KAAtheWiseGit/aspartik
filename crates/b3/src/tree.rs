@@ -135,7 +135,7 @@ impl Tree {
 			.sum()
 	}
 
-	pub fn update_substitutions<I>(&mut self, nodes: I)
+	fn update_substitutions<I>(&mut self, nodes: I)
 	where
 		I: IntoIterator<Item = usize>,
 	{
@@ -159,7 +159,7 @@ impl Tree {
 		}
 	}
 
-	pub fn update_leaf_probabilites(&mut self) {
+	fn update_leaf_probabilites(&mut self) {
 		for (column, probability) in
 			self.columns.iter().zip(&mut self.probabilities)
 		{
@@ -169,7 +169,7 @@ impl Tree {
 		}
 	}
 
-	pub fn update_internal_probabilities<I>(&mut self, nodes: I)
+	fn update_internal_probabilities<I>(&mut self, nodes: I)
 	where
 		I: IntoIterator<Item = usize> + Clone,
 	{
