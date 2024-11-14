@@ -13,6 +13,12 @@ edition = "2021"
 license = "AGPL-3.0-only"
 authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+authors = ["Andrej Kolčin <self@kaathewise.net>"]
+
 [workspace.dependencies]
 criterion = "0.5"
 nalgebra = "0.33.2"
