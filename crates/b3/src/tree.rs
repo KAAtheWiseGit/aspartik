@@ -54,28 +54,25 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let num_leaves = columns[0].len();
-		let num_nodes = weights.len();
-
-		let mut parents = vec![ROOT; num_nodes];
-		let mut iter = children.chunks(2).enumerate();
-		while let Some((i, [left, right])) = iter.next() {
-			parents[*left] = i + num_leaves;
-			parents[*right] = i + num_leaves;
-		}
+		let parents = vec![ROOT; weights.len()];
 
 		let likelihoods = vec![Likelihood::new(
 			columns,
 			Dna4Substitution::jukes_cantor(),
 		)];
 
-		Self {
+		let mut out = Self {
 			children: children.to_vec(),
 			parents,
 			weights: weights.to_vec(),
 
 			likelihoods,
-		}
+		};
+
+		out.update_all_parents();
+		out.update_all_likelihoods();
+
+		out
 	}
 
 	pub fn likelihood(&self) -> f64 {
@@ -175,18 +172,54 @@ impl Tree {
 		}
 
 		// TODO: proper local updates.
-		self.update_parents();
+		self.update_all_parents();
 
 		(edges, distances, nodes)
 	}
 
-	// TODO: deduplicate with the `new`.
-	fn update_parents(&mut self) {
+	fn update_all_parents(&mut self) {
 		let num_leaves = self.num_leaves();
 		let mut iter = self.children.chunks(2).enumerate();
 		while let Some((i, [left, right])) = iter.next() {
 			self.parents[*left] = i + num_leaves;
 			self.parents[*right] = i + num_leaves;
+		}
+	}
+
+	fn update_all_likelihoods(&mut self) {
+		// TODO: deduplicate
+		let mut nodes = vec![];
+		let mut children = vec![];
+		for node in self.internals() {
+			nodes.push(node.0);
+			let (left, right) = self.children_of(node);
+			children.push((left.0, right.0))
+		}
+
+		// TODO: deduplicate
+		let mut edges = vec![];
+		let mut distances = vec![];
+		for node in self.internals() {
+			let (left, right) = self.children_of(node);
+
+			let i = node.0 - self.num_leaves();
+
+			edges.push(i * 2);
+			distances
+				.push(self.weight_of(node)
+					- self.weight_of(left));
+			edges.push(i * 2 + 1);
+			distances
+				.push(self.weight_of(node)
+					- self.weight_of(right));
+		}
+
+		let num_leaves = self.num_leaves();
+		for likelihood in &mut self.likelihoods {
+			likelihood.update_substitutions(&edges, &distances);
+			likelihood.update_probabilities(
+				num_leaves, &nodes, &children,
+			);
 		}
 	}
 
