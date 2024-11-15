@@ -83,6 +83,10 @@ impl Tree {
 		todo!()
 	}
 
+	pub fn num_nodes(&self) -> usize {
+		self.weights.len()
+	}
+
 	pub fn num_internals(&self) -> usize {
 		self.children.len()
 	}
@@ -91,31 +95,27 @@ impl Tree {
 		self.num_internals() + 1
 	}
 
-	pub fn num_nodes(&self) -> usize {
-		self.weights.len()
+	pub fn is_internal<N: Into<Node>>(&self, node: N) -> bool {
+		node.into().0 >= self.num_leaves()
 	}
 
 	pub fn is_leaf<N: Into<Node>>(&self, node: N) -> bool {
 		node.into().0 < self.num_leaves()
 	}
 
-	pub fn is_internal<N: Into<Node>>(&self, node: N) -> bool {
-		node.into().0 >= self.num_leaves()
+	pub fn as_internal<N: Into<Node>>(&self, node: N) -> Option<Internal> {
+		let node = node.into();
+		if self.is_internal(node) {
+			Some(Internal(node.0))
+		} else {
+			None
+		}
 	}
 
 	pub fn as_leaf<N: Into<Node>>(&self, node: N) -> Option<Leaf> {
 		let node = node.into();
 		if self.is_leaf(node) {
 			Some(Leaf(node.0))
-		} else {
-			None
-		}
-	}
-
-	pub fn as_internal<N: Into<Node>>(&self, node: N) -> Option<Internal> {
-		let node = node.into();
-		if self.is_internal(node) {
-			Some(Internal(node.0))
 		} else {
 			None
 		}
