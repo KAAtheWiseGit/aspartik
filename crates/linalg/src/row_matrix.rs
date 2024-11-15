@@ -140,6 +140,13 @@ where
 	}
 }
 
+impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	const NUM_ROWS: usize = N;
+	const NUM_COLUMNS: usize = M;
+	const NUM_ITEMS: usize = N * M;
+	const IS_SQUARE: bool = N == M;
+}
+
 impl<T, const N: usize, const M: usize, const P: usize> Mul<RowMatrix<T, M, P>>
 	for RowMatrix<T, N, M>
 where
