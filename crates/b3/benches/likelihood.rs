@@ -8,9 +8,9 @@ use b3::{
 	state::State,
 	tree::Tree,
 };
-use base::{seq::DnaSeq, substitution::dna::jukes_cantor, DnaNucleoBase};
+use base::{seq::DnaSeq, DnaNucleoBase};
 
-fn data() -> (Vec<DnaSeq>, Vec<(usize, usize)>) {
+fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<(usize, usize)>) {
 	let mut rng = SmallRng::seed_from_u64(4);
 
 	let bases = [
@@ -29,9 +29,11 @@ fn data() -> (Vec<DnaSeq>, Vec<(usize, usize)>) {
 		seqs.push(seq);
 	}
 
+	let weights = (0..1023).map(|e| e as f64 * 0.005).collect();
+
 	let mut children = vec![];
 	let mut prev = 0;
-	for level in 0..8 {
+	for level in 0..=8 {
 		let size = 2_usize.pow(8 - level);
 
 		for i in 0..size {
@@ -43,20 +45,11 @@ fn data() -> (Vec<DnaSeq>, Vec<(usize, usize)>) {
 		prev += size * 2;
 	}
 
-	(seqs, children)
+	(seqs, weights, children)
 }
 
-fn likelihood() {
-	let seqs = vec![
-		DnaSeq::try_from("AAGCT".repeat(350).as_ref()).unwrap(),
-		DnaSeq::try_from("CAGCT".repeat(350).as_ref()).unwrap(),
-		DnaSeq::try_from("ATGCA".repeat(350).as_ref()).unwrap(),
-		DnaSeq::try_from("ATGCT".repeat(350).as_ref()).unwrap(),
-		DnaSeq::try_from("TAGCA".repeat(350).as_ref()).unwrap(),
-	];
-	let children = vec![(2, 3), (0, 1), (5, 4), (6, 7)];
-	let weights = vec![0.75, 0.60, 1.1, 0.9, 0.85, 0.8, 0.5, 0.7, 0.3];
-	let tree = Tree::new(&seqs, &weights, &children);
+fn likelihood(seqs: &[DnaSeq], weights: &[f64], children: &[(usize, usize)]) {
+	let tree = Tree::new(seqs, weights, children);
 	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
 
@@ -74,7 +67,11 @@ fn likelihood() {
 }
 
 fn bench(c: &mut Criterion) {
-	c.bench_function("likelihood", |b| b.iter(likelihood));
+	let data = data();
+
+	c.bench_function("likelihood", |b| {
+		b.iter(|| likelihood(&data.0, &data.1, &data.2))
+	});
 }
 
 criterion_group!(
