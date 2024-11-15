@@ -45,12 +45,10 @@ dependencies = [
  "base",
  "criterion",
  "linalg",
- "nalgebra",
  "rand",
  "rand_xoshiro",
  "serde",
  "serde_json",
- "wide",
 ]
 
 [[package]]
