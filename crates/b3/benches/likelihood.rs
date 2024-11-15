@@ -10,7 +10,7 @@ use b3::{
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
 
-fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<(usize, usize)>) {
+fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<usize>) {
 	let mut rng = SmallRng::seed_from_u64(4);
 
 	let bases = [
@@ -39,7 +39,8 @@ fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<(usize, usize)>) {
 		for i in 0..size {
 			let left = prev + 2 * i;
 			let right = prev + 2 * i + 1;
-			children.push((left, right));
+			children.push(left);
+			children.push(right);
 		}
 
 		prev += size * 2;
@@ -48,7 +49,7 @@ fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<(usize, usize)>) {
 	(seqs, weights, children)
 }
 
-fn likelihood(seqs: &[DnaSeq], weights: &[f64], children: &[(usize, usize)]) {
+fn likelihood(seqs: &[DnaSeq], weights: &[f64], children: &[usize]) {
 	let tree = Tree::new(seqs, weights, children);
 	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));

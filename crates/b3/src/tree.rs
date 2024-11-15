@@ -10,8 +10,7 @@ use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 const ROOT: usize = usize::MAX;
 
 pub struct Tree {
-	/// Tuples of left and right children indices of the internal nodes.
-	children: Vec<(usize, usize)>,
+	children: Vec<usize>,
 	parents: Vec<usize>,
 	weights: Vec<f64>,
 
@@ -44,7 +43,7 @@ impl Tree {
 		// TODO: per-site models
 		sequences: &[DnaSeq],
 		weights: &[f64],
-		children: &[(usize, usize)],
+		children: &[usize],
 	) -> Self {
 		let mut columns = Vec::new();
 		for i in 0..sequences[0].len() {
@@ -59,7 +58,9 @@ impl Tree {
 		let num_nodes = weights.len();
 
 		let mut parents = vec![ROOT; num_nodes];
-		for (i, (left, right)) in children.iter().enumerate() {
+		while let Some((i, [left, right])) =
+			children.chunks(2).enumerate().next()
+		{
 			parents[*left] = i + num_leaves;
 			parents[*right] = i + num_leaves;
 		}
@@ -85,6 +86,7 @@ impl Tree {
 	pub fn update_with(&mut self, _edit: TreeEdit) -> TreeEdit {
 		todo!()
 	}
+
 
 	pub fn num_nodes(&self) -> usize {
 		self.weights.len()
@@ -136,7 +138,9 @@ impl Tree {
 	}
 
 	pub fn children_of(&self, node: Internal) -> (Node, Node) {
-		let (left, right) = self.children[node.0 - self.num_leaves()];
+		let index = node.0 - self.num_leaves();
+		let left = self.children[index * 2];
+		let right = self.children[index * 2 + 1];
 
 		(Node(left), Node(right))
 	}
