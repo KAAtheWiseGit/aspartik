@@ -58,9 +58,8 @@ impl Tree {
 		let num_nodes = weights.len();
 
 		let mut parents = vec![ROOT; num_nodes];
-		while let Some((i, [left, right])) =
-			children.chunks(2).enumerate().next()
-		{
+		let mut iter = children.chunks(2).enumerate();
+		while let Some((i, [left, right])) = iter.next() {
 			parents[*left] = i + num_leaves;
 			parents[*right] = i + num_leaves;
 		}
@@ -88,7 +87,8 @@ impl Tree {
 		let mut distances = vec![];
 
 		if let Some(spr) = edit.spr {
-			let (mut e, mut d) = self.update_spr(spr.0, spr.1);
+			let (mut e, mut d) =
+				self.update_spr(spr.0, spr.1);
 			edges.append(&mut e);
 			distances.append(&mut d);
 		}
@@ -150,11 +150,11 @@ impl Tree {
 		(edges, distances)
 	}
 
+	// TODO: deduplicate with the `new`.
 	fn update_parents(&mut self) {
 		let num_leaves = self.num_leaves();
-		while let Some((i, [left, right])) =
-			self.children.chunks(2).enumerate().next()
-		{
+		let mut iter = self.children.chunks(2).enumerate();
+		while let Some((i, [left, right])) = iter.next() {
 			self.parents[*left] = i + num_leaves;
 			self.parents[*right] = i + num_leaves;
 		}
@@ -165,7 +165,7 @@ impl Tree {
 	}
 
 	pub fn num_internals(&self) -> usize {
-		self.children.len()
+		(self.num_nodes() - 1) / 2
 	}
 
 	pub fn num_leaves(&self) -> usize {

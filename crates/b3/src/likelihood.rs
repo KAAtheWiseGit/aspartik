@@ -16,7 +16,7 @@ impl<M: Model> Likelihood<M> {
 	{
 		let sites: Vec<_> = sites.into_iter().collect();
 		let substitutions =
-			vec![M::Substitution::default(); sites[0].len()];
+			vec![M::Substitution::default(); sites[0].len() * 2];
 
 		let mut probabilities =
 			vec![
