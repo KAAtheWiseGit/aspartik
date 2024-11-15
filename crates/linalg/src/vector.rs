@@ -17,6 +17,14 @@ impl<T: Copy, const N: usize> From<T> for Vector<T, N> {
 	}
 }
 
+// This can be derived, but then every single trait impl would have to carry a
+// `Default` constraint around, which is verbose.
+impl<T: Copy + Default, const N: usize> Default for Vector<T, N> {
+	fn default() -> Self {
+		[T::default(); N].into()
+	}
+}
+
 impl<T: Copy, const N: usize> Index<usize> for Vector<T, N> {
 	type Output = T;
 

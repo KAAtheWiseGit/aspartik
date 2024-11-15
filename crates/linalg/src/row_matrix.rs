@@ -20,6 +20,14 @@ impl<T: Copy, const N: usize, const M: usize> From<T> for RowMatrix<T, N, M> {
 	}
 }
 
+impl<T: Copy + Default, const N: usize, const M: usize> Default
+	for RowMatrix<T, N, M>
+{
+	fn default() -> Self {
+		[[T::default(); N].into(); M].into()
+	}
+}
+
 impl<T: Copy, const N: usize, const M: usize> Index<usize>
 	for RowMatrix<T, N, M>
 {
