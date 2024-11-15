@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
+use std::ops::{Add, AddAssign, Index, IndexMut, MulAssign};
 
 use crate::vector::Vector;
 
@@ -73,22 +73,14 @@ impl<T: Copy + AddAssign, const N: usize, const M: usize> Add
 	}
 }
 
-impl<T: Copy + MulAssign, const N: usize, const M: usize> MulAssign
-	for RowMatrix<T, N, M>
-{
-	fn mul_assign(&mut self, rhs: Self) {
+impl<T: Copy + MulAssign, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	fn component_mul_assign(&mut self, rhs: Self) {
 		for i in 0..M {
 			self[i] *= rhs[i];
 		}
 	}
-}
 
-impl<T: Copy + MulAssign, const N: usize, const M: usize> Mul
-	for RowMatrix<T, N, M>
-{
-	type Output = Self;
-
-	fn mul(mut self, rhs: Self) -> Self {
+	fn component_mul(mut self, rhs: Self) -> Self {
 		for i in 0..M {
 			self[i] *= rhs[i];
 		}
