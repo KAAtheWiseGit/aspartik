@@ -46,8 +46,9 @@ pub type Rng = Xoshiro256StarStar;
 pub struct TreeEdit {
 	/// Update the weight of nodes on the left to values on the right.
 	pub weights: Vec<(Node, NodeWeight)>,
-	/// Swap the parents of nodes on the left and on the right.
-	pub parents: Vec<(Node, Node)>,
+	/// Subtree pruning and regrafting.  The parent of the left node is
+	/// removed and regrafted between the right node and its parent.
+	pub spr: Option<(Node, Node)>,
 }
 
 #[derive(Debug, Clone)]

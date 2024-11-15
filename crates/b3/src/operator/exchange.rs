@@ -57,7 +57,7 @@ impl Operator for NarrowExchange {
 			status: Status::Hastings(0.0),
 			params: HashMap::new(),
 			tree: TreeEdit {
-				parents: vec![(child, uncle)],
+				spr: Some((child, uncle)),
 				weights: vec![],
 			},
 		}
