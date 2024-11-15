@@ -1,41 +1,43 @@
 #![allow(dead_code)]
 
-use base::{seq::DnaSeq, DnaNucleoBase};
-use linalg::{RowMatrix, Vector};
+use base::substitution::Model;
 
-type Substitution = RowMatrix<f64, 4, 4>;
-type Row = Vector<f64, 4>;
-
-pub struct DnaLikelihood {
-	sites: Vec<DnaSeq>,
-	// TODO: model
-	substitutions: Vec<(Substitution, Substitution)>,
-	probabilities: Vec<Vec<Row>>,
+pub struct Likelihood<M: Model> {
+	sites: Vec<Vec<M::Item>>,
+	model: M,
+	substitutions: Vec<(M::Substitution, M::Substitution)>,
+	probabilities: Vec<Vec<M::Row>>,
 }
 
-impl DnaLikelihood {
-	pub fn new<S>(sites: S) -> Self
+impl<M: Model> Likelihood<M> {
+	pub fn new<S>(sites: S, model: M) -> Self
 	where
-		S: IntoIterator<Item = DnaSeq>,
+		S: IntoIterator<Item = Vec<M::Item>>,
 	{
 		let sites: Vec<_> = sites.into_iter().collect();
-		let substitutions =
-			vec![
-				(Substitution::default(), Substitution::default());
-				sites[0].len()
-			];
+		let substitutions = vec![
+			(
+				M::Substitution::default(),
+				M::Substitution::default()
+			);
+			sites[0].len()
+		];
 
 		let mut probabilities =
-			vec![vec![Row::default(); sites[0].len()]; sites.len()];
+			vec![
+				vec![M::Row::default(); sites[0].len()];
+				sites.len()
+			];
 		for (site, probability) in sites.iter().zip(&mut probabilities)
 		{
 			for (i, base) in site.iter().enumerate() {
-				probability[i] = to_row(base);
+				probability[i] = M::to_row(base);
 			}
 		}
 
 		Self {
 			sites,
+			model,
 			substitutions,
 			probabilities,
 		}
@@ -52,19 +54,7 @@ impl DnaLikelihood {
 	pub fn likelihood(&self) -> f64 {
 		self.probabilities
 			.iter()
-			.map(|p| p.last().unwrap().sum().ln())
+			.map(|p| M::probability(p.last().unwrap()))
 			.sum()
 	}
-}
-
-fn to_row(base: &DnaNucleoBase) -> Row {
-	match base {
-		DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
-		DnaNucleoBase::Cytosine => [0.0, 0.0, 1.0, 0.0],
-		DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
-		DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
-		// TODO: other types
-		_ => [0.25, 0.25, 0.25, 0.25],
-	}
-	.into()
 }

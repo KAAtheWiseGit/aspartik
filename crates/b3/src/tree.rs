@@ -5,8 +5,8 @@ use rand::{
 };
 use serde_json::{json, Value as Json};
 
-use crate::{likelihood::DnaLikelihood, operator::TreeEdit};
-use base::seq::DnaSeq;
+use crate::{likelihood::Likelihood, operator::TreeEdit};
+use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 
 const ROOT: usize = usize::MAX;
 
@@ -16,7 +16,7 @@ pub struct Tree {
 	parents: Vec<usize>,
 	weights: Vec<f64>,
 
-	likelihoods: Vec<DnaLikelihood>,
+	likelihoods: Vec<Likelihood<Dna4Substitution>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
