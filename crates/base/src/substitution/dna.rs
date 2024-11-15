@@ -54,6 +54,14 @@ impl Model for Dna4Substitution {
 		.into()
 	}
 
+	fn probability(row: &Row) -> f64 {
+		row.sum().ln()
+	}
+
+	fn product(a: Row, b: Row) -> Row {
+		a * b
+	}
+
 	fn substitution(&self, distance: f64) -> Substitution {
 		let mut e_d = self.d;
 		for i in 0..4 {
