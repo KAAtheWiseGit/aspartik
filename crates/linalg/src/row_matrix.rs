@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Index, IndexMut, MulAssign};
+use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
 
 use crate::vector::Vector;
 
@@ -94,6 +94,24 @@ impl<T: Copy + AddAssign, const N: usize, const M: usize> RowMatrix<T, N, M> {
 		for i in 1..N {
 			out += self[(i, i)];
 		}
+		out
+	}
+}
+
+impl<T, const N: usize, const M: usize> Mul<Vector<T, N>> for RowMatrix<T, N, M>
+where
+	T: Copy + AddAssign + MulAssign + Default,
+{
+	type Output = Vector<T, M>;
+
+	fn mul(self, rhs: Vector<T, N>) -> Vector<T, M> {
+		// TODO: uninitialized
+		let mut out = Vector::from([T::default(); M]);
+
+		for i in 0..M {
+			out[i] = (self[i] * rhs).sum();
+		}
+
 		out
 	}
 }
