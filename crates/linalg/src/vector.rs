@@ -77,7 +77,10 @@ impl<T: Copy + MulAssign, const N: usize> Mul for Vector<T, N> {
 
 // Arithmetic-agnostic implementations.
 impl<T: Copy, const N: usize> Vector<T, N> {
-	pub fn len(&self) -> usize {
+	// Having `is_empty` doesn't make sense, because `Vector` is
+	// incompatible with length 0.
+	#[allow(clippy::len_without_is_empty)]
+	pub const fn len(&self) -> usize {
 		N
 	}
 }
