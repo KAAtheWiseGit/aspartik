@@ -1,43 +1,50 @@
-use nalgebra::Matrix4;
+use super::Model;
+use linalg::{RowMatrix, Vector};
 
-/// Instantaneous transition rate matrix.
-type Q = Matrix4<f64>;
+type Row = Vector<f64, 4>;
+type Substitution = RowMatrix<f64, 4, 4>;
 
-#[rustfmt::skip]
-pub fn jukes_cantor() -> Q {
-	const THIRD: f64 = 1.0 / 3.0;
-
-	Q::new(
-		-1.0, THIRD, THIRD, THIRD,
-		THIRD, -1.0, THIRD, THIRD,
-		THIRD, THIRD, -1.0, THIRD,
-		THIRD, THIRD, THIRD, -1.0,
-	)
+pub struct Dna4Substitution {
+	p: Substitution,
+	p_rev: Substitution,
+	d: Substitution,
 }
 
-#[rustfmt::skip]
-pub fn k80(kappa: f64) -> Q {
-	let scale = 1.0 / (2.0 + kappa);
+impl Dna4Substitution {
+	pub fn jukes_cantor() -> Self {
+		let p = Substitution::from([
+			[-1.0, -1.0, -1.0, 1.0],
+			[0.0, 0.0, 0.0, 1.0],
+			[0.0, 0.0, 0.0, 1.0],
+			[0.0, 0.0, 0.0, 1.0],
+		]);
+		let p_rev = Substitution::from([
+			[-1.0 / 4.0, -1.0 / 4.0, -1.0 / 4.0, 3.0 / 4.0],
+			[-1.0 / 4.0, -1.0 / 4.0, 3.0 / 4.0, -1.0 / 4.0],
+			[-1.0 / 4.0, 3.0 / 4.0, -1.0 / 4.0, -1.0 / 4.0],
+			[1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0],
+		]);
+		let d = Substitution::from([
+			[-4.0 / 3.0, 0.0, 0.0, 0.0],
+			[0.0, -4.0 / 3.0, 0.0, 0.0],
+			[0.0, 0.0, -4.0 / 3.0, 0.0],
+			[0.0, 0.0, 0.0, 0.0],
+		]);
 
-	Q::new(
-		-2.0 - kappa, 1.0, kappa, 1.0,
-		1.0, -2.0 - kappa, 1.0, kappa,
-		kappa, 1.0, -2.0 - kappa, 1.0,
-		1.0, kappa, 1.0, -2.0 - kappa,
-	) * scale
+		Self { p, p_rev, d }
+	}
 }
 
-#[rustfmt::skip]
-pub fn f81(a: f64, c: f64, g: f64) -> Q {
-	let t = 1.0 - a - c - g;
-	let scale = 1.0 / (1.0 - a * a - c * c - g * g - t * t);
+impl Model for Dna4Substitution {
+	type Row = Row;
+	type Substitution = Substitution;
 
-	Q::new(
-		a - 1.0, c, g, t,
-		a, c - 1.0, g, t,
-		a, c, g - 1.0, t,
-		a, c, g, t - 1.0,
-	) * scale
+	fn substitution(&self, distance: f64) -> Substitution {
+		let mut e_d = self.d;
+		for i in 0..4 {
+			e_d[(i, i)] = f64::exp(distance * e_d[(i, i)]);
+		}
+
+		self.p * e_d * self.p_rev
+	}
 }
-
-// TODO: HKY, GTR

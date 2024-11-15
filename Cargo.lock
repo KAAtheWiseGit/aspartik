@@ -57,6 +57,7 @@ dependencies = [
 name = "base"
 version = "0.1.0"
 dependencies = [
+ "linalg",
  "nalgebra",
  "petgraph",
  "thiserror",
