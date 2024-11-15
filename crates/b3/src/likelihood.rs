@@ -20,7 +20,7 @@ impl<M: Model> Likelihood<M> {
 
 		let mut probabilities =
 			vec![
-				vec![M::Row::default(); sites[0].len()];
+				vec![M::Row::default(); sites[0].len() * 2 - 1];
 				sites.len()
 			];
 		for (site, probability) in sites.iter().zip(&mut probabilities)
@@ -51,14 +51,17 @@ impl<M: Model> Likelihood<M> {
 
 	pub fn update_probabilities(
 		&mut self,
+		num_leaves: usize,
 		nodes: &[usize],
 		children: &[(usize, usize)],
 	) {
 		for probability in &mut self.probabilities {
 			for (i, (left, right)) in nodes.iter().zip(children) {
-				let left = self.substitutions[i * 2]
-					* probability[*left];
-				let right = self.substitutions[i * 2 + 1]
+				let left = self.substitutions
+					[(i - num_leaves) * 2] * probability
+					[*left];
+				let right = self.substitutions
+					[(i - num_leaves) * 2 + 1]
 					* probability[*right];
 				probability[*i] = left * right;
 			}

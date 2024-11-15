@@ -85,29 +85,56 @@ impl Tree {
 	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
 		let mut edges = vec![];
 		let mut distances = vec![];
+		let mut nodes = vec![];
 
 		if let Some(spr) = edit.spr {
-			let (mut e, mut d) =
+			let (mut e, mut d, mut n) =
 				self.update_spr(spr.0, spr.1);
 			edges.append(&mut e);
 			distances.append(&mut d);
+			nodes.append(&mut n);
 		}
+
+		let (nodes, children) = self.get_children_tuples(nodes);
+		let num_leaves = self.num_leaves();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.update_substitutions(&edges, &distances);
+			likelihood.update_probabilities(
+				num_leaves, &nodes, &children,
+			);
 		}
 
 		// TODO
 		TreeEdit::default()
 	}
 
+	fn get_children_tuples(
+		&self,
+		nodes: Vec<Node>,
+	) -> (Vec<usize>, Vec<(usize, usize)>) {
+		let nodes_iter =
+			nodes.into_iter().filter_map(|n| self.as_internal(n));
+
+		let mut nodes = vec![];
+		let mut children = vec![];
+		for node in nodes_iter {
+			nodes.push(node.0);
+			let (left, right) = self.children_of(node);
+			children.push((left.0, right.0))
+		}
+
+		(nodes, children)
+	}
+
 	pub fn update_spr(
 		&mut self,
 		s: Node,
 		r_c: Node,
-	) -> (Vec<usize>, Vec<f64>) {
+	) -> (Vec<usize>, Vec<f64>, Vec<Node>) {
 		let mut edges = vec![];
 		let mut distances = vec![];
+		let mut nodes = vec![];
 
 		let r_p = self.parent_of(r_c);
 		let p = self.parent_of(s);
@@ -120,6 +147,7 @@ impl Tree {
 
 			edges.push(p_to_x);
 			distances.push(self.weight_of(p) - self.weight_of(r_c));
+			nodes.push(p.into());
 
 			if let Some(p_p) = self.parent_of(p) {
 				// p_p: p, z -> p_p: x, z
@@ -130,6 +158,7 @@ impl Tree {
 				distances
 					.push(self.weight_of(p_p)
 						- self.weight_of(x));
+				nodes.push(p_p.into());
 			}
 		}
 
@@ -142,12 +171,13 @@ impl Tree {
 
 			edges.push(r_p_to_r_c);
 			distances.push(self.weight_of(r_p) - self.weight_of(p));
+			nodes.push(r_p.into());
 		}
 
 		// TODO: proper local updates.
 		self.update_parents();
 
-		(edges, distances)
+		(edges, distances, nodes)
 	}
 
 	// TODO: deduplicate with the `new`.
