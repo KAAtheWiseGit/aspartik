@@ -83,10 +83,82 @@ impl Tree {
 		self.likelihoods.iter().map(|l| l.likelihood()).sum()
 	}
 
-	pub fn update_with(&mut self, _edit: TreeEdit) -> TreeEdit {
-		todo!()
+	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
+		let mut edges = vec![];
+		let mut distances = vec![];
+
+		if let Some(spr) = edit.spr {
+			let (mut e, mut d) = self.update_spr(spr.0, spr.1);
+			edges.append(&mut e);
+			distances.append(&mut d);
+		}
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.update_substitutions(&edges, &distances);
+		}
+
+		// TODO
+		TreeEdit::default()
 	}
 
+	pub fn update_spr(
+		&mut self,
+		s: Node,
+		r_c: Node,
+	) -> (Vec<usize>, Vec<f64>) {
+		let mut edges = vec![];
+		let mut distances = vec![];
+
+		let r_p = self.parent_of(r_c);
+		let p = self.parent_of(s);
+
+		if let Some(p) = p {
+			// p: x, s -> p: r_c, s
+			let x = self.other_child_of(p, s);
+			let p_to_x = self.edge_index(p, x);
+			self.children[p_to_x] = r_c.0;
+
+			edges.push(p_to_x);
+			distances.push(self.weight_of(p) - self.weight_of(r_c));
+
+			if let Some(p_p) = self.parent_of(p) {
+				// p_p: p, z -> p_p: x, z
+				let p_p_to_p = self.edge_index(p_p, p.into());
+				self.children[p_p_to_p] = x.0;
+
+				edges.push(p_p_to_p);
+				distances
+					.push(self.weight_of(p_p)
+						- self.weight_of(x));
+			}
+		}
+
+		if let Some(r_p) = r_p {
+			let r_p_to_r_c = self.edge_index(r_p, r_c);
+			// TODO: figure out what to do if s is rooted.  It
+			// should probably be forbidden.
+			let p = p.unwrap();
+			self.children[r_p_to_r_c] = p.0;
+
+			edges.push(r_p_to_r_c);
+			distances.push(self.weight_of(r_p) - self.weight_of(p));
+		}
+
+		// TODO: proper local updates.
+		self.update_parents();
+
+		(edges, distances)
+	}
+
+	fn update_parents(&mut self) {
+		let num_leaves = self.num_leaves();
+		while let Some((i, [left, right])) =
+			self.children.chunks(2).enumerate().next()
+		{
+			self.parents[*left] = i + num_leaves;
+			self.parents[*right] = i + num_leaves;
+		}
+	}
 
 	pub fn num_nodes(&self) -> usize {
 		self.weights.len()
@@ -143,6 +215,22 @@ impl Tree {
 		let right = self.children[index * 2 + 1];
 
 		(Node(left), Node(right))
+	}
+
+	fn other_child_of(&self, node: Internal, child: Node) -> Node {
+		if self.children_of(node).0 != child {
+			self.children_of(node).0
+		} else {
+			self.children_of(node).1
+		}
+	}
+
+	fn edge_index(&self, parent: Internal, child: Node) -> usize {
+		if self.children_of(parent).0 == child {
+			(parent.0 - self.num_leaves()) * 2
+		} else {
+			(parent.0 - self.num_leaves()) * 2 + 1
+		}
 	}
 
 	/// Returns the parent of `node`, or `None` if the node is the root of
