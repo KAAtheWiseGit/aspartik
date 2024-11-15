@@ -1,6 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
 
+use std::hint::black_box;
+
 use b3::{
 	mcmc::{run, Config},
 	operator::{scheduler::TurnScheduler, NarrowExchange, Operator},
@@ -10,7 +12,11 @@ use b3::{
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
 
-fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<usize>) {
+type Data = (Vec<DnaSeq>, Vec<f64>, Vec<usize>);
+
+fn data(num_leaves_pow: usize, length: usize) -> Data {
+	let num_leaves = 2_usize.pow(num_leaves_pow as u32);
+
 	let mut rng = SmallRng::seed_from_u64(4);
 
 	let bases = [
@@ -20,21 +26,24 @@ fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<usize>) {
 		DnaNucleoBase::Thymine,
 	];
 	let mut seqs: Vec<DnaSeq> = vec![];
-	for _ in 0..512 {
+	for _ in 0..num_leaves {
 		let mut seq = DnaSeq::new();
-		for _ in 0..1024 {
+		for _ in 0..length {
 			let base = bases.choose(&mut rng).unwrap();
 			seq.push(*base);
 		}
 		seqs.push(seq);
 	}
 
-	let weights = (0..1023).map(|e| e as f64 * 0.005).collect();
+	let weights = (0..(num_leaves * 2 - 1))
+		.map(|e| e as f64 * 0.005)
+		.collect();
 
 	let mut children = vec![];
 	let mut prev = 0;
-	for level in 0..=8 {
-		let size = 2_usize.pow(8 - level);
+	for level in 0..num_leaves_pow {
+		let size =
+			2_usize.pow(num_leaves_pow as u32 - 1 - level as u32);
 
 		for i in 0..size {
 			let left = prev + 2 * i;
@@ -49,7 +58,8 @@ fn data() -> (Vec<DnaSeq>, Vec<f64>, Vec<usize>) {
 	(seqs, weights, children)
 }
 
-fn likelihood(seqs: &[DnaSeq], weights: &[f64], children: &[usize]) {
+fn likelihood(data: &Data, length: usize) {
+	let (seqs, weights, children) = data;
 	let tree = Tree::new(seqs, weights, children);
 	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
@@ -59,19 +69,19 @@ fn likelihood(seqs: &[DnaSeq], weights: &[f64], children: &[usize]) {
 
 	let config = Config {
 		burnin: 0,
-		length: 1_000_000,
-		state: 10_000,
-		trees: 10_000,
+		length,
+		state: length / 10_000,
+		trees: length / 10_000,
 	};
 
 	run(config, &mut state, prior, &mut scheduler);
 }
 
 fn bench(c: &mut Criterion) {
-	let data = data();
+	let data = black_box(data(9, 1000));
 
 	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data.0, &data.1, &data.2))
+		b.iter(|| likelihood(&data, 10_000))
 	});
 }
 
