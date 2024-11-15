@@ -19,6 +19,7 @@ wide = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
+rand = { workspace = true, features = ["small_rng"] }
 
 [[bench]]
 name = "likelihood"
