@@ -1,4 +1,3 @@
-use nalgebra::Matrix4;
 use rand::{
 	distributions::{Distribution, Uniform},
 	Rng,
@@ -42,15 +41,14 @@ pub struct Leaf(usize);
 
 impl Tree {
 	pub fn new(
+		// TODO: per-site models
 		sequences: &[DnaSeq],
-		// TODO
-		_substitution_model: Matrix4<f64>,
 		weights: &[f64],
 		children: &[(usize, usize)],
 	) -> Self {
 		let mut columns = Vec::new();
 		for i in 0..sequences[0].len() {
-			let mut column = DnaSeq::new();
+			let mut column = Vec::new();
 			for sequence in sequences {
 				column.push(sequence[i]);
 			}
@@ -66,12 +64,17 @@ impl Tree {
 			parents[*right] = i + num_leaves;
 		}
 
+		let likelihoods = vec![Likelihood::new(
+			columns,
+			Dna4Substitution::jukes_cantor(),
+		)];
+
 		Self {
 			children: children.to_vec(),
 			parents,
 			weights: weights.to_vec(),
 
-			likelihoods: vec![],
+			likelihoods,
 		}
 	}
 
