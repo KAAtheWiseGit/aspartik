@@ -95,3 +95,13 @@ impl<T: Copy + MulAssign, const N: usize, const M: usize> Mul
 		self
 	}
 }
+
+impl<T: Copy + AddAssign, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	pub fn trace(&self) -> T {
+		let mut out = self[(0, 0)];
+		for i in 1..N {
+			out += self[(i, i)];
+		}
+		out
+	}
+}
