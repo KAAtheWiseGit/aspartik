@@ -14,6 +14,12 @@ impl<T: Copy, const N: usize, const M: usize> From<[Vector<T, N>; M]>
 	}
 }
 
+impl<T: Copy, const N: usize, const M: usize> From<T> for RowMatrix<T, N, M> {
+	fn from(value: T) -> Self {
+		[[value; N].into(); M].into()
+	}
+}
+
 impl<T: Copy, const N: usize, const M: usize> Index<usize>
 	for RowMatrix<T, N, M>
 {

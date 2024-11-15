@@ -11,6 +11,12 @@ impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 	}
 }
 
+impl<T: Copy, const N: usize> From<T> for Vector<T, N> {
+	fn from(value: T) -> Self {
+		[value; N].into()
+	}
+}
+
 impl<T: Copy, const N: usize> Index<usize> for Vector<T, N> {
 	type Output = T;
 
