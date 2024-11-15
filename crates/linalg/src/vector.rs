@@ -1,6 +1,7 @@
 use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
 }

@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
 use crate::vector::Vector;
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 pub struct RowMatrix<T: Copy, const N: usize, const M: usize> {
 	m: [Vector<T, N>; M],
 }
