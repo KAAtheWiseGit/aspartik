@@ -1,5 +1,7 @@
-use super::Model;
 use linalg::{RowMatrix, Vector};
+
+use super::Model;
+use crate::DnaNucleoBase;
 
 type Row = Vector<f64, 4>;
 type Substitution = RowMatrix<f64, 4, 4>;
@@ -36,8 +38,21 @@ impl Dna4Substitution {
 }
 
 impl Model for Dna4Substitution {
+	type Item = DnaNucleoBase;
 	type Row = Row;
 	type Substitution = Substitution;
+
+	fn to_row(item: &DnaNucleoBase) -> Row {
+		match item {
+			DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
+			DnaNucleoBase::Cytosine => [0.0, 0.0, 1.0, 0.0],
+			DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
+			DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
+			// TODO: other types
+			_ => [0.25, 0.25, 0.25, 0.25],
+		}
+		.into()
+	}
 
 	fn substitution(&self, distance: f64) -> Substitution {
 		let mut e_d = self.d;
