@@ -15,9 +15,17 @@ impl<T: Copy, const N: usize, const M: usize> From<[Vector<T, N>; M]>
 	}
 }
 
+impl<T: Copy, const N: usize, const M: usize> From<[[T; N]; M]>
+	for RowMatrix<T, N, M>
+{
+	fn from(value: [[T; N]; M]) -> Self {
+		value.map(|row| -> Vector<T, N> { row.into() }).into()
+	}
+}
+
 impl<T: Copy, const N: usize, const M: usize> From<T> for RowMatrix<T, N, M> {
 	fn from(value: T) -> Self {
-		[[value; N].into(); M].into()
+		[Vector::from([value; N]); M].into()
 	}
 }
 
@@ -25,7 +33,7 @@ impl<T: Copy + Default, const N: usize, const M: usize> Default
 	for RowMatrix<T, N, M>
 {
 	fn default() -> Self {
-		[[T::default(); N].into(); M].into()
+		Self::from(T::default())
 	}
 }
 
