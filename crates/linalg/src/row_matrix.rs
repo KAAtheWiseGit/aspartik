@@ -120,10 +120,38 @@ where
 
 	fn mul(self, rhs: Vector<T, N>) -> Vector<T, M> {
 		// TODO: uninitialized
-		let mut out = Vector::from([T::default(); M]);
+		let mut out = Vector::default();
 
 		for i in 0..M {
 			out[i] = (self[i] * rhs).sum();
+		}
+
+		out
+	}
+}
+
+impl<T, const N: usize, const M: usize, const P: usize> Mul<RowMatrix<T, M, P>>
+	for RowMatrix<T, N, M>
+where
+	T: Copy + AddAssign + Mul<Output = T> + Default,
+{
+	type Output = RowMatrix<T, N, P>;
+
+	// This is a suboptimal algorithm.  There's a more cache-friendly one,
+	// but it requires calculating a bunch of things, including a square
+	// root.  I implement both, compare the assembly output, and benchmark.
+	//
+	// https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm
+	fn mul(self, rhs: RowMatrix<T, M, P>) -> Self::Output {
+		let mut out = RowMatrix::default();
+
+		for i in 0..N {
+			for j in 0..P {
+				for k in 0..M {
+					out[(i, j)] +=
+						self[(i, k)] * rhs[(k, j)];
+				}
+			}
 		}
 
 		out
