@@ -9,9 +9,6 @@ pub trait Model {
 
 	fn to_row(item: &Self::Item) -> Self::Row;
 
-	// XXX: check if making these references is faster.
-	fn product(a: Self::Row, b: Self::Row) -> Self::Row;
-
 	fn probability(row: &Self::Row) -> f64;
 
 	fn substitution(&self, distance: f64) -> Self::Substitution;
