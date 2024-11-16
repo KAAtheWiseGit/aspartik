@@ -109,6 +109,18 @@ impl Tree {
 		self.update_probabilities(&nodes);
 	}
 
+	pub fn accept(&mut self) {
+		self.children.accept();
+		self.parents.accept();
+		self.weights.accept();
+	}
+
+	pub fn reject(&mut self) {
+		self.children.reject();
+		self.parents.reject();
+		self.weights.reject();
+	}
+
 	fn update_probabilities(&mut self, nodes: &[Node]) {
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();

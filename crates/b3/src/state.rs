@@ -93,12 +93,12 @@ impl State {
 		for (name, param) in std::mem::take(&mut self.proposal_params) {
 			self.params.insert(name, param);
 		}
+		self.tree.accept();
 	}
 
 	pub fn reject(&mut self) {
 		self.proposal_params.clear();
-
-		// TODO: roll the tree back
+		self.tree.reject();
 	}
 
 	pub fn serialize(&self) -> Json {
