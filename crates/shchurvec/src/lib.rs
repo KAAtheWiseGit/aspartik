@@ -5,7 +5,8 @@ use std::ops::{Index, IndexMut};
 #[derive(Debug, Clone, Default)]
 pub struct ShchurVec<T: Default> {
 	inner: Vec<T>,
-	validity: Vec<u8>,
+	edited: Vec<u8>,
+	mask: Vec<u8>,
 }
 
 // Methods from `Vec`.
@@ -13,29 +14,33 @@ impl<T: Default> ShchurVec<T> {
 	pub fn new() -> Self {
 		Self {
 			inner: Vec::new(),
-			validity: Vec::new(),
+			edited: Vec::new(),
+			mask: Vec::new(),
 		}
 	}
 
 	pub fn with_capacity(capacity: usize) -> Self {
 		Self {
 			inner: Vec::with_capacity(capacity * 2),
-			validity: Vec::with_capacity(capacity),
+			edited: Vec::with_capacity(capacity),
+			mask: Vec::with_capacity(capacity),
 		}
 	}
 
 	pub fn capacity(&self) -> usize {
-		self.inner.capacity() / 2
+		self.mask.capacity()
 	}
 
 	pub fn reserve(&mut self, additional: usize) {
 		self.inner.reserve(additional * 2);
-		self.validity.reserve(additional);
+		self.edited.reserve(additional);
+		self.mask.reserve(additional);
 	}
 
 	pub fn shrink_to_fit(&mut self) {
 		self.inner.shrink_to_fit();
-		self.validity.shrink_to_fit();
+		self.edited.shrink_to_fit();
+		self.mask.shrink_to_fit();
 	}
 
 	/// Appends the value as an accepted one.
@@ -43,16 +48,18 @@ impl<T: Default> ShchurVec<T> {
 		self.inner.push(value);
 		self.inner.push(T::default());
 
-		self.validity.push(0);
+		self.edited.push(0);
+		self.mask.push(0);
 	}
 
 	pub fn clear(&mut self) {
 		self.inner.clear();
-		self.validity.clear();
+		self.edited.clear();
+		self.mask.clear();
 	}
 
 	pub fn len(&self) -> usize {
-		self.inner.len() / 2
+		self.mask.len()
 	}
 
 	pub fn is_empty(&self) -> bool {
@@ -83,23 +90,24 @@ impl<T: Default + Copy> ShchurVec<T> {
 // Memoization-related methods
 impl<T: Default> ShchurVec<T> {
 	pub fn accept(&mut self) {
-		for i in 0..self.len() {
-			if self.validity[i] == 1 {
-				self.inner[i * 2] = std::mem::take(
-					&mut self.inner[i * 2 + 1],
-				)
-			}
-		}
-		self.validity.iter_mut().for_each(|v| *v = 0);
+		self.edited.iter_mut().for_each(|v| *v = 0);
 	}
 
 	pub fn reject(&mut self) {
-		self.validity.iter_mut().for_each(|v| *v = 0);
+		// rollback edits
+		for i in 0..self.len() {
+			if self.edited[i] == 1 {
+				self.mask[i] ^= 1;
+			}
+		}
+
+		self.edited.iter_mut().for_each(|v| *v = 0);
 	}
 
 	pub fn set(&mut self, index: usize, value: T) {
-		self.inner[index * 2 + 1] = value;
-		self.validity[index] = 1;
+		self.mask[index] ^= 1;
+		self.inner[index * 2 + self.mask[index] as usize] = value;
+		self.edited[index] = 1;
 	}
 }
 
@@ -107,13 +115,13 @@ impl<T: Default> Index<usize> for ShchurVec<T> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &T {
-		&self.inner[index * 2 + self.validity[index] as usize]
+		&self.inner[index * 2 + self.mask[index] as usize]
 	}
 }
 
 impl<T: Default> IndexMut<usize> for ShchurVec<T> {
 	fn index_mut(&mut self, index: usize) -> &mut T {
-		&mut self.inner[index * 2 + self.validity[index] as usize]
+		&mut self.inner[index * 2 + self.mask[index] as usize]
 	}
 }
 
