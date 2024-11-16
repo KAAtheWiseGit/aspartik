@@ -60,6 +60,14 @@ impl<T: Default> ShchurVec<T> {
 	pub fn is_empty(&self) -> bool {
 		self.inner.is_empty()
 	}
+
+	pub fn last(&self) -> Option<&T> {
+		if self.is_empty() {
+			None
+		} else {
+			Some(&self[self.len() - 1])
+		}
+	}
 }
 
 impl<T: Default + Copy> ShchurVec<T> {
@@ -144,5 +152,18 @@ impl<'a, T: Default> IntoIterator for &'a ShchurVec<T> {
 
 	fn into_iter(self) -> Iter<'a, T> {
 		self.iter()
+	}
+}
+
+impl<T: Default + Clone> From<&[T]> for ShchurVec<T> {
+	fn from(values: &[T]) -> Self {
+		let mut out = Self::with_capacity(values.len());
+
+		for value in values {
+			out.push(value.clone());
+		}
+		out.accept();
+
+		out
 	}
 }
