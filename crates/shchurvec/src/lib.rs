@@ -116,9 +116,12 @@ impl<T: Default> ShchurVec<T> {
 	}
 
 	pub fn set(&mut self, index: usize, value: T) {
-		self.mask[index] ^= 1;
+		if !self.edited[index] {
+			self.mask[index] ^= 1;
+			self.edited[index] = true;
+		}
+
 		self.inner[index * 2 + self.mask[index] as usize] = value;
-		self.edited[index] = true;
 	}
 }
 
