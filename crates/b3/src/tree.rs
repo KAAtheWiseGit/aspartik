@@ -141,6 +141,7 @@ impl Tree {
 			let x = self.other_child_of(p, s);
 			let p_to_x = self.edge_index(p, x);
 			self.children[p_to_x] = r_c.0;
+			self.parents[r_c.0] = p.0;
 
 			edges.push(p_to_x);
 			distances.push(self.weight_of(p) - self.weight_of(r_c));
@@ -150,6 +151,7 @@ impl Tree {
 				// p_p: p, z -> p_p: x, z
 				let p_p_to_p = self.edge_index(p_p, p.into());
 				self.children[p_p_to_p] = x.0;
+				self.parents[x.0] = p_p.0;
 
 				edges.push(p_p_to_p);
 				distances
@@ -165,14 +167,12 @@ impl Tree {
 			// should probably be forbidden.
 			let p = p.unwrap();
 			self.children[r_p_to_r_c] = p.0;
+			self.parents[p.0] = r_p.0;
 
 			edges.push(r_p_to_r_c);
 			distances.push(self.weight_of(r_p) - self.weight_of(p));
 			nodes.push(r_p.into());
 		}
-
-		// TODO: proper local updates.
-		self.update_all_parents();
 
 		(edges, distances, nodes)
 	}
