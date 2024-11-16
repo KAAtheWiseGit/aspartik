@@ -1,14 +1,11 @@
 use std::ops::{Index, IndexMut};
 
-mod bitvec;
-use bitvec::BitVec;
-
 // XXX: somewhat slower, but eliminates the need for juggling uninitialized
 // memory.
 #[derive(Debug, Clone, Default)]
 pub struct ShchurVec<T: Default> {
 	inner: Vec<T>,
-	validity: BitVec,
+	validity: Vec<u8>,
 }
 
 // Methods from `Vec`.
@@ -16,14 +13,14 @@ impl<T: Default> ShchurVec<T> {
 	pub fn new() -> Self {
 		Self {
 			inner: Vec::new(),
-			validity: BitVec::new(),
+			validity: Vec::new(),
 		}
 	}
 
 	pub fn with_capacity(capacity: usize) -> Self {
 		Self {
 			inner: Vec::with_capacity(capacity * 2),
-			validity: BitVec::with_capacity(capacity),
+			validity: Vec::with_capacity(capacity),
 		}
 	}
 
@@ -86,23 +83,23 @@ impl<T: Default + Copy> ShchurVec<T> {
 // Memoization-related methods
 impl<T: Default> ShchurVec<T> {
 	pub fn accept(&mut self) {
-		for (i, bit) in self.validity.iter().enumerate() {
-			if bit > 0 {
+		for i in 0..self.len() {
+			if self.validity[i] == 1 {
 				self.inner[i * 2] = std::mem::take(
 					&mut self.inner[i * 2 + 1],
-				);
+				)
 			}
 		}
-		self.validity.zero_out();
+		self.validity.iter_mut().for_each(|v| *v = 0);
 	}
 
 	pub fn reject(&mut self) {
-		self.validity.zero_out();
+		self.validity.iter_mut().for_each(|v| *v = 0);
 	}
 
 	pub fn set(&mut self, index: usize, value: T) {
 		self.inner[index * 2 + 1] = value;
-		self.validity.set(index);
+		self.validity[index] = 1;
 	}
 }
 
@@ -110,13 +107,13 @@ impl<T: Default> Index<usize> for ShchurVec<T> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &T {
-		&self.inner[index * 2 + self.validity.get(index) as usize]
+		&self.inner[index * 2 + self.validity[index] as usize]
 	}
 }
 
 impl<T: Default> IndexMut<usize> for ShchurVec<T> {
 	fn index_mut(&mut self, index: usize) -> &mut T {
-		&mut self.inner[index * 2 + self.validity.get(index) as usize]
+		&mut self.inner[index * 2 + self.validity[index] as usize]
 	}
 }
 
