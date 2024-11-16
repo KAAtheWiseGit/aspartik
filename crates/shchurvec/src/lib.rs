@@ -1,21 +1,48 @@
-use std::ops::Index;
+use std::{mem::MaybeUninit, ops::Index};
 
-// XXX: somewhat slower, but eliminates the need for juggling uninitialized
-// memory.
-#[derive(Debug, Clone, Default)]
-pub struct ShchurVec<T: Default> {
-	inner: Vec<T>,
+#[derive(Debug)]
+pub struct ShchurVec<T> {
+	/// The actual storage.  It's twice as long as the number of items
+	/// `ShchurVec` can hold at a time.  Each item takes up two elements in
+	/// `inner`, only one of which is active, which is determined by `mask`
+	/// elements.
+	inner: Vec<MaybeUninit<T>>,
 	/// True if the value had been edited.  It uses the `bool` type, which
 	/// is guaranteed to be one byte:
 	///
 	/// https://doc.rust-lang.org/std/mem/fn.size_of.html#:~:text=bool
 	/// https://github.com/rust-lang/rust/pull/46156
 	edited: Vec<bool>,
+	/// Mask points to the currently active item in `inner`.
+	///
+	/// # Safety
+	///
+	/// - Mask elements must have the values of either 0 or 1.
+	/// - Mask elements must point at initialized memory.
 	mask: Vec<u8>,
 }
 
+impl<T> Clone for ShchurVec<T>
+where
+	MaybeUninit<T>: Clone,
+{
+	fn clone(&self) -> Self {
+		Self {
+			inner: self.inner.clone(),
+			edited: self.edited.clone(),
+			mask: self.mask.clone(),
+		}
+	}
+}
+
+impl<T> Default for ShchurVec<T> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 // Methods from `Vec`.
-impl<T: Default> ShchurVec<T> {
+impl<T> ShchurVec<T> {
 	pub fn new() -> Self {
 		Self {
 			inner: Vec::new(),
@@ -52,8 +79,8 @@ impl<T: Default> ShchurVec<T> {
 
 	/// Appends the value as an accepted one.
 	pub fn push(&mut self, value: T) {
-		self.inner.push(value);
-		self.inner.push(T::default());
+		self.inner.push(MaybeUninit::new(value));
+		self.inner.push(MaybeUninit::uninit());
 
 		self.edited.push(true);
 		self.mask.push(0);
@@ -82,7 +109,7 @@ impl<T: Default> ShchurVec<T> {
 	}
 }
 
-impl<T: Default + Copy> ShchurVec<T> {
+impl<T: Copy> ShchurVec<T> {
 	pub fn repeat(value: T, length: usize) -> Self {
 		let mut out = ShchurVec::with_capacity(length);
 
@@ -95,7 +122,7 @@ impl<T: Default + Copy> ShchurVec<T> {
 }
 
 // Memoization-related methods
-impl<T: Default> ShchurVec<T> {
+impl<T> ShchurVec<T> {
 	fn clear_edited(&mut self) {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
@@ -121,24 +148,29 @@ impl<T: Default> ShchurVec<T> {
 			self.edited[index] = true;
 		}
 
-		self.inner[index * 2 + self.mask[index] as usize] = value;
+		self.inner[index * 2 + self.mask[index] as usize] =
+			MaybeUninit::new(value);
 	}
 }
 
-impl<T: Default> Index<usize> for ShchurVec<T> {
+impl<T> Index<usize> for ShchurVec<T> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &T {
-		&self.inner[index * 2 + self.mask[index] as usize]
+		// SAFETY: TODO
+		unsafe {
+			self.inner[index * 2 + self.mask[index] as usize]
+				.assume_init_ref()
+		}
 	}
 }
 
-pub struct Iter<'a, T: Default> {
+pub struct Iter<'a, T> {
 	vec: &'a ShchurVec<T>,
 	index: usize,
 }
 
-impl<'a, T: Default> Iterator for Iter<'a, T> {
+impl<'a, T> Iterator for Iter<'a, T> {
 	type Item = &'a T;
 
 	fn next(&mut self) -> Option<&'a T> {
@@ -152,7 +184,7 @@ impl<'a, T: Default> Iterator for Iter<'a, T> {
 	}
 }
 
-impl<T: Default> ShchurVec<T> {
+impl<T> ShchurVec<T> {
 	pub fn iter(&self) -> Iter<'_, T> {
 		Iter {
 			vec: self,
@@ -161,7 +193,7 @@ impl<T: Default> ShchurVec<T> {
 	}
 }
 
-impl<'a, T: Default> IntoIterator for &'a ShchurVec<T> {
+impl<'a, T> IntoIterator for &'a ShchurVec<T> {
 	type Item = &'a T;
 	type IntoIter = Iter<'a, T>;
 
@@ -170,7 +202,7 @@ impl<'a, T: Default> IntoIterator for &'a ShchurVec<T> {
 	}
 }
 
-impl<T: Default + Clone> From<&[T]> for ShchurVec<T> {
+impl<T: Clone> From<&[T]> for ShchurVec<T> {
 	fn from(values: &[T]) -> Self {
 		let mut out = Self::with_capacity(values.len());
 
