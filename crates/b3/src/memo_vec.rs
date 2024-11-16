@@ -7,6 +7,15 @@ pub struct MemoVec<T> {
 	update: HashMap<usize, T>,
 }
 
+impl<T: Copy> From<&[T]> for MemoVec<T> {
+	fn from(value: &[T]) -> Self {
+		Self {
+			values: value.clone().into(),
+			update: HashMap::new(),
+		}
+	}
+}
+
 impl<T: Copy> MemoVec<T> {
 	pub fn new(value: T, length: usize) -> Self {
 		let values = vec![value; length];
