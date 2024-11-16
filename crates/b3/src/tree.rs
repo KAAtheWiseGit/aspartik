@@ -6,15 +6,15 @@ use serde_json::{json, Value as Json};
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::{likelihood::Likelihood, operator::TreeEdit};
+use crate::{likelihood::Likelihood, memo_vec::MemoVec, operator::TreeEdit};
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 
 const ROOT: usize = usize::MAX;
 
 pub struct Tree {
-	children: Vec<usize>,
-	parents: Vec<usize>,
-	weights: Vec<f64>,
+	children: MemoVec<usize>,
+	parents: MemoVec<usize>,
+	weights: MemoVec<f64>,
 
 	likelihoods: Vec<Likelihood<Dna4Substitution>>,
 }
@@ -56,7 +56,7 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let parents = vec![ROOT; weights.len()];
+		let parents = MemoVec::new(ROOT, weights.len());
 
 		let likelihoods = vec![Likelihood::new(
 			columns,
@@ -64,9 +64,9 @@ impl Tree {
 		)];
 
 		let mut out = Self {
-			children: children.to_vec(),
+			children: children.into(),
 			parents,
-			weights: weights.to_vec(),
+			weights: weights.into(),
 
 			likelihoods,
 		};
@@ -92,7 +92,7 @@ impl Tree {
 		}
 
 		for (node, weight) in edit.weights {
-			self.weights[node.0] = weight;
+			self.weights.set(node.0, weight);
 
 			nodes.push(node);
 			if self.parent_of(node).is_some() {
@@ -172,8 +172,8 @@ impl Tree {
 			// p: x, s -> p: r_c, s
 			let x = self.other_child_of(p, s);
 			let p_to_x = self.edge_index(x);
-			self.children[p_to_x] = r_c.0;
-			self.parents[r_c.0] = p.0;
+			self.children.set(p_to_x, r_c.0);
+			self.parents.set(r_c.0, p.0);
 
 			edges.push(p_to_x);
 			nodes.push(p.into());
@@ -181,8 +181,8 @@ impl Tree {
 			if let Some(p_p) = self.parent_of(p) {
 				// p_p: p, z -> p_p: x, z
 				let p_p_to_p = self.edge_index(p.into());
-				self.children[p_p_to_p] = x.0;
-				self.parents[x.0] = p_p.0;
+				self.children.set(p_p_to_p, x.0);
+				self.parents.set(x.0, p_p.0);
 
 				edges.push(p_p_to_p);
 				nodes.push(p_p.into());
@@ -194,8 +194,8 @@ impl Tree {
 			// TODO: figure out what to do if s is rooted.  It
 			// should probably be forbidden.
 			let p = p.unwrap();
-			self.children[r_p_to_r_c] = p.0;
-			self.parents[p.0] = r_p.0;
+			self.children.set(r_p_to_r_c, p.0);
+			self.parents.set(p.0, r_p.0);
 
 			edges.push(r_p_to_r_c);
 			nodes.push(r_p.into());
@@ -206,10 +206,14 @@ impl Tree {
 
 	fn update_all_parents(&mut self) {
 		let num_leaves = self.num_leaves();
-		let mut iter = self.children.chunks(2).enumerate();
-		while let Some((i, [left, right])) = iter.next() {
-			self.parents[*left] = i + num_leaves;
-			self.parents[*right] = i + num_leaves;
+
+		let mut iter = self.children.into_iter();
+		let mut i = 0;
+		while let (Some(left), Some(right)) = (iter.next(), iter.next())
+		{
+			self.parents.set(left, i + num_leaves);
+			self.parents.set(right, i + num_leaves);
+			i += 1;
 		}
 	}
 
@@ -279,7 +283,7 @@ impl Tree {
 	/// Returns the index of the root node.
 	pub fn root(&self) -> Internal {
 		// There must always be a rooted element in the tree.
-		let i = self.parents.iter().position(|p| *p == ROOT).unwrap();
+		let i = self.parents.iter().position(|p| p == ROOT).unwrap();
 		Internal(i)
 	}
 
@@ -357,8 +361,8 @@ impl Tree {
 
 	pub fn serialize(&self) -> Json {
 		json!({
-			"children": self.children,
-			"weights": self.weights,
+			"children": self.children.slice(),
+			"weights": self.weights.slice(),
 		})
 	}
 }
