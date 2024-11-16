@@ -91,6 +91,20 @@ impl Tree {
 			nodes.append(&mut n);
 		}
 
+		for (node, weight) in edit.weights {
+			self.weights[node.0] = weight;
+
+			nodes.push(node);
+			if self.parent_of(node).is_some() {
+				edges.push(self.edge_index(node));
+			}
+			if let Some(node) = self.as_internal(node) {
+				let (left, right) = self.children_of(node);
+				edges.push(self.edge_index(left));
+				edges.push(self.edge_index(right));
+			}
+		}
+
 		self.update_substitutions(&edges);
 		self.update_probabilities(&nodes);
 
@@ -160,7 +174,7 @@ impl Tree {
 		if let Some(p) = p {
 			// p: x, s -> p: r_c, s
 			let x = self.other_child_of(p, s);
-			let p_to_x = self.edge_index(p, x);
+			let p_to_x = self.edge_index(x);
 			self.children[p_to_x] = r_c.0;
 			self.parents[r_c.0] = p.0;
 
@@ -169,7 +183,7 @@ impl Tree {
 
 			if let Some(p_p) = self.parent_of(p) {
 				// p_p: p, z -> p_p: x, z
-				let p_p_to_p = self.edge_index(p_p, p.into());
+				let p_p_to_p = self.edge_index(p.into());
 				self.children[p_p_to_p] = x.0;
 				self.parents[x.0] = p_p.0;
 
@@ -179,7 +193,7 @@ impl Tree {
 		}
 
 		if let Some(r_p) = r_p {
-			let r_p_to_r_c = self.edge_index(r_p, r_c);
+			let r_p_to_r_c = self.edge_index(r_c);
 			// TODO: figure out what to do if s is rooted.  It
 			// should probably be forbidden.
 			let p = p.unwrap();
@@ -292,7 +306,10 @@ impl Tree {
 		}
 	}
 
-	fn edge_index(&self, parent: Internal, child: Node) -> usize {
+	/// Index of the edge between `child` and its parent.
+	fn edge_index(&self, child: Node) -> usize {
+		let parent = self.parent_of(child).unwrap();
+
 		if self.children_of(parent).0 == child {
 			(parent.0 - self.num_leaves()) * 2
 		} else {
