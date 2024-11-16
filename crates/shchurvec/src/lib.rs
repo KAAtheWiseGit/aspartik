@@ -109,3 +109,40 @@ impl<T: Default> IndexMut<usize> for ShchurVec<T> {
 		&mut self.inner[index + self.validity[index] as usize]
 	}
 }
+
+pub struct Iter<'a, T: Default> {
+	vec: &'a ShchurVec<T>,
+	index: usize,
+}
+
+impl<'a, T: Default> Iterator for Iter<'a, T> {
+	type Item = &'a T;
+
+	fn next(&mut self) -> Option<&'a T> {
+		if self.index == self.vec.len() {
+			None
+		} else {
+			let out = &self.vec[self.index];
+			self.index += 1;
+			Some(out)
+		}
+	}
+}
+
+impl<T: Default> ShchurVec<T> {
+	pub fn iter(&self) -> Iter<'_, T> {
+		Iter {
+			vec: self,
+			index: 0,
+		}
+	}
+}
+
+impl<'a, T: Default> IntoIterator for &'a ShchurVec<T> {
+	type Item = &'a T;
+	type IntoIter = Iter<'a, T>;
+
+	fn into_iter(self) -> Iter<'a, T> {
+		self.iter()
+	}
+}
