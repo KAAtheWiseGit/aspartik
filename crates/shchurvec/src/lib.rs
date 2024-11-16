@@ -40,12 +40,12 @@ impl<T: Default> ShchurVec<T> {
 		self.validity.shrink_to_fit();
 	}
 
-	/// Appends the value as a proposed one.
+	/// Appends the value as an accepted one.
 	pub fn push(&mut self, value: T) {
-		self.inner.push(T::default());
 		self.inner.push(value);
+		self.inner.push(T::default());
 
-		self.validity.push(true);
+		self.validity.push(false);
 	}
 
 	pub fn clear(&mut self) {
@@ -72,13 +72,13 @@ impl<T: Default> ShchurVec<T> {
 
 impl<T: Default + Copy> ShchurVec<T> {
 	pub fn repeat(value: T, length: usize) -> Self {
-		let mut inner = Vec::with_capacity(length * 2);
-		for i in 0..length {
-			inner[i * 2] = value;
-		}
-		let validity = bitvec![0; length];
+		let mut out = ShchurVec::with_capacity(length);
 
-		Self { inner, validity }
+		for _ in 0..length {
+			out.push(value);
+		}
+
+		out
 	}
 }
 
@@ -92,6 +92,7 @@ impl<T: Default> ShchurVec<T> {
 				);
 			}
 		}
+		self.validity.set_elements(0);
 	}
 
 	pub fn reject(&mut self) {
@@ -108,13 +109,13 @@ impl<T: Default> Index<usize> for ShchurVec<T> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &T {
-		&self.inner[index + self.validity[index] as usize]
+		&self.inner[index * 2 + self.validity[index] as usize]
 	}
 }
 
 impl<T: Default> IndexMut<usize> for ShchurVec<T> {
 	fn index_mut(&mut self, index: usize) -> &mut T {
-		&mut self.inner[index + self.validity[index] as usize]
+		&mut self.inner[index * 2 + self.validity[index] as usize]
 	}
 }
 
@@ -162,7 +163,6 @@ impl<T: Default + Clone> From<&[T]> for ShchurVec<T> {
 		for value in values {
 			out.push(value.clone());
 		}
-		out.accept();
 
 		out
 	}
