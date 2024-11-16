@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::Index;
 
 // XXX: somewhat slower, but eliminates the need for juggling uninitialized
 // memory.
@@ -130,12 +130,6 @@ impl<T: Default> Index<usize> for ShchurVec<T> {
 
 	fn index(&self, index: usize) -> &T {
 		&self.inner[index * 2 + self.mask[index] as usize]
-	}
-}
-
-impl<T: Default> IndexMut<usize> for ShchurVec<T> {
-	fn index_mut(&mut self, index: usize) -> &mut T {
-		&mut self.inner[index * 2 + self.mask[index] as usize]
 	}
 }
 
