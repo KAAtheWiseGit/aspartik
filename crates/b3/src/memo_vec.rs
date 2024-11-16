@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ops::Index};
 
+#[derive(Debug, Clone)]
 pub struct MemoVec<T> {
 	values: Box<[T]>,
 	update: HashMap<usize, T>,
@@ -46,6 +47,10 @@ impl<T: Copy> MemoVec<T> {
 impl<T: Copy> MemoVec<T> {
 	pub fn len(&self) -> usize {
 		self.values.len()
+	}
+
+	pub fn last(&self) -> T {
+		self[self.len() - 1]
 	}
 }
 
