@@ -5,7 +5,12 @@ use std::ops::{Index, IndexMut};
 #[derive(Debug, Clone, Default)]
 pub struct ShchurVec<T: Default> {
 	inner: Vec<T>,
-	edited: Vec<u8>,
+	/// True if the value had been edited.  It uses the `bool` type, which
+	/// is guaranteed to be one byte:
+	///
+	/// https://doc.rust-lang.org/std/mem/fn.size_of.html#:~:text=bool
+	/// https://github.com/rust-lang/rust/pull/46156
+	edited: Vec<bool>,
 	mask: Vec<u8>,
 }
 
@@ -50,7 +55,7 @@ impl<T: Default> ShchurVec<T> {
 		self.inner.push(value);
 		self.inner.push(T::default());
 
-		self.edited.push(0);
+		self.edited.push(true);
 		self.mask.push(0);
 	}
 
@@ -91,25 +96,29 @@ impl<T: Default + Copy> ShchurVec<T> {
 
 // Memoization-related methods
 impl<T: Default> ShchurVec<T> {
+	fn clear_edited(&mut self) {
+		self.edited.iter_mut().for_each(|v| *v = false);
+	}
+
 	pub fn accept(&mut self) {
-		self.edited.iter_mut().for_each(|v| *v = 0);
+		self.clear_edited();
 	}
 
 	pub fn reject(&mut self) {
 		// rollback edits
 		for i in 0..self.len() {
-			if self.edited[i] == 1 {
+			if self.edited[i] {
 				self.mask[i] ^= 1;
 			}
 		}
 
-		self.edited.iter_mut().for_each(|v| *v = 0);
+		self.clear_edited();
 	}
 
 	pub fn set(&mut self, index: usize, value: T) {
 		self.mask[index] ^= 1;
 		self.inner[index * 2 + self.mask[index] as usize] = value;
-		self.edited[index] = 1;
+		self.edited[index] = true;
 	}
 }
 
