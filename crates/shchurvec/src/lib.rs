@@ -62,6 +62,18 @@ impl<T: Default> ShchurVec<T> {
 	}
 }
 
+impl<T: Default + Copy> ShchurVec<T> {
+	pub fn repeat(value: T, length: usize) -> Self {
+		let mut inner = Vec::with_capacity(length * 2);
+		for i in 0..length {
+			inner[i * 2] = value;
+		}
+		let validity = bitvec![0; length];
+
+		Self { inner, validity }
+	}
+}
+
 // Memoization-related methods
 impl<T: Default> ShchurVec<T> {
 	pub fn accept(&mut self) {
