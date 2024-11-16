@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use crate::memo_vec::MemoVec;
 use base::substitution::Model;
+use shchurvec::ShchurVec;
 
 pub struct Likelihood<M: Model> {
 	sites: Vec<Vec<M::Item>>,
 	model: M,
-	substitutions: MemoVec<M::Substitution>,
-	probabilities: Vec<MemoVec<M::Row>>,
+	substitutions: ShchurVec<M::Substitution>,
+	probabilities: Vec<ShchurVec<M::Row>>,
 }
 
 impl<M: Model> Likelihood<M> {
@@ -16,13 +16,13 @@ impl<M: Model> Likelihood<M> {
 		S: IntoIterator<Item = Vec<M::Item>>,
 	{
 		let sites: Vec<_> = sites.into_iter().collect();
-		let substitutions = MemoVec::new(
+		let substitutions = ShchurVec::repeat(
 			M::Substitution::default(),
 			sites[0].len() * 2,
 		);
 
 		let mut probabilities = vec![
-			MemoVec::new(
+			ShchurVec::repeat(
 				M::Row::default(),
 				sites[0].len() * 2 - 1
 			);
@@ -30,7 +30,7 @@ impl<M: Model> Likelihood<M> {
 		];
 		for (site, probability) in sites.iter().zip(&mut probabilities)
 		{
-			// This will fill up the `MemoVec` hash table to the
+			// This will fill up the `ShchurVec` hash table to the
 			// size equal or bigger to that of the main storage
 			// area.  And `accept` doesn't free that.  So, if memory
 			// usage gets out of hand, this is a likely culprit.
@@ -81,7 +81,7 @@ impl<M: Model> Likelihood<M> {
 	pub fn likelihood(&self) -> f64 {
 		self.probabilities
 			.iter()
-			.map(|p| M::probability(&p.last()))
+			.map(|p| M::probability(p.last().unwrap()))
 			.sum()
 	}
 }

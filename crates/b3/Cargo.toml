@@ -7,8 +7,9 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-base = { path ="../base" }
-linalg = { path ="../linalg" }
+base = { path = "../base" }
+linalg = { path = "../linalg" }
+shchurvec = { path = "../shchurvec" }
 
 ahash = { workspace = true }
 rand = { workspace = true }

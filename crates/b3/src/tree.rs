@@ -6,15 +6,16 @@ use serde_json::{json, Value as Json};
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::{likelihood::Likelihood, memo_vec::MemoVec, operator::TreeEdit};
+use crate::{likelihood::Likelihood, operator::TreeEdit};
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
+use shchurvec::ShchurVec;
 
 const ROOT: usize = usize::MAX;
 
 pub struct Tree {
-	children: MemoVec<usize>,
-	parents: MemoVec<usize>,
-	weights: MemoVec<f64>,
+	children: ShchurVec<usize>,
+	parents: ShchurVec<usize>,
+	weights: ShchurVec<f64>,
 
 	likelihoods: Vec<Likelihood<Dna4Substitution>>,
 }
@@ -56,7 +57,7 @@ impl Tree {
 			columns.push(column);
 		}
 
-		let parents = MemoVec::new(ROOT, weights.len());
+		let parents = ShchurVec::repeat(ROOT, weights.len());
 
 		let likelihoods = vec![Likelihood::new(
 			columns,
@@ -223,8 +224,8 @@ impl Tree {
 		let mut i = 0;
 		while let (Some(left), Some(right)) = (iter.next(), iter.next())
 		{
-			self.parents.set(left, i + num_leaves);
-			self.parents.set(right, i + num_leaves);
+			self.parents.set(*left, i + num_leaves);
+			self.parents.set(*right, i + num_leaves);
 			i += 1;
 		}
 	}
@@ -295,7 +296,7 @@ impl Tree {
 	/// Returns the index of the root node.
 	pub fn root(&self) -> Internal {
 		// There must always be a rooted element in the tree.
-		let i = self.parents.iter().position(|p| p == ROOT).unwrap();
+		let i = self.parents.iter().position(|p| *p == ROOT).unwrap();
 		Internal(i)
 	}
 
@@ -373,8 +374,8 @@ impl Tree {
 
 	pub fn serialize(&self) -> Json {
 		json!({
-			"children": self.children.slice(),
-			"weights": self.weights.slice(),
+			"children": "TODO",
+			"weights": "TODO",
 		})
 	}
 }

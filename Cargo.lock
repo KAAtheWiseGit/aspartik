@@ -54,6 +54,7 @@ dependencies = [
  "rand_xoshiro",
  "serde",
  "serde_json",
+ "shchurvec",
 ]
 
 [[package]]
