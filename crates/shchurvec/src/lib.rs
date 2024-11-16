@@ -61,6 +61,28 @@ impl<T: Default> ShchurVec<T> {
 	}
 }
 
+// Memoization-related methods
+impl<T: Default> ShchurVec<T> {
+	pub fn accept(&mut self) {
+		for (i, bit) in self.validity.iter().enumerate() {
+			if *bit {
+				self.inner[i * 2] = std::mem::take(
+					&mut self.inner[i * 2 + 1],
+				);
+			}
+		}
+	}
+
+	pub fn reject(&mut self) {
+		self.validity.set_elements(0);
+	}
+
+	pub fn set(&mut self, index: usize, value: T) {
+		self.inner[index * 2 + 1] = value;
+		self.validity.set(index, true);
+	}
+}
+
 impl<T: Default> Default for ShchurVec<T> {
 	fn default() -> Self {
 		Self::new()
