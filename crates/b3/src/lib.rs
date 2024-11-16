@@ -5,3 +5,4 @@ pub mod probability;
 pub mod state;
 pub mod tree;
 mod likelihood;
+mod memo_vec;
