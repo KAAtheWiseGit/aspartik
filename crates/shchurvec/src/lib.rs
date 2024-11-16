@@ -28,7 +28,9 @@ impl<T: Default> ShchurVec<T> {
 	}
 
 	pub fn capacity(&self) -> usize {
-		self.mask.capacity()
+		(self.inner.capacity() / 2)
+			.min(self.edited.capacity())
+			.min(self.mask.capacity())
 	}
 
 	pub fn reserve(&mut self, additional: usize) {
