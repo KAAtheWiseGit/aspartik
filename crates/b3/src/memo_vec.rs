@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{collections::HashMap, ops::Index};
 
 pub struct MemoVec<T> {
@@ -10,7 +8,7 @@ pub struct MemoVec<T> {
 impl<T: Copy> From<&[T]> for MemoVec<T> {
 	fn from(value: &[T]) -> Self {
 		Self {
-			values: value.clone().into(),
+			values: value.into(),
 			update: HashMap::new(),
 		}
 	}
@@ -38,6 +36,53 @@ impl<T: Copy> MemoVec<T> {
 
 	pub fn set(&mut self, index: usize, value: T) {
 		self.update.insert(index, value);
+	}
+
+	pub fn slice(&self) -> &[T] {
+		&self.values
+	}
+}
+
+impl<T: Copy> MemoVec<T> {
+	pub fn len(&self) -> usize {
+		self.values.len()
+	}
+}
+
+pub struct Iter<'a, T> {
+	vec: &'a MemoVec<T>,
+	index: usize,
+}
+
+impl<'a, T: Copy> Iterator for Iter<'a, T> {
+	type Item = T;
+
+	fn next(&mut self) -> Option<T> {
+		if self.index == self.vec.len() {
+			None
+		} else {
+			let out = self.vec[self.index];
+			self.index += 1;
+			Some(out)
+		}
+	}
+}
+
+impl<T: Copy> MemoVec<T> {
+	pub fn iter(&self) -> Iter<'_, T> {
+		Iter {
+			vec: self,
+			index: 0,
+		}
+	}
+}
+
+impl<'a, T: Copy> IntoIterator for &'a MemoVec<T> {
+	type Item = T;
+	type IntoIter = Iter<'a, T>;
+
+	fn into_iter(self) -> Iter<'a, T> {
+		self.iter()
 	}
 }
 
