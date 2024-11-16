@@ -78,10 +78,10 @@ fn likelihood(data: &Data, length: usize) {
 }
 
 fn bench(c: &mut Criterion) {
-	let data = black_box(data(9, 1000));
+	let data = black_box(data(7, 500));
 
 	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 10_000))
+		b.iter(|| likelihood(&data, 100_000))
 	});
 }
 
