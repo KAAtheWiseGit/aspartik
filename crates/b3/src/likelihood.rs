@@ -84,4 +84,18 @@ impl<M: Model> Likelihood<M> {
 			.map(|p| M::probability(p.last().unwrap()))
 			.sum()
 	}
+
+	pub fn accept(&mut self) {
+		self.substitutions.accept();
+		for probability in &mut self.probabilities {
+			probability.accept();
+		}
+	}
+
+	pub fn reject(&mut self) {
+		self.substitutions.reject();
+		for probability in &mut self.probabilities {
+			probability.reject();
+		}
+	}
 }

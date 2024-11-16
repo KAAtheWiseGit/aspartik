@@ -114,12 +114,20 @@ impl Tree {
 		self.children.accept();
 		self.parents.accept();
 		self.weights.accept();
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.accept();
+		}
 	}
 
 	pub fn reject(&mut self) {
 		self.children.reject();
 		self.parents.reject();
 		self.weights.reject();
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.reject();
+		}
 	}
 
 	fn update_probabilities(&mut self, nodes: &[Node]) {
