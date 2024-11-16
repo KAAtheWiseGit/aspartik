@@ -1,16 +1,18 @@
+use ahash::RandomState;
+
 use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, Clone)]
 pub struct MemoVec<T> {
 	values: Box<[T]>,
-	update: HashMap<usize, T>,
+	update: HashMap<usize, T, RandomState>,
 }
 
 impl<T: Copy> From<&[T]> for MemoVec<T> {
 	fn from(value: &[T]) -> Self {
 		Self {
 			values: value.into(),
-			update: HashMap::new(),
+			update: HashMap::default(),
 		}
 	}
 }
@@ -21,7 +23,7 @@ impl<T: Copy> MemoVec<T> {
 
 		Self {
 			values: values.into(),
-			update: HashMap::new(),
+			update: HashMap::default(),
 		}
 	}
 

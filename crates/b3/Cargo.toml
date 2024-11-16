@@ -10,6 +10,7 @@ authors.workspace = true
 base = { path ="../base" }
 linalg = { path ="../linalg" }
 
+ahash = { workspace = true }
 rand = { workspace = true }
 rand_xoshiro = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
