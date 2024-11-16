@@ -2,14 +2,15 @@ use bitvec::prelude::*;
 
 use std::ops::{Index, IndexMut};
 
-#[derive(Debug, Clone)]
-pub struct ShchurVec<T> {
+// XXX: somewhat slower, but eliminates the need for juggling uninitialized
+// memory.
+#[derive(Debug, Clone, Default)]
+pub struct ShchurVec<T: Default> {
 	inner: Vec<T>,
 	validity: BitVec,
 }
 
-// XXX: somewhat slower, but eliminates the need for juggling uninitialized
-// memory.
+// Methods from `Vec`.
 impl<T: Default> ShchurVec<T> {
 	pub fn new() -> Self {
 		Self {
@@ -80,12 +81,6 @@ impl<T: Default> ShchurVec<T> {
 	pub fn set(&mut self, index: usize, value: T) {
 		self.inner[index * 2 + 1] = value;
 		self.validity.set(index, true);
-	}
-}
-
-impl<T: Default> Default for ShchurVec<T> {
-	fn default() -> Self {
-		Self::new()
 	}
 }
 
