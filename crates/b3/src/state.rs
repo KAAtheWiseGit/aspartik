@@ -3,7 +3,7 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	operator::{Proposal, Status},
+	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
 };
@@ -11,18 +11,18 @@ use crate::{
 pub struct State {
 	/// Map of parameters by name.
 	params: HashMap<String, Parameter>,
+	/// Proposal parameters
+	proposal_params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
-	/// Currently active proposal, or one opposite to it.
-	proposal: Proposal,
 }
 
 impl State {
 	pub fn new(tree: Tree) -> State {
 		State {
 			params: HashMap::new(),
+			proposal_params: HashMap::new(),
 			tree,
-			proposal: Proposal::reject(),
 		}
 	}
 
@@ -36,7 +36,7 @@ impl State {
 	pub fn get_parameter<S: AsRef<str>>(&self, name: S) -> &Parameter {
 		let name = name.as_ref();
 
-		if let Some(param) = self.proposal.params.get(name) {
+		if let Some(param) = self.proposal_params.get(name) {
 			return param;
 		}
 
@@ -82,32 +82,23 @@ impl State {
 		&self.tree
 	}
 
-	pub fn get_proposal_status(&self) -> Status {
-		self.proposal.status
-	}
-
 	pub fn propose(&mut self, proposal: Proposal) {
-		self.proposal = proposal;
+		self.proposal_params = proposal.params;
 
-		let reverse = self
-			.tree
-			.update_with(std::mem::take(&mut self.proposal.tree));
-		self.proposal.tree = reverse;
+		self.tree.update_with(proposal.tree);
 	}
 
 	/// Accept the current proposal
 	pub fn accept(&mut self) {
-		for (name, param) in std::mem::take(&mut self.proposal.params) {
+		for (name, param) in std::mem::take(&mut self.proposal_params) {
 			self.params.insert(name, param);
 		}
 	}
 
 	pub fn reject(&mut self) {
-		self.proposal.params.clear();
+		self.proposal_params.clear();
 
-		// Roll the tree back
-		self.tree
-			.update_with(std::mem::take(&mut self.proposal.tree));
+		// TODO: roll the tree back
 	}
 
 	pub fn serialize(&self) -> Json {

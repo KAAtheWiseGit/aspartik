@@ -29,9 +29,8 @@ pub fn run(
 	for i in 0..(config.burnin + config.length) {
 		let operator = scheduler.get_operator();
 		let proposal = operator.propose(state, &mut rng);
-		state.propose(proposal);
 
-		let hastings = match state.get_proposal_status() {
+		let hastings = match proposal.status {
 			Status::Accept => {
 				state.accept();
 				continue;
@@ -42,6 +41,8 @@ pub fn run(
 			}
 			Status::Hastings(ratio) => ratio,
 		};
+
+		state.propose(proposal);
 
 		let likelihood = state.likelihood() + prior.probability(state);
 

@@ -81,7 +81,7 @@ impl Tree {
 		self.likelihoods.iter().map(|l| l.likelihood()).sum()
 	}
 
-	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
+	pub fn update_with(&mut self, edit: TreeEdit) {
 		let mut edges = vec![];
 		let mut nodes = vec![];
 
@@ -107,9 +107,6 @@ impl Tree {
 
 		self.update_substitutions(&edges);
 		self.update_probabilities(&nodes);
-
-		// TODO
-		TreeEdit::default()
 	}
 
 	fn update_probabilities(&mut self, nodes: &[Node]) {
