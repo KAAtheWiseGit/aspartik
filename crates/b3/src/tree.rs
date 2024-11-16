@@ -81,22 +81,20 @@ impl Tree {
 
 	pub fn update_with(&mut self, edit: TreeEdit) -> TreeEdit {
 		let mut edges = vec![];
-		let mut distances = vec![];
 		let mut nodes = vec![];
 
 		if let Some(spr) = edit.spr {
-			let (mut e, mut d, mut n) =
-				self.update_spr(spr.0, spr.1);
+			let (mut e, mut n) = self.update_spr(spr.0, spr.1);
 			edges.append(&mut e);
-			distances.append(&mut d);
 			nodes.append(&mut n);
 		}
+
+		self.update_edges(&edges);
 
 		let (nodes, children) = self.get_children_tuples(nodes);
 		let num_leaves = self.num_leaves();
 
 		for likelihood in &mut self.likelihoods {
-			likelihood.update_substitutions(&edges, &distances);
 			likelihood.update_probabilities(
 				num_leaves, &nodes, &children,
 			);
@@ -128,9 +126,8 @@ impl Tree {
 		&mut self,
 		s: Node,
 		r_c: Node,
-	) -> (Vec<usize>, Vec<f64>, Vec<Node>) {
+	) -> (Vec<usize>, Vec<Node>) {
 		let mut edges = vec![];
-		let mut distances = vec![];
 		let mut nodes = vec![];
 
 		let r_p = self.parent_of(r_c);
@@ -144,7 +141,6 @@ impl Tree {
 			self.parents[r_c.0] = p.0;
 
 			edges.push(p_to_x);
-			distances.push(self.weight_of(p) - self.weight_of(r_c));
 			nodes.push(p.into());
 
 			if let Some(p_p) = self.parent_of(p) {
@@ -154,9 +150,6 @@ impl Tree {
 				self.parents[x.0] = p_p.0;
 
 				edges.push(p_p_to_p);
-				distances
-					.push(self.weight_of(p_p)
-						- self.weight_of(x));
 				nodes.push(p_p.into());
 			}
 		}
@@ -170,11 +163,10 @@ impl Tree {
 			self.parents[p.0] = r_p.0;
 
 			edges.push(r_p_to_r_c);
-			distances.push(self.weight_of(r_p) - self.weight_of(p));
 			nodes.push(r_p.into());
 		}
 
-		(edges, distances, nodes)
+		(edges, nodes)
 	}
 
 	fn update_all_parents(&mut self) {
@@ -196,30 +188,31 @@ impl Tree {
 			children.push((left.0, right.0))
 		}
 
-		// TODO: deduplicate
-		let mut edges = vec![];
-		let mut distances = vec![];
-		for node in self.internals() {
-			let (left, right) = self.children_of(node);
-
-			let i = node.0 - self.num_leaves();
-
-			edges.push(i * 2);
-			distances
-				.push(self.weight_of(node)
-					- self.weight_of(left));
-			edges.push(i * 2 + 1);
-			distances
-				.push(self.weight_of(node)
-					- self.weight_of(right));
-		}
+		let edges: Vec<usize> = (0..self.children.len()).collect();
+		self.update_edges(&edges);
 
 		let num_leaves = self.num_leaves();
 		for likelihood in &mut self.likelihoods {
-			likelihood.update_substitutions(&edges, &distances);
 			likelihood.update_probabilities(
 				num_leaves, &nodes, &children,
 			);
+		}
+	}
+
+	fn update_edges(&mut self, edges: &[usize]) {
+		let distances: Vec<f64> = edges
+			.iter()
+			.copied()
+			.map(|e| {
+				let child = self.children[e];
+				let parent = e / 2 + self.num_leaves();
+
+				self.weights[parent] - self.weights[child]
+			})
+			.collect();
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.update_substitutions(edges, &distances);
 		}
 	}
 
