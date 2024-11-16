@@ -4,6 +4,8 @@ use rand::{
 };
 use serde_json::{json, Value as Json};
 
+use std::collections::{HashSet, VecDeque};
+
 use crate::{likelihood::Likelihood, operator::TreeEdit};
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 
@@ -89,37 +91,59 @@ impl Tree {
 			nodes.append(&mut n);
 		}
 
-		self.update_edges(&edges);
-
-		let (nodes, children) = self.get_children_tuples(nodes);
-		let num_leaves = self.num_leaves();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.update_probabilities(
-				num_leaves, &nodes, &children,
-			);
-		}
+		self.update_substitutions(&edges);
+		self.update_probabilities(&nodes);
 
 		// TODO
 		TreeEdit::default()
 	}
 
-	fn get_children_tuples(
-		&self,
-		nodes: Vec<Node>,
-	) -> (Vec<usize>, Vec<(usize, usize)>) {
-		let nodes_iter =
-			nodes.into_iter().filter_map(|n| self.as_internal(n));
+	fn update_probabilities(&mut self, nodes: &[Node]) {
+		let mut deq = VecDeque::<usize>::new();
+		let mut set = HashSet::<usize>::new();
 
-		let mut nodes = vec![];
-		let mut children = vec![];
-		for node in nodes_iter {
-			nodes.push(node.0);
-			let (left, right) = self.children_of(node);
-			children.push((left.0, right.0))
+		for node in nodes {
+			let mut curr = node.0;
+			let mut chain = Vec::new();
+
+			// Walk up from the starting nodes until the root, stop
+			// when we encounter a node we have already walked.
+			while !set.contains(&curr) && curr != ROOT {
+				set.insert(curr);
+
+				// If the node is internal, add it to the
+				// current chain.
+				if curr >= self.num_leaves() {
+					chain.push(curr);
+				}
+
+				curr = self.parents[curr];
+			}
+
+			// Prepend the chain to the deque.  The first chain will
+			// insert the root node and walk backwards.  All of the
+			// rest will also go in the front, ensuring that
+			// children always go befor their parents.
+			while let Some(val) = chain.pop() {
+				deq.push_front(val);
+			}
 		}
 
-		(nodes, children)
+		let nodes = deq.make_contiguous();
+		let children: Vec<_> = nodes
+			.iter()
+			.map(|n| n - self.num_leaves())
+			.map(|i| {
+				(self.children[i * 2], self.children[i * 2 + 1])
+			})
+			.collect();
+
+		let num_leaves = self.num_leaves();
+		for likelihood in &mut self.likelihoods {
+			likelihood.update_probabilities(
+				num_leaves, nodes, &children,
+			);
+		}
 	}
 
 	pub fn update_spr(
@@ -179,27 +203,14 @@ impl Tree {
 	}
 
 	fn update_all_likelihoods(&mut self) {
-		// TODO: deduplicate
-		let mut nodes = vec![];
-		let mut children = vec![];
-		for node in self.internals() {
-			nodes.push(node.0);
-			let (left, right) = self.children_of(node);
-			children.push((left.0, right.0))
-		}
-
 		let edges: Vec<usize> = (0..self.children.len()).collect();
-		self.update_edges(&edges);
+		self.update_substitutions(&edges);
 
-		let num_leaves = self.num_leaves();
-		for likelihood in &mut self.likelihoods {
-			likelihood.update_probabilities(
-				num_leaves, &nodes, &children,
-			);
-		}
+		let nodes: Vec<Node> = self.nodes().collect();
+		self.update_probabilities(&nodes);
 	}
 
-	fn update_edges(&mut self, edges: &[usize]) {
+	fn update_substitutions(&mut self, edges: &[usize]) {
 		let distances: Vec<f64> = edges
 			.iter()
 			.copied()
