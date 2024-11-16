@@ -1,5 +1,7 @@
 use bitvec::prelude::*;
 
+use std::ops::{Index, IndexMut};
+
 #[derive(Debug, Clone)]
 pub struct ShchurVec<T> {
 	inner: Vec<T>,
@@ -62,5 +64,19 @@ impl<T: Default> ShchurVec<T> {
 impl<T: Default> Default for ShchurVec<T> {
 	fn default() -> Self {
 		Self::new()
+	}
+}
+
+impl<T: Default> Index<usize> for ShchurVec<T> {
+	type Output = T;
+
+	fn index(&self, index: usize) -> &T {
+		&self.inner[index + self.validity[index] as usize]
+	}
+}
+
+impl<T: Default> IndexMut<usize> for ShchurVec<T> {
+	fn index_mut(&mut self, index: usize) -> &mut T {
+		&mut self.inner[index + self.validity[index] as usize]
 	}
 }
