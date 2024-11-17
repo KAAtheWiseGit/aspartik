@@ -27,11 +27,13 @@ use crate::{parameter::Parameter, state::State, tree::Node};
 //     above
 mod exchange;
 mod scale;
+mod slide;
 
 pub mod scheduler;
 
 pub use exchange::NarrowExchange;
 pub use scale::Scale;
+pub use slide::Slide;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Status {
