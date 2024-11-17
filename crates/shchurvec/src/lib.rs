@@ -1,5 +1,6 @@
 use std::{mem::MaybeUninit, ops::Index};
 
+// TODO: docs, glossary: item vs value, description of the inner workings.
 #[derive(Debug)]
 pub struct ShchurVec<T> {
 	/// The actual storage.  It's twice as long as the number of items
@@ -10,12 +11,12 @@ pub struct ShchurVec<T> {
 	/// True if the value had been edited.  It uses the `bool` type, which
 	/// is guaranteed to be one byte:
 	///
-	/// https://doc.rust-lang.org/std/mem/fn.size_of.html#:~:text=bool
-	/// https://github.com/rust-lang/rust/pull/46156
+	/// - <https://doc.rust-lang.org/std/mem/fn.size_of.html#:~:text=bool>
+	/// - <https://github.com/rust-lang/rust/pull/46156>
 	edited: Vec<bool>,
 	/// Mask points to the currently active item in `inner`.
 	///
-	/// # Safety
+	/// ## Safety
 	///
 	/// - Masks must have the values of either 0 or 1.
 	///
@@ -46,6 +47,11 @@ impl<T> ShchurVec<T> {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
 
+	/// Accept all of the changes made since the creation of the vector or
+	/// the last call to `accept` or [`reject`][ShchurVec::reject].
+	///
+	/// If `T` is [`Drop`], all of the overwritten values will be dropped.
+	/// If `T` is not [`Drop`], this method is very fast.
 	pub fn accept(&mut self) {
 		// Don't waste time dropping values which don't need it.
 		if std::mem::needs_drop::<T>() {
@@ -67,6 +73,11 @@ impl<T> ShchurVec<T> {
 		self.clear_edited();
 	}
 
+	/// Reject all of the changes made this epoch.  All edited values will
+	/// be dropped and the items will roll back to their old values.
+	///
+	/// This method is much slower than `accept` for non-[`Drop`] values, as
+	/// it has to iterate over the vector to search for edited values.
 	pub fn reject(&mut self) {
 		if std::mem::needs_drop::<T>() {
 			for i in 0..self.len() {
@@ -93,6 +104,9 @@ impl<T> ShchurVec<T> {
 		self.clear_edited();
 	}
 
+	/// Sets the item at `index` to `value`.  All of the subsequent index
+	/// operations (via [`ShchurVec::index`] or `[]`) will return this new
+	/// value.
 	pub fn set(&mut self, index: usize, value: T) {
 		if !self.edited[index] {
 			self.mask[index] ^= 1;
@@ -103,6 +117,14 @@ impl<T> ShchurVec<T> {
 			MaybeUninit::new(value);
 	}
 
+	/// Roll back the item at `index`.
+	///
+	/// - If the item was edited, this will drop the edited value if needed
+	///   and roll back to the old value.  It will not be affected by
+	///   subsequent calls to [`accept`][`ShchurVec::accept`] or
+	///   [`reject`][`ShchurVec::reject`].
+	///
+	/// - If the item hasn't been edited, this is a no-op.
 	pub fn unset(&mut self, index: usize) {
 		if self.edited[index] {
 			if std::mem::needs_drop::<T>() {
@@ -183,6 +205,9 @@ impl<T> Default for ShchurVec<T> {
 
 // Iterator implementations
 
+/// Immutable iterator over a [`ShchurVec`].
+///
+/// See [`ShchurVec::iter`].
 pub struct Iter<'a, T> {
 	vec: &'a ShchurVec<T>,
 	index: usize,
@@ -203,6 +228,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
 }
 
 impl<T> ShchurVec<T> {
+	/// Returns an iterator over the vector, which yields currently active
+	/// item values.
 	pub fn iter(&self) -> Iter<'_, T> {
 		Iter {
 			vec: self,
@@ -222,6 +249,7 @@ impl<'a, T> IntoIterator for &'a ShchurVec<T> {
 
 // Methods from `Vec`.
 impl<T> ShchurVec<T> {
+	/// Constructs a new, empty `ShchurVec`.
 	pub fn new() -> Self {
 		Self {
 			inner: Vec::new(),
@@ -230,6 +258,8 @@ impl<T> ShchurVec<T> {
 		}
 	}
 
+	/// Constructs a new, empty `ShchurVec` which can hold at least
+	/// `capacity` elements without additional allocations.
 	pub fn with_capacity(capacity: usize) -> Self {
 		Self {
 			inner: Vec::with_capacity(capacity * 2),
@@ -238,18 +268,32 @@ impl<T> ShchurVec<T> {
 		}
 	}
 
+	/// Returns the total number of elements the vector can hold without
+	/// reallocating.
+	///
+	/// Note that `ShchurVec` is made up of several vectors internally,
+	/// which are not guaranteed to reserve memory in the same way.  As
+	/// such, their capacities might diverge.  This method conservatively
+	/// returns the lowest capacity.  Adding more items than that will
+	/// trigger allocations, but their exact size might vary in different
+	/// situations.
 	pub fn capacity(&self) -> usize {
 		(self.inner.capacity() / 2)
 			.min(self.edited.capacity())
 			.min(self.mask.capacity())
 	}
 
+	/// Reserve the space for at least `additional` more items.
+	///
+	/// See [`ShchurVec::capacity`] for the nuances with handling
+	/// `ShchurVec`'s allocations.
 	pub fn reserve(&mut self, additional: usize) {
 		self.inner.reserve(additional * 2);
 		self.edited.reserve(additional);
 		self.mask.reserve(additional);
 	}
 
+	/// Shrinks the capacity of the vector as much as possible.
 	pub fn shrink_to_fit(&mut self) {
 		self.inner.shrink_to_fit();
 		self.edited.shrink_to_fit();
@@ -265,20 +309,28 @@ impl<T> ShchurVec<T> {
 		self.mask.push(0);
 	}
 
+	/// Clears the vector, removing all values.
 	pub fn clear(&mut self) {
+		// TODO: drop leak
 		self.inner.clear();
 		self.edited.clear();
 		self.mask.clear();
 	}
 
+	/// Number of items in the `ShchurVec`.
+	///
+	/// See [top-level documentation] (TODO) for the distinction between
+	/// items and values.
 	pub fn len(&self) -> usize {
 		self.mask.len()
 	}
 
+	/// Returns `true` if the vector has no items.
 	pub fn is_empty(&self) -> bool {
 		self.inner.is_empty()
 	}
 
+	/// Returns the last active element, or `None` if the vector is empty.
 	pub fn last(&self) -> Option<&T> {
 		if self.is_empty() {
 			None
@@ -290,6 +342,7 @@ impl<T> ShchurVec<T> {
 
 // Custom
 impl<T: Copy> ShchurVec<T> {
+	// TODO: replace with a macro
 	pub fn repeat(value: T, length: usize) -> Self {
 		let mut out = ShchurVec::with_capacity(length);
 
