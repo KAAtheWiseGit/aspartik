@@ -126,7 +126,8 @@ impl<T> Drop for ShchurVec<T> {
 	/// Necessary because `MaybeUninit` doesn't drop on deinitialization.
 	fn drop(&mut self) {
 		// Make sure that we only have one initialized value per index.
-		self.reject();
+		// Accept is used because it is faster than reject.
+		self.accept();
 
 		for i in 0..self.len() {
 			// SAFETY: masks must always point to initialized
