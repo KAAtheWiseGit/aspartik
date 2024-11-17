@@ -32,11 +32,11 @@ pub fn run(
 
 		let hastings = match proposal.status {
 			Status::Accept => {
+				state.propose(proposal);
 				state.accept();
 				continue;
 			}
 			Status::Reject => {
-				state.reject();
 				continue;
 			}
 			Status::Hastings(ratio) => ratio,
