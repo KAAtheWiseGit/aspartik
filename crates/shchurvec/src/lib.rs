@@ -138,7 +138,7 @@ impl<T> ShchurVec<T> {
 	/// The other slot at index `i`, which is not being pointed to by the
 	/// mask.
 	fn inactive_inner_mut(&mut self, i: usize) -> &mut MaybeUninit<T> {
-		&mut self.inner[i * 2 + (self.mask[i] + 1) as usize]
+		&mut self.inner[i * 2 + (self.mask[i] ^ 1) as usize]
 	}
 
 	fn clear_edited(&mut self) {
