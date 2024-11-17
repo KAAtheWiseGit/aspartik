@@ -74,6 +74,7 @@ impl Tree {
 
 		out.update_all_parents();
 		out.update_all_likelihoods();
+		out.accept();
 
 		out
 	}
