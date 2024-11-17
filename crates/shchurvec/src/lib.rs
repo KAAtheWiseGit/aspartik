@@ -146,15 +146,19 @@ impl<T> ShchurVec<T> {
 	}
 
 	pub fn accept(&mut self) {
-		for i in 0..self.len() {
-			if self.edited[i] {
-				// SAFETY: Only initialized values can be
-				// edited.  Since the value at index `i` has
-				// been set, it must've been initialized.
-				unsafe {
-					// drop the old value
-					self.inactive_inner_mut(i)
-						.assume_init_drop();
+		// Don't waste time dropping values which don't need it.
+		if std::mem::needs_drop::<T>() {
+			for i in 0..self.len() {
+				if self.edited[i] {
+					// SAFETY: Only initialized values can
+					// be edited.  Since the value at index
+					// `i` has been set, it must've been
+					// initialized.
+					unsafe {
+						// drop the old value
+						self.inactive_inner_mut(i)
+							.assume_init_drop();
+					}
 				}
 			}
 		}
