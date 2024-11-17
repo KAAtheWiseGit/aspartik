@@ -43,6 +43,22 @@ impl<T> ShchurVec<T> {
 		&mut self.inner[i * 2 + (self.mask[i] ^ 1) as usize]
 	}
 
+	/// Drop the currently active value at index `i`.  A no-op if `T` isn't
+	/// `Drop`, which hopefully means the compiler will optimize this
+	/// function out in such cases.
+	unsafe fn active_inner_drop(&mut self, i: usize) {
+		if std::mem::needs_drop::<T>() {
+			self.active_inner_mut(i).assume_init_drop();
+		}
+	}
+
+	/// See [`ShchurVec::active_inner_drop`].
+	unsafe fn inactive_inner_drop(&mut self, i: usize) {
+		if std::mem::needs_drop::<T>() {
+			self.inactive_inner_mut(i).assume_init_drop();
+		}
+	}
+
 	fn clear_edited(&mut self) {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
@@ -62,9 +78,7 @@ impl<T> ShchurVec<T> {
 					// `i` has been set, it must've been
 					// initialized.
 					unsafe {
-						// drop the old value
-						self.inactive_inner_mut(i)
-							.assume_init_drop();
+						self.inactive_inner_drop(i);
 					}
 				}
 			}
@@ -79,6 +93,8 @@ impl<T> ShchurVec<T> {
 	/// This method is much slower than `accept` for non-[`Drop`] values, as
 	/// it has to iterate over the vector to search for edited values.
 	pub fn reject(&mut self) {
+		// Additional check on top to ensure that `reject` doesn't even
+		// contain the loop when `T` isn't `Drop`.
 		if std::mem::needs_drop::<T>() {
 			for i in 0..self.len() {
 				if self.edited[i] {
@@ -86,9 +102,7 @@ impl<T> ShchurVec<T> {
 					// be set.  Since the value at index `i`
 					// was set, it must've been initialized.
 					unsafe {
-						// drop the edited value
-						self.active_inner_mut(i)
-							.assume_init_drop();
+						self.active_inner_drop(i);
 					}
 				}
 			}
@@ -129,14 +143,9 @@ impl<T> ShchurVec<T> {
 	/// Essentially, this is an item-local version of `reject`.
 	pub fn unset(&mut self, index: usize) {
 		if self.edited[index] {
-			if std::mem::needs_drop::<T>() {
-				// SAFETY: because `edited[index]` is true, it
-				// must've been set before.
-				unsafe {
-					self.active_inner_mut(index)
-						.assume_init_drop();
-				}
-			}
+			// SAFETY: because `edited[index]` is true, it
+			// must've been set before.
+			unsafe { self.active_inner_drop(index) }
 
 			self.edited[index] = false;
 			self.mask[index] ^= 1;
@@ -152,13 +161,10 @@ impl<T> ShchurVec<T> {
 	/// Essentially, this is an item-local version of `accept`.
 	pub fn accept_item(&mut self, index: usize) {
 		if self.edited[index] {
-			if std::mem::needs_drop::<T>() {
-				// SAFETY: the item has been edited, so the
-				// inactive slot must've been initialized.
-				unsafe {
-					self.inactive_inner_mut(index)
-						.assume_init_drop()
-				}
+			// SAFETY: the item has been edited, so the
+			// inactive slot must've been initialized.
+			unsafe {
+				self.inactive_inner_drop(index);
 			}
 
 			self.edited[index] = false;
