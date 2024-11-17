@@ -5,7 +5,7 @@ use std::hint::black_box;
 
 use b3::{
 	mcmc::{run, Config},
-	operator::{scheduler::TurnScheduler, NarrowExchange, Operator},
+	operator::{scheduler::TurnScheduler, NarrowExchange, Operator, Scale},
 	probability::Compound,
 	state::State,
 	tree::Tree,
@@ -64,8 +64,9 @@ fn likelihood(data: &Data, length: usize) {
 	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
 
-	let operator: Box<dyn Operator> = Box::new(NarrowExchange());
-	let mut scheduler = TurnScheduler::new([operator]);
+	let local: Box<dyn Operator> = Box::new(NarrowExchange());
+	let global: Box<dyn Operator> = Box::new(Scale());
+	let mut scheduler = TurnScheduler::new([local, global]);
 
 	let config = Config {
 		burnin: 0,
