@@ -4,8 +4,8 @@ use std::{mem::MaybeUninit, ops::Index};
 pub struct ShchurVec<T> {
 	/// The actual storage.  It's twice as long as the number of items
 	/// `ShchurVec` can hold at a time.  Each item takes up two elements in
-	/// `inner`, only one of which is active, which is determined by `mask`
-	/// elements.
+	/// `inner`, only one of which is active, determined by the `mask`
+	/// element at the index.
 	inner: Vec<MaybeUninit<T>>,
 	/// True if the value had been edited.  It uses the `bool` type, which
 	/// is guaranteed to be one byte:
@@ -18,7 +18,10 @@ pub struct ShchurVec<T> {
 	/// # Safety
 	///
 	/// - Mask elements must have the values of either 0 or 1.
-	/// - Mask elements must point at initialized memory.
+	///
+	/// - Mask elements must point at initialized memory.  When an element
+	///   pair is created for the first time, the 0th element is presumed to
+	///   be initialized.  This can change after an `accept` call.
 	mask: Vec<u8>,
 }
 
@@ -82,7 +85,7 @@ impl<T> ShchurVec<T> {
 		self.inner.push(MaybeUninit::new(value));
 		self.inner.push(MaybeUninit::uninit());
 
-		self.edited.push(true);
+		self.edited.push(false);
 		self.mask.push(0);
 	}
 
@@ -123,18 +126,55 @@ impl<T: Copy> ShchurVec<T> {
 
 // Memoization-related methods
 impl<T> ShchurVec<T> {
+	fn active_inner(&self, i: usize) -> &MaybeUninit<T> {
+		&self.inner[i * 2 + self.mask[i] as usize]
+	}
+
+	/// The slot at index `i` pointed at by the mask.
+	fn active_inner_mut(&mut self, i: usize) -> &mut MaybeUninit<T> {
+		&mut self.inner[i * 2 + self.mask[i] as usize]
+	}
+
+	/// The other slot at index `i`, which is not being pointed to by the
+	/// mask.
+	fn inactive_inner_mut(&mut self, i: usize) -> &mut MaybeUninit<T> {
+		&mut self.inner[i * 2 + (self.mask[i] + 1) as usize]
+	}
+
 	fn clear_edited(&mut self) {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
 
 	pub fn accept(&mut self) {
+		for i in 0..self.len() {
+			if self.edited[i] {
+				// SAFETY: Only initialized values can be
+				// edited.  Since the value at index `i` has
+				// been set, it must've been initialized.
+				unsafe {
+					// drop the old value
+					self.inactive_inner_mut(i)
+						.assume_init_drop();
+				}
+			}
+		}
+
 		self.clear_edited();
 	}
 
 	pub fn reject(&mut self) {
-		// rollback edits
 		for i in 0..self.len() {
 			if self.edited[i] {
+				// SAFETY: only initialized values can be set.
+				// Since the value at index `i` was set, it
+				// must've been initialized.
+				unsafe {
+					// drop the edited value
+					self.active_inner_mut(i)
+						.assume_init_drop();
+				}
+
+				// Point back to the old value.
 				self.mask[i] ^= 1;
 			}
 		}
@@ -157,11 +197,22 @@ impl<T> Index<usize> for ShchurVec<T> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &T {
-		// SAFETY: TODO
-		unsafe {
-			self.inner[index * 2 + self.mask[index] as usize]
-				.assume_init_ref()
-		}
+		// SAFETY:
+		//
+		// - When a value is added to the vector for the first time,
+		//   it's initialized and mask points at it.
+		//
+		// - When a value is set, mask is moved to point to that
+		//   initialized value.
+		//
+		// - During `accept` and `reject` the invariant of `mask`
+		//   pointing to the initialized values should be preserved.
+		//
+		// All of that means that this is sound, as long as mutating
+		// methods, constructors, `accept`, `reject`, `set`, and in
+		// general all of the methods which mutate the vector are sound
+		// and uphold the invariants.
+		unsafe { self.active_inner(index).assume_init_ref() }
 	}
 }
 
