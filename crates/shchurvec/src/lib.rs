@@ -201,6 +201,22 @@ impl<T> ShchurVec<T> {
 		self.inner[index * 2 + self.mask[index] as usize] =
 			MaybeUninit::new(value);
 	}
+
+	pub fn unset(&mut self, index: usize) {
+		if self.edited[index] {
+			if std::mem::needs_drop::<T>() {
+				// SAFETY: because `edited[index]` is true, it
+				// must've been set before.
+				unsafe {
+					self.active_inner_mut(index)
+						.assume_init_drop();
+				}
+			}
+
+			self.edited[index] = false;
+			self.mask[index] ^= 1;
+		}
+	}
 }
 
 impl<T> Drop for ShchurVec<T> {
