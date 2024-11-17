@@ -125,6 +125,8 @@ impl<T> ShchurVec<T> {
 	///   [`reject`][`ShchurVec::reject`].
 	///
 	/// - If the item hasn't been edited, this is a no-op.
+	///
+	/// Essentially, this is an item-local version of `reject`.
 	pub fn unset(&mut self, index: usize) {
 		if self.edited[index] {
 			if std::mem::needs_drop::<T>() {
@@ -138,6 +140,28 @@ impl<T> ShchurVec<T> {
 
 			self.edited[index] = false;
 			self.mask[index] ^= 1;
+		}
+	}
+
+	/// If the item at `index` has been edited, accept it.
+	///
+	/// This function acts independently of the `accept` and `reject`
+	/// methods.  A subsequent call to either of those won't change the
+	/// value or status of the accepted item.
+	///
+	/// Essentially, this is an item-local version of `accept`.
+	pub fn accept_item(&mut self, index: usize) {
+		if self.edited[index] {
+			if std::mem::needs_drop::<T>() {
+				// SAFETY: the item has been edited, so the
+				// inactive slot must've been initialized.
+				unsafe {
+					self.inactive_inner_mut(index)
+						.assume_init_drop()
+				}
+			}
+
+			self.edited[index] = false;
 		}
 	}
 }
