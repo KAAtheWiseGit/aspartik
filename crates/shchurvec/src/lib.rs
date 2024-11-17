@@ -25,105 +25,6 @@ pub struct ShchurVec<T> {
 	mask: Vec<u8>,
 }
 
-impl<T> Clone for ShchurVec<T>
-where
-	MaybeUninit<T>: Clone,
-{
-	fn clone(&self) -> Self {
-		Self {
-			inner: self.inner.clone(),
-			edited: self.edited.clone(),
-			mask: self.mask.clone(),
-		}
-	}
-}
-
-impl<T> Default for ShchurVec<T> {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
-// Methods from `Vec`.
-impl<T> ShchurVec<T> {
-	pub fn new() -> Self {
-		Self {
-			inner: Vec::new(),
-			edited: Vec::new(),
-			mask: Vec::new(),
-		}
-	}
-
-	pub fn with_capacity(capacity: usize) -> Self {
-		Self {
-			inner: Vec::with_capacity(capacity * 2),
-			edited: Vec::with_capacity(capacity),
-			mask: Vec::with_capacity(capacity),
-		}
-	}
-
-	pub fn capacity(&self) -> usize {
-		(self.inner.capacity() / 2)
-			.min(self.edited.capacity())
-			.min(self.mask.capacity())
-	}
-
-	pub fn reserve(&mut self, additional: usize) {
-		self.inner.reserve(additional * 2);
-		self.edited.reserve(additional);
-		self.mask.reserve(additional);
-	}
-
-	pub fn shrink_to_fit(&mut self) {
-		self.inner.shrink_to_fit();
-		self.edited.shrink_to_fit();
-		self.mask.shrink_to_fit();
-	}
-
-	/// Appends the value as an accepted one.
-	pub fn push(&mut self, value: T) {
-		self.inner.push(MaybeUninit::new(value));
-		self.inner.push(MaybeUninit::uninit());
-
-		self.edited.push(false);
-		self.mask.push(0);
-	}
-
-	pub fn clear(&mut self) {
-		self.inner.clear();
-		self.edited.clear();
-		self.mask.clear();
-	}
-
-	pub fn len(&self) -> usize {
-		self.mask.len()
-	}
-
-	pub fn is_empty(&self) -> bool {
-		self.inner.is_empty()
-	}
-
-	pub fn last(&self) -> Option<&T> {
-		if self.is_empty() {
-			None
-		} else {
-			Some(&self[self.len() - 1])
-		}
-	}
-}
-
-impl<T: Copy> ShchurVec<T> {
-	pub fn repeat(value: T, length: usize) -> Self {
-		let mut out = ShchurVec::with_capacity(length);
-
-		for _ in 0..length {
-			out.push(value);
-		}
-
-		out
-	}
-}
-
 // Memoization-related methods
 impl<T> ShchurVec<T> {
 	fn active_inner(&self, i: usize) -> &MaybeUninit<T> {
@@ -219,9 +120,10 @@ impl<T> ShchurVec<T> {
 	}
 }
 
+// Trait implementations
+
 impl<T> Drop for ShchurVec<T> {
-	/// This is necessary because `MaybeUninit` doesn't drop on
-	/// deinitialization.
+	/// Necessary because `MaybeUninit` doesn't drop on deinitialization.
 	fn drop(&mut self) {
 		// Make sure that we only have one initialized value per index.
 		self.reject();
@@ -259,6 +161,27 @@ impl<T> Index<usize> for ShchurVec<T> {
 	}
 }
 
+impl<T> Clone for ShchurVec<T>
+where
+	MaybeUninit<T>: Clone,
+{
+	fn clone(&self) -> Self {
+		Self {
+			inner: self.inner.clone(),
+			edited: self.edited.clone(),
+			mask: self.mask.clone(),
+		}
+	}
+}
+
+impl<T> Default for ShchurVec<T> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
+// Iterator implementations
+
 pub struct Iter<'a, T> {
 	vec: &'a ShchurVec<T>,
 	index: usize,
@@ -295,6 +218,89 @@ impl<'a, T> IntoIterator for &'a ShchurVec<T> {
 		self.iter()
 	}
 }
+
+// Methods from `Vec`.
+impl<T> ShchurVec<T> {
+	pub fn new() -> Self {
+		Self {
+			inner: Vec::new(),
+			edited: Vec::new(),
+			mask: Vec::new(),
+		}
+	}
+
+	pub fn with_capacity(capacity: usize) -> Self {
+		Self {
+			inner: Vec::with_capacity(capacity * 2),
+			edited: Vec::with_capacity(capacity),
+			mask: Vec::with_capacity(capacity),
+		}
+	}
+
+	pub fn capacity(&self) -> usize {
+		(self.inner.capacity() / 2)
+			.min(self.edited.capacity())
+			.min(self.mask.capacity())
+	}
+
+	pub fn reserve(&mut self, additional: usize) {
+		self.inner.reserve(additional * 2);
+		self.edited.reserve(additional);
+		self.mask.reserve(additional);
+	}
+
+	pub fn shrink_to_fit(&mut self) {
+		self.inner.shrink_to_fit();
+		self.edited.shrink_to_fit();
+		self.mask.shrink_to_fit();
+	}
+
+	/// Appends the value as an accepted one.
+	pub fn push(&mut self, value: T) {
+		self.inner.push(MaybeUninit::new(value));
+		self.inner.push(MaybeUninit::uninit());
+
+		self.edited.push(false);
+		self.mask.push(0);
+	}
+
+	pub fn clear(&mut self) {
+		self.inner.clear();
+		self.edited.clear();
+		self.mask.clear();
+	}
+
+	pub fn len(&self) -> usize {
+		self.mask.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.inner.is_empty()
+	}
+
+	pub fn last(&self) -> Option<&T> {
+		if self.is_empty() {
+			None
+		} else {
+			Some(&self[self.len() - 1])
+		}
+	}
+}
+
+// Custom
+impl<T: Copy> ShchurVec<T> {
+	pub fn repeat(value: T, length: usize) -> Self {
+		let mut out = ShchurVec::with_capacity(length);
+
+		for _ in 0..length {
+			out.push(value);
+		}
+
+		out
+	}
+}
+
+// From implementations
 
 impl<T: Clone> From<&[T]> for ShchurVec<T> {
 	fn from(values: &[T]) -> Self {
