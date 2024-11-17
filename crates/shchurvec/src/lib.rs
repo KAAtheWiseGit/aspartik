@@ -3,9 +3,9 @@ use std::{mem::MaybeUninit, ops::Index};
 #[derive(Debug)]
 pub struct ShchurVec<T> {
 	/// The actual storage.  It's twice as long as the number of items
-	/// `ShchurVec` can hold at a time.  Each item takes up two elements in
-	/// `inner`, only one of which is active, determined by the `mask`
-	/// element at the index.
+	/// `ShchurVec` can hold at a time.  Each item takes up two values in
+	/// `inner`, only one of which is active, determined by the `mask` at
+	/// the index.
 	inner: Vec<MaybeUninit<T>>,
 	/// True if the value had been edited.  It uses the `bool` type, which
 	/// is guaranteed to be one byte:
@@ -17,11 +17,11 @@ pub struct ShchurVec<T> {
 	///
 	/// # Safety
 	///
-	/// - Mask elements must have the values of either 0 or 1.
+	/// - Masks must have the values of either 0 or 1.
 	///
-	/// - Mask elements must point at initialized memory.  When an element
-	///   pair is created for the first time, the 0th element is presumed to
-	///   be initialized.  This can change after an `accept` call.
+	/// - Masks must point at initialized memory.  When an value pair is
+	///   created for the first time, the 0th one is presumed to be
+	///   initialized.  This can change after an `accept` call.
 	mask: Vec<u8>,
 }
 
@@ -190,6 +190,23 @@ impl<T> ShchurVec<T> {
 
 		self.inner[index * 2 + self.mask[index] as usize] =
 			MaybeUninit::new(value);
+	}
+}
+
+impl<T> Drop for ShchurVec<T> {
+	/// This is necessary because `MaybeUninit` doesn't drop on
+	/// deinitialization.
+	fn drop(&mut self) {
+		// Make sure that we only have one initialized value per index.
+		self.reject();
+
+		for i in 0..self.len() {
+			// SAFETY: masks must always point to initialized
+			// values.
+			unsafe {
+				self.active_inner_mut(i).assume_init_drop();
+			}
+		}
 	}
 }
 
