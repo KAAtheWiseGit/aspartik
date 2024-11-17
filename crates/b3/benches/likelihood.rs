@@ -71,8 +71,8 @@ fn likelihood(data: &Data, length: usize) {
 	let config = Config {
 		burnin: 0,
 		length,
-		state: length / 10_000,
-		trees: length / 10_000,
+		state: (length / 10_000).max(1),
+		trees: (length / 10_000).max(1),
 	};
 
 	run(config, &mut state, prior, &mut scheduler);
@@ -82,7 +82,7 @@ fn bench(c: &mut Criterion) {
 	let data = black_box(data(7, 500));
 
 	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 100_000))
+		b.iter(|| likelihood(&data, 1_000))
 	});
 }
 
