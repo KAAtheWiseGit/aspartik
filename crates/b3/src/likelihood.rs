@@ -8,6 +8,8 @@ pub struct Likelihood<M: Model> {
 	model: M,
 	substitutions: ShchurVec<M::Substitution>,
 	probabilities: Vec<ShchurVec<M::Row>>,
+
+	updated_nodes: Option<Vec<usize>>,
 }
 
 impl<M: Model> Likelihood<M> {
@@ -45,6 +47,8 @@ impl<M: Model> Likelihood<M> {
 			model,
 			substitutions,
 			probabilities,
+
+			updated_nodes: None,
 		}
 	}
 
@@ -65,6 +69,8 @@ impl<M: Model> Likelihood<M> {
 		nodes: &[usize],
 		children: &[(usize, usize)],
 	) {
+		self.updated_nodes = Some(nodes.into());
+
 		for probability in &mut self.probabilities {
 			for (i, (left, right)) in nodes.iter().zip(children) {
 				let left = self.substitutions
@@ -93,9 +99,18 @@ impl<M: Model> Likelihood<M> {
 	}
 
 	pub fn reject(&mut self) {
+		let nodes = self.updated_nodes.take().expect(
+			"Reject must be called after 'update_probabilities'",
+		);
+
 		self.substitutions.reject();
+
 		for probability in &mut self.probabilities {
-			probability.reject();
+			for node in &nodes {
+				probability.unset(*node);
+			}
+			// All of the edited items have been manually unset, so
+			// there's no need for `accept` or `reject`.
 		}
 	}
 }
