@@ -26,10 +26,12 @@ use crate::{parameter::Parameter, state::State, tree::Node};
 //   - [ ] Bactrian versions for all distribution dependent operators from the
 //     above
 mod exchange;
+mod scale;
 
 pub mod scheduler;
 
 pub use exchange::NarrowExchange;
+pub use scale::Scale;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Status {
