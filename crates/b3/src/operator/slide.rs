@@ -1,8 +1,6 @@
 use rand::Rng;
 
-use std::collections::HashMap;
-
-use super::{Operator, Proposal, Rng as RngT, Status, TreeEdit};
+use super::{Operator, Proposal, Rng as RngT};
 use crate::state::State;
 
 pub struct Slide {}
@@ -24,13 +22,7 @@ impl Operator for Slide {
 		// TODO: what happens if `new_weight == low`?
 		let new_weight = rng.gen_range(low..high);
 
-		Proposal {
-			status: Status::Hastings(0.0),
-			params: HashMap::new(),
-			tree: TreeEdit {
-				weights: vec![(node.into(), new_weight)],
-				spr: None,
-			},
-		}
+		Proposal::hastings(0.0)
+			.with_weights(vec![(node.into(), new_weight)])
 	}
 }

@@ -82,10 +82,10 @@ impl State {
 		&self.tree
 	}
 
-	pub fn propose(&mut self, proposal: Proposal) {
-		self.proposal_params = proposal.params;
+	pub fn propose(&mut self, mut proposal: Proposal) {
+		self.proposal_params = std::mem::take(&mut proposal.params);
 
-		self.tree.update_with(proposal.tree);
+		self.tree.propose(proposal);
 	}
 
 	/// Accept the current proposal

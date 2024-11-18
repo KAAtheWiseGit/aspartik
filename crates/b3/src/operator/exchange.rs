@@ -1,8 +1,6 @@
 use rand::Rng;
 
-use std::collections::HashMap;
-
-use super::{Operator, Proposal, Rng as RngT, Status, TreeEdit};
+use super::{Operator, Proposal, Rng as RngT};
 use crate::{
 	state::State,
 	tree::{Internal, Tree},
@@ -53,14 +51,7 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		Proposal {
-			status: Status::Hastings(0.0),
-			params: HashMap::new(),
-			tree: TreeEdit {
-				spr: Some((child, uncle)),
-				weights: vec![],
-			},
-		}
+		Proposal::hastings(0.0).with_spr(child, uncle)
 	}
 }
 

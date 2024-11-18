@@ -46,22 +46,16 @@ type NodeWeight = f64;
 
 pub type Rng = Xoshiro256StarStar;
 
-#[derive(Debug, Clone, Default)]
-pub struct TreeEdit {
-	/// Update the weight of nodes on the left to values on the right.
-	pub weights: Vec<(Node, NodeWeight)>,
-	/// Subtree pruning and regrafting.  The parent of the left node is
-	/// removed and regrafted between the right node and its parent.
-	pub spr: Option<(Node, Node)>,
-}
-
 #[derive(Debug, Clone)]
 pub struct Proposal {
 	pub status: Status,
 	/// A hash map of parameters updated by the operator.
 	pub params: HashMap<String, Parameter>,
-	/// A proposed edit of the tree.
-	pub tree: TreeEdit,
+	/// Update the weight of tree nodes on the left to values on the right.
+	pub weights: Vec<(Node, NodeWeight)>,
+	/// Subtree pruning and regrafting.  The parent of the left node is
+	/// removed and regrafted between the right node and its parent.
+	pub spr: Option<(Node, Node)>,
 }
 
 impl Proposal {
@@ -69,7 +63,8 @@ impl Proposal {
 		Self {
 			status: Status::Reject,
 			params: HashMap::new(),
-			tree: TreeEdit::default(),
+			weights: vec![],
+			spr: None,
 		}
 	}
 
@@ -78,6 +73,23 @@ impl Proposal {
 			status: Status::Reject,
 			..Proposal::reject()
 		}
+	}
+
+	pub fn hastings(ratio: f64) -> Self {
+		Self {
+			status: Status::Hastings(ratio),
+			..Proposal::reject()
+		}
+	}
+
+	pub fn with_weights(mut self, weights: Vec<(Node, f64)>) -> Self {
+		self.weights = weights;
+		self
+	}
+
+	pub fn with_spr(mut self, subtree: Node, regraft: Node) -> Self {
+		self.spr = Some((subtree, regraft));
+		self
 	}
 }
 

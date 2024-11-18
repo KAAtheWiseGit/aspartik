@@ -6,7 +6,7 @@ use serde_json::{json, Value as Json};
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::{likelihood::Likelihood, operator::TreeEdit};
+use crate::{likelihood::Likelihood, operator::Proposal};
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 use shchurvec::ShchurVec;
 
@@ -83,17 +83,17 @@ impl Tree {
 		self.likelihoods.iter().map(|l| l.likelihood()).sum()
 	}
 
-	pub fn update_with(&mut self, edit: TreeEdit) {
+	pub fn propose(&mut self, proposal: Proposal) {
 		let mut edges = vec![];
 		let mut nodes = vec![];
 
-		if let Some(spr) = edit.spr {
+		if let Some(spr) = proposal.spr {
 			let (mut e, mut n) = self.update_spr(spr.0, spr.1);
 			edges.append(&mut e);
 			nodes.append(&mut n);
 		}
 
-		for (node, weight) in edit.weights {
+		for (node, weight) in proposal.weights {
 			self.weights.set(node.0, weight);
 
 			nodes.push(node);
