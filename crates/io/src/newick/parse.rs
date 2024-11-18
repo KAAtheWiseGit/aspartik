@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use nom::{
 	branch::alt,
 	bytes::{tag, take_till},
@@ -10,27 +8,8 @@ use nom::{
 	sequence::delimited,
 	IResult, Parser,
 };
-use petgraph::graph::DiGraph;
 
-struct Node {
-	name: String,
-	attributes: String,
-	length: f64,
-}
-
-impl Node {
-	pub fn name(&self) -> &str {
-		&self.name
-	}
-
-	pub fn length(&self) -> f64 {
-		self.length
-	}
-}
-
-pub struct Tree {
-	graph: DiGraph<Node, ()>,
-}
+use super::Node;
 
 macro_rules! ws {
 	($f:expr) => {
