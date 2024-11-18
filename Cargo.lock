@@ -279,6 +279,8 @@ name = "io"
 version = "0.1.0"
 dependencies = [
  "base",
+ "nom",
+ "petgraph",
 ]
 
 [[package]]
@@ -337,6 +339,15 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "nom"
+version = "8.0.0-alpha2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2785486691910e746b3d84220af18362bd15ba71f9b7bc0a47ac549550b7fe2"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "num-traits"

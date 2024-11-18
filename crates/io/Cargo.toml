@@ -8,3 +8,6 @@ authors.workspace = true
 
 [dependencies]
 base = { path = "../base" }
+
+nom = { workspace = true }
+petgraph = { workspace = true, default-features = false, features = ["graphmap"] }
