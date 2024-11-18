@@ -1,0 +1,161 @@
+# Example configuration
+{
+	version: 0.1.0
+
+	data: {
+		# TODO: does it make sense to separate data types and
+		# alignment?
+		type: dna-alignment
+		sequences: [
+			{
+				name: "Lemur catta"
+				value: "AAGCTTCATA..."
+			}
+			{
+				name: "Homo sapiens"
+				value: "AAGCTTCATA..."
+			}
+			{
+				name: "Pan"
+				value: "AAGCTTCACC..."
+			}
+			# ...
+		]
+	}
+
+	parameters: [
+		{
+			name: "mutationRate.s:noncoding"
+			type: real
+			lower: 0.0
+			value: 1.0
+		}
+		{
+			name: "gammaShape.s:noncoding"
+			type: real
+			lower: 0.1
+			value: 1.0
+		}
+		{
+			name: "kappa.s:noncoding"
+			type: real
+			lower: 0.0
+			value: 2.0
+		}
+		# ...
+		{
+			name: "birthRateY.t:tree"
+			type: real
+			lower: 0.0
+			value: 1.0
+		}
+		{
+			name: "clockRate.c:clock"
+			type: real
+			lower: 0.0
+			value: 1.0
+		}
+	]
+
+	init: TODO
+
+	priors: [
+		# TODO: tree model, tree parameters (i.e. birthrate)
+		{
+			name: "ClockPrior.c:clock"
+			distribution: {
+				type: Uniform
+				upper: +inf
+			}
+			parameter: "clockRate.c:clock"
+		}
+		{
+			name: "GammaShapePrior.s:1stpos"
+			distribution: Exponential
+			# TODO: inner parameters
+			parameter: "gammaShape.s:1stpos"
+		}
+	]
+
+	likelihood: [
+		{
+			name: "1st position"
+			# Python-like slicing syntax
+			sites: ["2:457:3", "660-896:3"]
+			model: {
+				type: HKY
+				kappa: "kappa.s:1stpos"
+			}
+		}
+		# ...
+	]
+
+	operators: [
+		{
+			type: DeltaExchange
+			weight: 2.0
+			distribution: Bactrian
+			delta: 0.75
+
+			parameters: [
+				"mutationRate:s.noncoding"
+				"mutationRate.s:1stpos"
+				"mutationRate.s:2ndpos"
+				"mutationRate.s:3rdpos"
+			]
+
+			weights: [205, 231, 231, 231]
+		}
+		{
+			type: AdaptableSampler
+			weight: 0.05
+			parameter: "gammaShape.s:noncoding"
+
+			operators: [
+				{
+					type: AdaptableVarianceMultivariateNormal
+					weight: 0.1
+					allow_nonsense: true
+					beta: 0.05
+					burnin: 400
+					initial: 800
+
+					transformations: TODO
+				}
+			]
+		}
+
+		# TODO: operator ID references
+
+		{
+			type: EpochFlex
+			weight: 2.0
+			factor: 0.1
+		}
+		{
+			type: EpochFlex
+			weight: 2.0
+			from_oldest_tip_only: false
+			factor: 0.1
+		}
+		{
+			type: Scale
+			weight: 3.0
+			distribution: Bactrian
+			root_only: true
+			factor: 0.1
+			upper: 10
+		}
+	]
+
+	loggers: [
+		# TODO
+	]
+
+	mcmc: {
+		length: 1000000
+		# Either this, a share of `length`, or the final number of
+		# states to be stored if the chain runs to an end.
+		store_every: 5000
+	}
+}
