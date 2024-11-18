@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
-use petgraph::stable_graph::{NodeIndex, StableDiGraph};
+use petgraph::stable_graph::StableDiGraph;
 
 mod parse;
+mod serialize;
+
+pub use petgraph::stable_graph::NodeIndex;
 
 #[derive(Debug, Clone)]
 pub struct Node {
