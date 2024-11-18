@@ -10,4 +10,4 @@ authors.workspace = true
 base = { path = "../base" }
 
 nom = { workspace = true }
-petgraph = { workspace = true, default-features = false, features = ["graphmap"] }
+petgraph = { workspace = true, default-features = false, features = ["stable_graph"] }
