@@ -5,7 +5,10 @@ use std::hint::black_box;
 
 use b3::{
 	mcmc::{run, Config},
-	operator::{scheduler::TurnScheduler, NarrowExchange, Operator, Scale},
+	operator::{
+		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
+		Slide,
+	},
 	probability::Compound,
 	state::State,
 	tree::Tree,
@@ -64,9 +67,16 @@ fn likelihood(data: &Data, length: usize) {
 	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
 
-	let local: Box<dyn Operator> = Box::new(NarrowExchange());
-	let global: Box<dyn Operator> = Box::new(Scale());
-	let mut scheduler = TurnScheduler::new([local, global]);
+	// Local
+	let exchange: Box<dyn Operator> = Box::new(NarrowExchange());
+	let slide: Box<dyn Operator> = Box::new(Slide {});
+	// Global
+	let scale: Box<dyn Operator> = Box::new(Scale());
+
+	let mut scheduler = WeightedScheduler::new(
+		[exchange, slide, scale],
+		[50.0, 45.0, 5.0],
+	);
 
 	let config = Config {
 		burnin: 0,
@@ -82,7 +92,7 @@ fn bench(c: &mut Criterion) {
 	let data = black_box(data(7, 500));
 
 	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 1_000))
+		b.iter(|| likelihood(&data, 10_000))
 	});
 }
 

@@ -2,7 +2,7 @@ use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
 
 use crate::{
-	operator::{scheduler::TurnScheduler, Status},
+	operator::{scheduler::WeightedScheduler, Status},
 	probability::Probability,
 	state::State,
 };
@@ -20,14 +20,14 @@ pub fn run(
 	config: Config,
 	state: &mut State,
 	prior: Box<dyn Probability>,
-	scheduler: &mut TurnScheduler,
+	scheduler: &mut WeightedScheduler,
 ) {
 	let mut rng = Xoshiro256StarStar::seed_from_u64(4);
 	let mut old_likelihood = f64::NEG_INFINITY;
 
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
-		let operator = scheduler.get_operator();
+		let operator = scheduler.get_operator(&mut rng);
 		let proposal = operator.propose(state, &mut rng);
 
 		let hastings = match proposal.status {

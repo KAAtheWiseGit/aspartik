@@ -1,26 +1,30 @@
-use super::Operator;
+use rand::distributions::{Distribution, WeightedIndex};
 
-pub struct TurnScheduler {
+use super::{Operator, Rng as RngT};
+
+pub struct WeightedScheduler {
 	operators: Vec<Box<dyn Operator>>,
-	current: usize,
+	weights: Vec<f64>,
 }
 
-impl TurnScheduler {
-	pub fn new<I>(operators: I) -> Self
+impl WeightedScheduler {
+	pub fn new<I, J>(operators: I, weights: J) -> Self
 	where
 		I: IntoIterator<Item = Box<dyn Operator>>,
+		J: IntoIterator<Item = f64>,
 	{
 		Self {
 			operators: operators.into_iter().collect(),
-			current: 0,
+			weights: weights.into_iter().collect(),
 		}
 	}
 
-	pub fn get_operator(&mut self) -> &dyn Operator {
-		let out = &self.operators[self.current];
+	pub fn get_operator(&mut self, rng: &mut RngT) -> &dyn Operator {
+		let dist = WeightedIndex::new(&self.weights)
+			.expect("Failed to pick a random index");
 
-		self.current = (self.current + 1) % self.operators.len();
+		let index = dist.sample(rng);
 
-		Box::as_ref(out)
+		Box::as_ref(&self.operators[index])
 	}
 }
