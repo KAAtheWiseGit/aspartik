@@ -51,8 +51,16 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		// this is incorrect
-		Proposal::hastings(0.0).with_spr(child, uncle)
+		let grandparent_to_uncle = tree.edge_index(uncle);
+		let parent_to_child = tree.edge_index(child);
+
+		Proposal::hastings(0.0).with_edges(vec![
+			// Redirect the edge coming out from grandparent from
+			// uncle to the child
+			(grandparent_to_uncle, child),
+			// Redirect the edge from parent to the uncle
+			(parent_to_child, uncle),
+		])
 	}
 }
 

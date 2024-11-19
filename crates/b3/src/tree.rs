@@ -84,17 +84,9 @@ impl Tree {
 	}
 
 	pub fn propose(&mut self, proposal: Proposal) {
-		println!("{:?}", proposal);
+		let (mut edges, mut nodes) = self.update_edges(&proposal.edges);
 
-		let mut edges = vec![];
-		let mut nodes = vec![];
-
-		if let Some(spr) = proposal.spr {
-			let (mut e, mut n) = self.update_spr(spr.0, spr.1);
-			edges.append(&mut e);
-			nodes.append(&mut n);
-		}
-
+		// TODO: should probably be a separate function
 		for (node, weight) in proposal.weights {
 			self.weights.set(node.0, weight);
 
@@ -183,51 +175,28 @@ impl Tree {
 		}
 	}
 
-	pub fn update_spr(
+	fn update_edges(
 		&mut self,
-		s: Node,
-		r_c: Node,
+		edges: &[(usize, Node)],
 	) -> (Vec<usize>, Vec<Node>) {
-		let mut edges = vec![];
-		let mut nodes = vec![];
+		let mut e = vec![];
+		let mut n = vec![];
 
-		let r_p = self.parent_of(r_c);
-		let p = self.parent_of(s);
+		for (edge, new_child) in edges.iter().copied() {
+			let (_, parent) = self.edge_nodes(edge);
 
-		if let Some(p) = p {
-			// p: x, s -> p: r_c, s
-			let x = self.other_child_of(p, s);
-			let p_to_x = self.edge_index(x);
-			self.children.set(p_to_x, r_c.0);
-			self.parents.set(r_c.0, p.0);
+			self.children.set(edge, new_child.0);
+			self.parents.set(new_child.0, parent.0);
 
-			edges.push(p_to_x);
-			nodes.push(p.into());
+			e.push(edge);
 
-			if let Some(p_p) = self.parent_of(p) {
-				// p_p: p, z -> p_p: x, z
-				let p_p_to_p = self.edge_index(p.into());
-				self.children.set(p_p_to_p, x.0);
-				self.parents.set(x.0, p_p.0);
-
-				edges.push(p_p_to_p);
-				nodes.push(p_p.into());
-			}
+			// `parent` is now the parent of `new_child`, so it'll
+			// be updated.  The old child must be handled separately
+			// by the operator.
+			n.push(new_child);
 		}
 
-		if let Some(r_p) = r_p {
-			let r_p_to_r_c = self.edge_index(r_c);
-			// TODO: figure out what to do if s is rooted.  It
-			// should probably be forbidden.
-			let p = p.unwrap();
-			self.children.set(r_p_to_r_c, p.0);
-			self.parents.set(p.0, r_p.0);
-
-			edges.push(r_p_to_r_c);
-			nodes.push(r_p.into());
-		}
-
-		(edges, nodes)
+		(e, n)
 	}
 
 	fn update_all_parents(&mut self) {
@@ -269,6 +238,15 @@ impl Tree {
 	}
 
 	fn verify(&self) {
+		for (i, parent) in self.parents.iter().enumerate() {
+			assert!(
+				*parent >= self.num_leaves(),
+				"Leaf {} became a parent of {}",
+				parent,
+				i
+			)
+		}
+
 		for node in self.internals() {
 			let (left, right) = self.children_of(node);
 
@@ -344,16 +322,8 @@ impl Tree {
 		(Node(left), Node(right))
 	}
 
-	fn other_child_of(&self, node: Internal, child: Node) -> Node {
-		if self.children_of(node).0 != child {
-			self.children_of(node).0
-		} else {
-			self.children_of(node).1
-		}
-	}
-
 	/// Index of the edge between `child` and its parent.
-	fn edge_index(&self, child: Node) -> usize {
+	pub fn edge_index(&self, child: Node) -> usize {
 		let parent = self.parent_of(child).unwrap();
 
 		if self.children_of(parent).0 == child {
@@ -361,6 +331,13 @@ impl Tree {
 		} else {
 			(parent.0 - self.num_leaves()) * 2 + 1
 		}
+	}
+
+	fn edge_nodes(&self, edge: usize) -> (Node, Internal) {
+		let parent = edge / 2 + self.num_leaves();
+		let child = self.children[edge];
+
+		(Node(child), Internal(parent))
 	}
 
 	/// Returns the parent of `node`, or `None` if the node is the root of

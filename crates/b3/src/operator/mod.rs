@@ -53,9 +53,8 @@ pub struct Proposal {
 	pub params: HashMap<String, Parameter>,
 	/// Update the weight of tree nodes on the left to values on the right.
 	pub weights: Vec<(Node, NodeWeight)>,
-	/// Subtree pruning and regrafting.  The parent of the left node is
-	/// removed and regrafted between the right node and its parent.
-	pub spr: Option<(Node, Node)>,
+	/// TODO: docs
+	pub edges: Vec<(usize, Node)>,
 }
 
 impl Proposal {
@@ -64,7 +63,7 @@ impl Proposal {
 			status: Status::Reject,
 			params: HashMap::new(),
 			weights: vec![],
-			spr: None,
+			edges: vec![],
 		}
 	}
 
@@ -87,8 +86,8 @@ impl Proposal {
 		self
 	}
 
-	pub fn with_spr(mut self, subtree: Node, regraft: Node) -> Self {
-		self.spr = Some((subtree, regraft));
+	pub fn with_edges(mut self, edges: Vec<(usize, Node)>) -> Self {
+		self.edges = edges;
 		self
 	}
 }
