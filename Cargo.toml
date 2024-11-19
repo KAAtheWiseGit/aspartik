@@ -24,6 +24,7 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 ahash = "0.8.11"
 criterion = "0.5"
 nom = "8.0.0-alpha2"
+num-traits = "0.2.19"
 petgraph = { version = "0.6.5", default-features = false }
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"
