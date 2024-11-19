@@ -1,3 +1,6 @@
+// Constructor operators return `Box<dyn Operator>`.
+#![allow(clippy::new_ret_no_self)]
+
 use rand_xoshiro::Xoshiro256StarStar;
 
 use std::collections::HashMap;

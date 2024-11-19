@@ -1,20 +1,39 @@
-use rand::Rng;
+use super::{Operator, Proposal, Rng};
+use crate::{distribution::Distribution, state::State};
 
-use super::{Operator, Proposal, Rng as RngT};
-use crate::state::State;
+pub struct Scale {
+	factor: f64,
+	distribution: Distribution,
+}
 
-pub struct Scale();
+impl Scale {
+	pub fn new(
+		factor: f64,
+		distribution: Distribution,
+	) -> Box<dyn Operator> {
+		assert!(0.0 < factor && factor < 1.0);
+
+		Box::new(Self {
+			factor,
+			distribution,
+		})
+	}
+}
 
 impl Operator for Scale {
-	fn propose(&self, state: &State, rng: &mut RngT) -> Proposal {
+	fn propose(&self, state: &State, rng: &mut Rng) -> Proposal {
 		let tree = state.get_tree();
-		let factor = rng.gen_range(0.8..1.25);
+		let scale = self.distribution.gen_range(
+			self.factor,
+			1.0 / self.factor,
+			rng,
+		);
 
 		// TODO: ratio
 		let mut out = Proposal::hastings(0.0);
 
 		for node in tree.nodes() {
-			let new_weight = tree.weight_of(node) * factor;
+			let new_weight = tree.weight_of(node) * scale;
 			out.weights.push((node, new_weight));
 		}
 

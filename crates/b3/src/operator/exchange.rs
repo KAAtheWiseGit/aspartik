@@ -6,7 +6,13 @@ use crate::{
 	tree::{Internal, Tree},
 };
 
-pub struct NarrowExchange();
+pub struct NarrowExchange {}
+
+impl NarrowExchange {
+	pub fn new() -> Box<dyn Operator> {
+		Box::new(Self {})
+	}
+}
 
 impl Operator for NarrowExchange {
 	fn propose(&self, state: &State, rng: &mut RngT) -> Proposal {

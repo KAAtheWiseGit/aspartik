@@ -4,6 +4,7 @@ use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
 use std::hint::black_box;
 
 use b3::{
+	distribution::Distribution,
 	mcmc::{run, Config},
 	operator::{
 		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
@@ -68,10 +69,10 @@ fn likelihood(data: &Data, length: usize) {
 	let prior = Box::new(Compound::new([]));
 
 	// Local
-	let exchange: Box<dyn Operator> = Box::new(NarrowExchange());
-	let slide: Box<dyn Operator> = Box::new(Slide {});
+	let exchange = NarrowExchange::new();
+	let slide: Box<dyn Operator> = Slide::new(Distribution::Uniform);
 	// Global
-	let scale: Box<dyn Operator> = Box::new(Scale());
+	let scale: Box<dyn Operator> = Scale::new(0.75, Distribution::Uniform);
 
 	let mut scheduler = WeightedScheduler::new(
 		[exchange, slide, scale],
