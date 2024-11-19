@@ -13,6 +13,7 @@ shchurvec = { path = "../shchurvec" }
 
 ahash = { workspace = true }
 rand = { workspace = true }
+rand_distr = { workspace = true }
 rand_xoshiro = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

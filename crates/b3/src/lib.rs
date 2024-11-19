@@ -5,3 +5,4 @@ mod parameter;
 pub mod probability;
 pub mod state;
 pub mod tree;
+pub mod distribution;
