@@ -47,8 +47,8 @@ impl<T: Copy + Num, const N: usize> RowMatrix<T, N, N> {
 	}
 }
 
-impl<T: Copy, const N: usize, const M: usize> From<T> for RowMatrix<T, N, M> {
-	fn from(value: T) -> Self {
+impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	pub fn from_element(value: T) -> Self {
 		[Vector::from([value; N]); M].into()
 	}
 }
@@ -57,7 +57,7 @@ impl<T: Copy + Default, const N: usize, const M: usize> Default
 	for RowMatrix<T, N, M>
 {
 	fn default() -> Self {
-		Self::from(T::default())
+		Self::from_element(T::default())
 	}
 }
 

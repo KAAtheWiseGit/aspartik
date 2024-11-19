@@ -40,6 +40,12 @@ impl<T: Copy + Num, const N: usize> Vector<T, N> {
 	}
 }
 
+impl<T: Copy + Default, const N: usize> Vector<T, N> {
+	fn from_element(value: T) -> Self {
+		[value; N].into()
+	}
+}
+
 // This can be derived, but then every single trait impl would have to carry a
 // `Default` constraint around, which is verbose.
 impl<T: Copy + Default, const N: usize> Default for Vector<T, N> {
