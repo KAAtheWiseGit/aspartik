@@ -18,9 +18,9 @@ impl Operator for NarrowExchange {
 
 		// An internal node which has at least one internal node child.
 		let grandparent = loop {
-			let node = tree.sample_internal(rng);
-			if is_grandparent(tree, node) {
-				break node;
+			let internal = tree.sample_internal(rng);
+			if is_grandparent(tree, internal) {
+				break internal;
 			}
 		};
 
@@ -51,6 +51,7 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
+		// this is incorrect
 		Proposal::hastings(0.0).with_spr(child, uncle)
 	}
 }

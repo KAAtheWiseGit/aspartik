@@ -84,6 +84,8 @@ impl Tree {
 	}
 
 	pub fn propose(&mut self, proposal: Proposal) {
+		println!("{:?}", proposal);
+
 		let mut edges = vec![];
 		let mut nodes = vec![];
 
@@ -106,6 +108,8 @@ impl Tree {
 				edges.push(self.edge_index(right));
 			}
 		}
+
+		self.verify();
 
 		self.update_substitutions(&edges);
 		self.update_probabilities(&nodes);
@@ -261,6 +265,25 @@ impl Tree {
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.update_substitutions(edges, &distances);
+		}
+	}
+
+	fn verify(&self) {
+		for node in self.internals() {
+			let (left, right) = self.children_of(node);
+
+			assert!(
+				self.weight_of(node) > self.weight_of(left),
+				"Node {} is lower than it's left child {}",
+				node.0,
+				left.0
+			);
+			assert!(
+				self.weight_of(node) > self.weight_of(right),
+				"Node {} is lower than it's right child {}",
+				node.0,
+				left.0
+			);
 		}
 	}
 
