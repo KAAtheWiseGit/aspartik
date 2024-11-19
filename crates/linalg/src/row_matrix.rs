@@ -1,3 +1,5 @@
+use num_traits::Num;
+
 use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
 
 use crate::vector::Vector;
@@ -21,6 +23,27 @@ impl<T: Copy, const N: usize, const M: usize> From<[[T; N]; M]>
 {
 	fn from(value: [[T; N]; M]) -> Self {
 		value.map(|row| -> Vector<T, N> { row.into() }).into()
+	}
+}
+
+// Mathematical constructors
+impl<T: Copy + Num, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	pub fn zeros() -> Self {
+		[Vector::zeros(); M].into()
+	}
+
+	pub fn ones() -> Self {
+		[Vector::ones(); M].into()
+	}
+}
+
+impl<T: Copy + Num, const N: usize> RowMatrix<T, N, N> {
+	pub fn identity() -> Self {
+		let mut out = Self::zeros();
+		for i in 0..N {
+			out[(i, i)] = T::one();
+		}
+		out
 	}
 }
 

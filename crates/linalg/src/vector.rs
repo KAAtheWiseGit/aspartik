@@ -1,3 +1,5 @@
+use num_traits::Num;
+
 use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
 
 #[derive(Debug, Clone, Copy)]
@@ -6,6 +8,7 @@ pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
 }
 
+// `From` conversions
 impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 	fn from(value: [T; N]) -> Self {
 		Self { v: value }
@@ -15,6 +18,25 @@ impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 impl<T: Copy, const N: usize> From<T> for Vector<T, N> {
 	fn from(value: T) -> Self {
 		[value; N].into()
+	}
+}
+
+// Mathematical constructors
+impl<T: Copy + Num, const N: usize> Vector<T, N> {
+	pub fn zeros() -> Self {
+		[T::zero(); N].into()
+	}
+
+	pub fn ones() -> Self {
+		[T::one(); N].into()
+	}
+
+	/// A standard basis vector: all elements are zero, except the one at
+	/// index `i`, which is set to one.
+	pub fn sbv(i: usize) -> Self {
+		let mut out = Self::zeros();
+		out[i] = T::one();
+		out
 	}
 }
 
