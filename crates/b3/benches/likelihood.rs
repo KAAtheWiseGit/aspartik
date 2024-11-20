@@ -64,8 +64,8 @@ fn data(num_leaves_pow: usize, length: usize) -> Data {
 
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
-	let tree = Tree::new(seqs, weights, children);
-	let mut state = State::new(tree);
+	let tree = Tree::new(weights, children);
+	let mut state = State::new(tree, seqs);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -92,9 +92,7 @@ fn likelihood(data: &Data, length: usize) {
 fn bench(c: &mut Criterion) {
 	let data = black_box(data(12, 1700));
 
-	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 1_000))
-	});
+	c.bench_function("likelihood", |b| b.iter(|| likelihood(&data, 1_000)));
 }
 
 criterion_group!(

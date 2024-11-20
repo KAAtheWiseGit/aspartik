@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::tree::Update;
 use base::substitution::Model;
 use shchurvec::ShchurVec;
 
@@ -52,23 +53,24 @@ impl<M: Model> Likelihood<M> {
 		}
 	}
 
-	pub fn update_substitutions(
-		&mut self,
-		edges: &[usize],
-		distances: &[f64],
-	) {
+	pub fn update(&mut self, update: &Update) {
+		self.update_substitutions(&update.edges, &update.lengths);
+		self.update_probabilities(&update.nodes, &update.children);
+	}
+
+	fn update_substitutions(&mut self, edges: &[usize], distances: &[f64]) {
 		for (edge, distance) in edges.iter().zip(distances) {
 			self.substitutions
 				.set(*edge, self.model.substitution(*distance));
 		}
 	}
 
-	pub fn update_probabilities(
+	fn update_probabilities(
 		&mut self,
-		num_leaves: usize,
 		nodes: &[usize],
 		children: &[(usize, usize)],
 	) {
+		let num_leaves = (self.probabilities[0].len() + 1) / 2;
 		self.updated_nodes = Some(nodes.into());
 
 		for probability in &mut self.probabilities {

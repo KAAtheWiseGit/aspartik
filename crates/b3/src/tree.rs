@@ -6,8 +6,7 @@ use serde_json::{json, Value as Json};
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::{likelihood::Likelihood, operator::Proposal};
-use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
+use crate::operator::Proposal;
 use shchurvec::ShchurVec;
 
 const ROOT: usize = usize::MAX;
@@ -16,8 +15,6 @@ pub struct Tree {
 	children: ShchurVec<usize>,
 	parents: ShchurVec<usize>,
 	weights: ShchurVec<f64>,
-
-	likelihoods: Vec<Likelihood<Dna4Substitution>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,64 +38,30 @@ pub struct Internal(usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Leaf(usize);
 
+#[derive(Debug)]
+pub struct Update {
+	pub edges: Vec<usize>,
+	pub lengths: Vec<f64>,
+
+	pub nodes: Vec<usize>,
+	pub children: Vec<(usize, usize)>,
+}
+
 impl Tree {
-	pub fn new(
-		// TODO: per-site models
-		sequences: &[DnaSeq],
-		weights: &[f64],
-		children: &[usize],
-	) -> Self {
-		let mut c1 = vec![];
-		let mut c2 = vec![];
-		let mut c3 = vec![];
-		let mut c4 = vec![];
-
-		for i in 0..sequences[0].len() {
-			let mut column = Vec::new();
-			for sequence in sequences {
-				column.push(sequence[i]);
-			}
-
-			if i % 4 == 0 {
-				c1.push(column);
-			} else if i % 4 == 1 {
-				c2.push(column);
-			} else if i % 4 == 2 {
-				c3.push(column);
-			} else {
-				c4.push(column);
-			}
-		}
-
-		let parents = ShchurVec::repeat(ROOT, weights.len());
-
-		let likelihoods = vec![
-			Likelihood::new(c1, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c2, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c3, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c4, Dna4Substitution::jukes_cantor()),
-		];
-
+	pub fn new(weights: &[f64], children: &[usize]) -> Self {
 		let mut out = Self {
 			children: children.into(),
-			parents,
+			parents: ShchurVec::repeat(ROOT, weights.len()),
 			weights: weights.into(),
-
-			likelihoods,
 		};
 
 		out.update_all_parents();
-		out.update_all_likelihoods();
 		out.accept();
 
 		out
 	}
 
-	pub fn likelihood(&self) -> f64 {
-		self.likelihoods.iter().map(|l| l.likelihood()).sum()
-	}
-
-	pub fn propose(&mut self, proposal: Proposal) {
+	pub fn propose(&mut self, proposal: Proposal) -> Update {
 		let (mut edges, mut nodes) = self.update_edges(&proposal.edges);
 
 		// TODO: should probably be a separate function
@@ -118,31 +81,33 @@ impl Tree {
 
 		self.verify();
 
-		self.update_substitutions(&edges);
-		self.update_probabilities(&nodes);
+		let (edges, lengths) = self.update_substitutions(&edges);
+		let (nodes, children) = self.update_probabilities(&nodes);
+
+		Update {
+			edges,
+			lengths,
+			nodes,
+			children,
+		}
 	}
 
 	pub fn accept(&mut self) {
 		self.children.accept();
 		self.parents.accept();
 		self.weights.accept();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.accept();
-		}
 	}
 
 	pub fn reject(&mut self) {
 		self.children.reject();
 		self.parents.reject();
 		self.weights.reject();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.reject();
-		}
 	}
 
-	fn update_probabilities(&mut self, nodes: &[Node]) {
+	fn update_probabilities(
+		&self,
+		nodes: &[Node],
+	) -> (Vec<usize>, Vec<(usize, usize)>) {
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();
 
@@ -173,7 +138,7 @@ impl Tree {
 			}
 		}
 
-		let nodes = deq.make_contiguous();
+		let nodes: Vec<_> = deq.into();
 		let children: Vec<_> = nodes
 			.iter()
 			.map(|n| n - self.num_leaves())
@@ -182,14 +147,7 @@ impl Tree {
 			})
 			.collect();
 
-		let num_leaves = self.num_leaves();
-
-		use rayon::prelude::*;
-		self.likelihoods.par_iter_mut().for_each(|likelihood| {
-			likelihood.update_probabilities(
-				num_leaves, nodes, &children,
-			);
-		});
+		(nodes, children)
 	}
 
 	fn update_edges(
@@ -229,15 +187,25 @@ impl Tree {
 		}
 	}
 
-	fn update_all_likelihoods(&mut self) {
+	pub fn update_all_likelihoods(&self) -> Update {
 		let edges: Vec<usize> = (0..self.children.len()).collect();
-		self.update_substitutions(&edges);
+		let (edges, lengths) = self.update_substitutions(&edges);
 
 		let nodes: Vec<Node> = self.nodes().collect();
-		self.update_probabilities(&nodes);
+		let (nodes, children) = self.update_probabilities(&nodes);
+
+		Update {
+			edges,
+			lengths,
+			nodes,
+			children,
+		}
 	}
 
-	fn update_substitutions(&mut self, edges: &[usize]) {
+	fn update_substitutions(
+		&self,
+		edges: &[usize],
+	) -> (Vec<usize>, Vec<f64>) {
 		let distances: Vec<f64> = edges
 			.iter()
 			.copied()
@@ -249,9 +217,7 @@ impl Tree {
 			})
 			.collect();
 
-		for likelihood in &mut self.likelihoods {
-			likelihood.update_substitutions(edges, &distances);
-		}
+		(edges.to_vec(), distances)
 	}
 
 	fn verify(&self) {
