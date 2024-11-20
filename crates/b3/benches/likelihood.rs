@@ -76,13 +76,13 @@ fn likelihood(data: &Data, length: usize) {
 
 	let mut scheduler = WeightedScheduler::new(
 		[exchange, slide, scale],
-		[50.0, 45.0, 5.0],
+		[50.0, 48.0, 2.0],
 	);
 
 	let config = Config {
 		burnin: 0,
 		length,
-		state: (length / 10_000).max(1),
+		state: 10,
 		trees: (length / 10_000).max(1),
 	};
 
@@ -90,10 +90,10 @@ fn likelihood(data: &Data, length: usize) {
 }
 
 fn bench(c: &mut Criterion) {
-	let data = black_box(data(7, 500));
+	let data = black_box(data(12, 1700));
 
 	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 10_000))
+		b.iter(|| likelihood(&data, 1_000))
 	});
 }
 

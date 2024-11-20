@@ -48,21 +48,36 @@ impl Tree {
 		weights: &[f64],
 		children: &[usize],
 	) -> Self {
-		let mut columns = Vec::new();
+		let mut c1 = vec![];
+		let mut c2 = vec![];
+		let mut c3 = vec![];
+		let mut c4 = vec![];
+
 		for i in 0..sequences[0].len() {
 			let mut column = Vec::new();
 			for sequence in sequences {
 				column.push(sequence[i]);
 			}
-			columns.push(column);
+
+			if i % 4 == 0 {
+				c1.push(column);
+			} else if i % 4 == 1 {
+				c2.push(column);
+			} else if i % 4 == 2 {
+				c3.push(column);
+			} else {
+				c4.push(column);
+			}
 		}
 
 		let parents = ShchurVec::repeat(ROOT, weights.len());
 
-		let likelihoods = vec![Likelihood::new(
-			columns,
-			Dna4Substitution::jukes_cantor(),
-		)];
+		let likelihoods = vec![
+			Likelihood::new(c1, Dna4Substitution::jukes_cantor()),
+			Likelihood::new(c2, Dna4Substitution::jukes_cantor()),
+			Likelihood::new(c3, Dna4Substitution::jukes_cantor()),
+			Likelihood::new(c4, Dna4Substitution::jukes_cantor()),
+		];
 
 		let mut out = Self {
 			children: children.into(),
@@ -168,11 +183,13 @@ impl Tree {
 			.collect();
 
 		let num_leaves = self.num_leaves();
-		for likelihood in &mut self.likelihoods {
+
+		use rayon::prelude::*;
+		self.likelihoods.par_iter_mut().for_each(|likelihood| {
 			likelihood.update_probabilities(
 				num_leaves, nodes, &children,
 			);
-		}
+		});
 	}
 
 	fn update_edges(
