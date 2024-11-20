@@ -38,7 +38,7 @@ pub struct Internal(usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Leaf(usize);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Update {
 	pub edges: Vec<usize>,
 	pub lengths: Vec<f64>,

@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use crate::tree::Update;
+use std::sync::mpsc::{Receiver, SyncSender};
+
+use crate::{state::Verdict, tree::Update};
 use base::substitution::Model;
 use shchurvec::ShchurVec;
 
@@ -50,6 +52,27 @@ impl<M: Model> Likelihood<M> {
 			probabilities,
 
 			updated_nodes: None,
+		}
+	}
+
+	pub fn spin(
+		&mut self,
+		updates: Receiver<Update>,
+		likelihoods: SyncSender<f64>,
+		verdicts: Receiver<Verdict>,
+	) {
+		loop {
+			let Ok(update) = updates.recv() else {
+				break;
+			};
+			self.update(&update);
+			likelihoods.send(self.likelihood()).unwrap();
+
+			let verdict = verdicts.recv().unwrap();
+			match verdict {
+				Verdict::Accept => self.accept(),
+				Verdict::Reject => self.reject(),
+			}
 		}
 	}
 

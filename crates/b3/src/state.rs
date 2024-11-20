@@ -1,12 +1,16 @@
 use serde_json::{json, Value as Json};
 
-use std::collections::HashMap;
+use std::{
+	collections::HashMap,
+	sync::mpsc::{sync_channel, Receiver, SyncSender},
+	thread,
+};
 
 use crate::{
 	likelihood::Likelihood,
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	tree::Tree,
+	tree::{Tree, Update},
 };
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 
@@ -18,7 +22,15 @@ pub struct State {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	likelihoods: Vec<Likelihood<Dna4Substitution>>,
+	senders: Vec<SyncSender<Update>>,
+	recievers: Vec<Receiver<f64>>,
+	verdicts: Vec<SyncSender<Verdict>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verdict {
+	Accept,
+	Reject,
 }
 
 impl State {
@@ -57,16 +69,41 @@ impl State {
 			likelihood.update(&update);
 		}
 
+		let mut senders = vec![];
+		let mut recievers = vec![];
+		let mut verdicts = vec![];
+		while let Some(mut likelihood) = likelihoods.pop() {
+			let (upd_send, upd_recv) = sync_channel::<Update>(1);
+			let (like_send, like_recv) = sync_channel::<f64>(1);
+			let (ver_send, ver_recv) = sync_channel::<Verdict>(1);
+
+			thread::spawn(move || {
+				likelihood.spin(upd_recv, like_send, ver_recv);
+			});
+
+			senders.push(upd_send);
+			recievers.push(like_recv);
+			verdicts.push(ver_send);
+		}
+
 		State {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			likelihoods,
+			senders,
+			recievers,
+			verdicts,
 		}
 	}
 
 	pub fn likelihood(&self) -> f64 {
-		self.likelihoods.iter().map(|l| l.likelihood()).sum()
+		let mut out = 0.0;
+
+		for recv in &self.recievers {
+			out += recv.recv().unwrap();
+		}
+
+		out
 	}
 
 	/// # Panics
@@ -126,10 +163,9 @@ impl State {
 
 		let update = self.tree.propose(proposal);
 
-		use rayon::prelude::*;
-		self.likelihoods.par_iter_mut().for_each(|likelihood| {
-			likelihood.update(&update);
-		});
+		for sender in &self.senders {
+			sender.send(update.clone()).unwrap();
+		}
 	}
 
 	/// Accept the current proposal
@@ -140,17 +176,18 @@ impl State {
 
 		self.tree.accept();
 
-		for likelihood in &mut self.likelihoods {
-			likelihood.accept();
+		for sender in &self.verdicts {
+			sender.send(Verdict::Accept).unwrap();
 		}
 	}
 
 	pub fn reject(&mut self) {
 		self.proposal_params.clear();
+
 		self.tree.reject();
 
-		for likelihood in &mut self.likelihoods {
-			likelihood.reject();
+		for sender in &self.verdicts {
+			sender.send(Verdict::Reject).unwrap();
 		}
 	}
 
