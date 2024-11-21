@@ -1,16 +1,12 @@
 use serde_json::{json, Value as Json};
 
-use std::{
-	collections::HashMap,
-	sync::mpsc::{sync_channel, Receiver, SyncSender},
-	thread,
-};
+use std::collections::HashMap;
 
 use crate::{
-	likelihood::Likelihood,
+	likelihood::{CpuLikelihood, Likelihood},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	tree::{Tree, Update},
+	tree::Tree,
 };
 use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
 
@@ -22,9 +18,8 @@ pub struct State {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	senders: Vec<SyncSender<Update>>,
-	recievers: Vec<Receiver<f64>>,
-	verdicts: Vec<SyncSender<Verdict>>,
+	// TODO: generic
+	likelihoods: Vec<CpuLikelihood<Dna4Substitution>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,52 +53,42 @@ impl State {
 		}
 
 		let mut likelihoods = vec![
-			Likelihood::new(c1, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c2, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c3, Dna4Substitution::jukes_cantor()),
-			Likelihood::new(c4, Dna4Substitution::jukes_cantor()),
+			CpuLikelihood::new(
+				c1,
+				Dna4Substitution::jukes_cantor(),
+			),
+			CpuLikelihood::new(
+				c2,
+				Dna4Substitution::jukes_cantor(),
+			),
+			CpuLikelihood::new(
+				c3,
+				Dna4Substitution::jukes_cantor(),
+			),
+			CpuLikelihood::new(
+				c4,
+				Dna4Substitution::jukes_cantor(),
+			),
 		];
 
 		let update = tree.update_all_likelihoods();
 		for likelihood in &mut likelihoods {
-			likelihood.update(&update);
-		}
-
-		let mut senders = vec![];
-		let mut recievers = vec![];
-		let mut verdicts = vec![];
-		while let Some(mut likelihood) = likelihoods.pop() {
-			let (upd_send, upd_recv) = sync_channel::<Update>(1);
-			let (like_send, like_recv) = sync_channel::<f64>(1);
-			let (ver_send, ver_recv) = sync_channel::<Verdict>(1);
-
-			thread::spawn(move || {
-				likelihood.spin(upd_recv, like_send, ver_recv);
-			});
-
-			senders.push(upd_send);
-			recievers.push(like_recv);
-			verdicts.push(ver_send);
+			likelihood.propose(update.clone());
 		}
 
 		State {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			senders,
-			recievers,
-			verdicts,
+			likelihoods,
 		}
 	}
 
 	pub fn likelihood(&self) -> f64 {
-		let mut out = 0.0;
-
-		for recv in &self.recievers {
-			out += recv.recv().unwrap();
-		}
-
-		out
+		self.likelihoods
+			.iter()
+			.map(|likelihood| likelihood.likelihood())
+			.sum()
 	}
 
 	/// # Panics
@@ -163,8 +148,8 @@ impl State {
 
 		let update = self.tree.propose(proposal);
 
-		for sender in &self.senders {
-			sender.send(update.clone()).unwrap();
+		for likelihood in &mut self.likelihoods {
+			likelihood.propose(update.clone());
 		}
 	}
 
@@ -176,8 +161,8 @@ impl State {
 
 		self.tree.accept();
 
-		for sender in &self.verdicts {
-			sender.send(Verdict::Accept).unwrap();
+		for likelihood in &mut self.likelihoods {
+			likelihood.accept();
 		}
 	}
 
@@ -186,8 +171,8 @@ impl State {
 
 		self.tree.reject();
 
-		for sender in &self.verdicts {
-			sender.send(Verdict::Reject).unwrap();
+		for likelihood in &mut self.likelihoods {
+			likelihood.reject();
 		}
 	}
 
