@@ -2,8 +2,10 @@ use crate::tree::Update;
 use base::substitution::Model;
 
 mod cpu;
+mod thread;
 
 pub use cpu::CpuLikelihood;
+pub use thread::ThreadedLikelihood;
 
 pub trait Likelihood {
 	type Model: Model;

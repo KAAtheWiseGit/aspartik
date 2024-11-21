@@ -2,10 +2,13 @@ use std::ops::Mul;
 
 pub mod dna;
 
-pub trait Model {
+pub trait Model: Send {
 	type Item;
-	type Row: Copy + Mul<Output = Self::Row> + Default;
-	type Substitution: Copy + Mul<Self::Row, Output = Self::Row> + Default;
+	type Row: Copy + Mul<Output = Self::Row> + Default + Send;
+	type Substitution: Copy
+		+ Mul<Self::Row, Output = Self::Row>
+		+ Default
+		+ Send;
 
 	fn to_row(item: &Self::Item) -> Self::Row;
 

@@ -3,7 +3,7 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::{CpuLikelihood, Likelihood},
+	likelihood::{ThreadedLikelihood, Likelihood},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
@@ -19,7 +19,7 @@ pub struct State {
 	tree: Tree,
 
 	// TODO: generic
-	likelihoods: Vec<CpuLikelihood<Dna4Substitution>>,
+	likelihoods: Vec<ThreadedLikelihood<Dna4Substitution>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,19 +53,19 @@ impl State {
 		}
 
 		let mut likelihoods = vec![
-			CpuLikelihood::new(
+			ThreadedLikelihood::new(
 				c1,
 				Dna4Substitution::jukes_cantor(),
 			),
-			CpuLikelihood::new(
+			ThreadedLikelihood::new(
 				c2,
 				Dna4Substitution::jukes_cantor(),
 			),
-			CpuLikelihood::new(
+			ThreadedLikelihood::new(
 				c3,
 				Dna4Substitution::jukes_cantor(),
 			),
-			CpuLikelihood::new(
+			ThreadedLikelihood::new(
 				c4,
 				Dna4Substitution::jukes_cantor(),
 			),
