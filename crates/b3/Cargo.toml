@@ -8,6 +8,7 @@ authors.workspace = true
 
 [dependencies]
 base = { path = "../base" }
+io = { path = "../io" }
 linalg = { path = "../linalg" }
 shchurvec = { path = "../shchurvec" }
 

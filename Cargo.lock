@@ -50,6 +50,7 @@ dependencies = [
  "base",
  "criterion",
  "crossbeam-channel",
+ "io",
  "linalg",
  "rand",
  "rand_distr",

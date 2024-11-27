@@ -1,7 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
 
-use std::hint::black_box;
+use std::{fs::File, hint::black_box};
 
 use b3::{
 	distribution::Distribution,
@@ -15,29 +14,17 @@ use b3::{
 	tree::Tree,
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
+use io::fasta::FastaReader;
 
 type Data = (Vec<DnaSeq>, Vec<f64>, Vec<usize>);
 
-fn data(num_leaves_pow: usize, length: usize) -> Data {
+fn data(num_leaves_pow: usize) -> Data {
 	let num_leaves = 2_usize.pow(num_leaves_pow as u32);
 
-	let mut rng = SmallRng::seed_from_u64(4);
-
-	let bases = [
-		DnaNucleoBase::Adenine,
-		DnaNucleoBase::Cytosine,
-		DnaNucleoBase::Guanine,
-		DnaNucleoBase::Thymine,
-	];
-	let mut seqs: Vec<DnaSeq> = vec![];
-	for _ in 0..num_leaves {
-		let mut seq = DnaSeq::new();
-		for _ in 0..length {
-			let base = bases.choose(&mut rng).unwrap();
-			seq.push(*base);
-		}
-		seqs.push(seq);
-	}
+	let fasta: FastaReader<DnaNucleoBase, _> =
+		FastaReader::new(File::open("data/test.fasta").unwrap());
+	let seqs: Vec<DnaSeq> =
+		fasta.take(num_leaves).map(|s| s.unwrap().into()).collect();
 
 	let weights = (0..(num_leaves * 2 - 1))
 		.map(|e| e as f64 * 0.005)
@@ -90,9 +77,9 @@ fn likelihood(data: &Data, length: usize) {
 }
 
 fn bench(c: &mut Criterion) {
-	let data = black_box(data(12, 1700));
+	let data = black_box(data(9));
 
-	c.bench_function("likelihood", |b| b.iter(|| likelihood(&data, 1_000)));
+	c.bench_function("likelihood", |b| b.iter(|| likelihood(&data, 10_000)));
 }
 
 criterion_group!(

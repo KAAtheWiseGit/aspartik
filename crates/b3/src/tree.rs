@@ -235,15 +235,19 @@ impl Tree {
 
 			assert!(
 				self.weight_of(node) > self.weight_of(left),
-				"Node {} is lower than it's left child {}",
+				"Node {} ({}) is lower than it's left child {} ({})",
 				node.0,
-				left.0
+				self.weight_of(node),
+				left.0,
+				self.weight_of(left),
 			);
 			assert!(
 				self.weight_of(node) > self.weight_of(right),
-				"Node {} is lower than it's right child {}",
+				"Node {} ({}) is lower than it's right child {} ({})",
 				node.0,
-				left.0
+				self.weight_of(node),
+				left.0,
+				self.weight_of(right),
 			);
 		}
 	}
