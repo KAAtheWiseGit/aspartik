@@ -11,6 +11,12 @@ pub struct Sequence<T: Character> {
 	seq: Seq<T>,
 }
 
+impl<T: Character> From<Sequence<T>> for Seq<T> {
+	fn from(value: Sequence<T>) -> Self {
+		value.seq
+	}
+}
+
 pub struct FastaReader<T: Character, R: Read> {
 	current: Option<Sequence<T>>,
 	reader: Lines<BufReader<R>>,

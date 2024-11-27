@@ -1,4 +1,4 @@
 #![allow(dead_code)]
 
-mod fasta;
+pub mod fasta;
 mod newick;
