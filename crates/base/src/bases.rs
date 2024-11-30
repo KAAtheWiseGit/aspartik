@@ -1,4 +1,13 @@
-use crate::Error;
+use anyhow::Error;
+use thiserror::Error;
+
+#[derive(Debug, Clone, Error)]
+pub enum NucleoBaseError {
+	#[error("'{0}' not a valid IUPAC nucleobase character")]
+	InvalidChar(char),
+	#[error("{0:X} is not a valid nucleo base binary code")]
+	InvalidByte(u8),
+}
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -54,7 +63,7 @@ impl TryFrom<u8> for DnaNucleoBase {
 			0b1111 => Self::Any,
 			0b1_0000 => Self::Gap,
 
-			_ => Err(Error::InvalidNucleoBaseByte(value))?,
+			_ => Err(NucleoBaseError::InvalidByte(value))?,
 		})
 	}
 }
@@ -84,7 +93,7 @@ impl TryFrom<char> for DnaNucleoBase {
 			'N' => Self::Any,
 			'-' => Self::Gap,
 
-			_ => Err(Error::InvalidNucleoBaseChar(value))?,
+			_ => Err(NucleoBaseError::InvalidChar(value))?,
 		})
 	}
 }

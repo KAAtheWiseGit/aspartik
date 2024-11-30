@@ -22,6 +22,7 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
 ahash = "0.8.11"
+anyhow = "1.0.93"
 criterion = "0.5"
 crossbeam-channel = "0.5.13"
 nom = "8.0.0-alpha2"

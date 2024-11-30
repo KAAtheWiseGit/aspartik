@@ -9,5 +9,6 @@ authors.workspace = true
 [dependencies]
 linalg = { path = "../linalg" }
 
+anyhow = { workspace = true }
 petgraph = { workspace = true }
 thiserror = { workspace = true }

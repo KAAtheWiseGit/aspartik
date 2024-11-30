@@ -1,9 +1,11 @@
+use anyhow::{Context, Error, Result};
+
 use std::{
 	fmt::Display,
 	ops::{Index, IndexMut},
 };
 
-use crate::{bases::DnaNucleoBase, Error, Result};
+use crate::bases::DnaNucleoBase;
 
 /// A character in a sequence alphabet.
 ///
@@ -82,7 +84,10 @@ impl<T: Character> TryFrom<&str> for Seq<T> {
 		let mut out = Seq { value: Vec::new() };
 
 		for char in value.chars() {
-			out.value.push(char.try_into()?);
+			out.value.push(char.try_into().with_context(|| {
+				let width = out.len();
+				format!("\n\tAn illegal character encountered in the sequence:\n> {}\n> {:width$}^", value, "")
+			})?);
 		}
 
 		Ok(out)
@@ -110,5 +115,17 @@ impl DnaSeq {
 			*base = base.complement();
 		}
 		out
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn decode() {
+		let s = "ACTGxACTG";
+		let seq: Result<Seq<DnaNucleoBase>> = s.try_into();
+		assert!(seq.is_err());
 	}
 }
