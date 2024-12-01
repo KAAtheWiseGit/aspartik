@@ -47,6 +47,10 @@ impl Tree {
 		self.root.as_ref()
 	}
 
+	pub fn set_root(&mut self, node: NodeIndex) {
+		self.root = Some(node);
+	}
+
 	pub fn children_of(&self, node: NodeIndex) -> Vec<NodeIndex> {
 		self.graph.neighbors(node).collect()
 	}
