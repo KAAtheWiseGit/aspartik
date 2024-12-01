@@ -2,11 +2,13 @@ use rand::{
 	distributions::{Distribution, Uniform},
 	Rng,
 };
-use serde_json::{json, Value as Json};
 
 use std::collections::{HashSet, VecDeque};
 
 use crate::operator::Proposal;
+use io::newick::{
+	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
+};
 use shchurvec::ShchurVec;
 
 const ROOT: usize = usize::MAX;
@@ -17,7 +19,7 @@ pub struct Tree {
 	weights: ShchurVec<f64>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -368,10 +370,34 @@ impl Tree {
 		(0..self.num_leaves()).map(Leaf)
 	}
 
-	pub fn serialize(&self) -> Json {
-		json!({
-			"children": "TODO",
-			"weights": "TODO",
-		})
+	pub fn serialize(&self) -> String {
+		let mut tree = NewickTree::new();
+
+		use std::collections::HashMap;
+		let mut map: HashMap<Node, NewickNodeIndex> = HashMap::new();
+
+		for node in self.nodes() {
+			let newick_node = tree.add_node(NewickNode::new(
+				node.0.to_string(),
+				"".to_owned(),
+				self.weight_of(node),
+			));
+
+			map.insert(node, newick_node);
+		}
+
+		for parent in self.internals() {
+			let (left, right) = self.children_of(parent);
+
+			tree.add_edge(map[&parent.into()], map[&left]);
+			tree.add_edge(map[&parent.into()], map[&right]);
+
+			// set root
+			if self.parent_of(parent).is_none() {
+				tree.set_root(map[&parent.into()]);
+			}
+		}
+
+		tree.serialize()
 	}
 }
