@@ -34,6 +34,7 @@ impl Tree {
 		let mut out = String::new();
 		self.serialize_to(&mut out)
 			.expect("Writing to `String` should be infallible");
+		out += ";";
 		out
 	}
 }
@@ -45,8 +46,12 @@ fn serialize<W: Write>(tree: &Tree, node: NodeIndex, writer: &mut W) -> Result {
 	if !children.is_empty() {
 		writer.write_char('(')?;
 
-		for child in children {
-			serialize(tree, child, writer)?;
+		for (i, child) in children.iter().enumerate() {
+			serialize(tree, *child, writer)?;
+
+			if i != children.len() - 1 {
+				writer.write_char(',')?;
+			}
 		}
 
 		writer.write_char(')')?;
