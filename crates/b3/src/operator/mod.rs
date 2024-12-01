@@ -17,11 +17,11 @@ use crate::{parameter::Parameter, state::State, tree::Node};
 //     - [ ] Random walk (+/- delta)
 //     - [ ] "Up/down": scale two parameters using the same coefficient
 // - [ ] Tree operators
-//   - [ ] Epoch scaling
-//   - [ ] Exchange: swap two branches, narrow and wide variations
+//   - [x] Epoch scaling
+//   - [x] Exchange: swap two branches, narrow and wide variations
 //   - [ ] Random node height, reconstructs the tree
 //   - [ ] Scaling
-//   - [ ] Uniform: move node height between parent and children
+//   - [x] Uniform: move node height between parent and children
 //   - [ ] Subtree sliding: same as above, but the node can be swapped with
 //     parents
 //   - [ ] Leaf node moving and scaling
@@ -34,7 +34,7 @@ mod slide;
 
 pub mod scheduler;
 
-pub use exchange::NarrowExchange;
+pub use exchange::{NarrowExchange, WideExchange};
 pub use scale::Scale;
 pub use slide::Slide;
 

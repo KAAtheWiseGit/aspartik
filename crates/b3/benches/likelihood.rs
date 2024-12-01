@@ -7,7 +7,7 @@ use b3::{
 	mcmc::{run, Config},
 	operator::{
 		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
-		Slide,
+		Slide, WideExchange,
 	},
 	probability::Compound,
 	state::State,
@@ -56,14 +56,15 @@ fn likelihood(data: &Data, length: usize) {
 	let prior = Box::new(Compound::new([]));
 
 	// Local
-	let exchange = NarrowExchange::new();
+	let narrow_exchange = NarrowExchange::new();
+	let wide_exchange = WideExchange::new();
 	let slide: Box<dyn Operator> = Slide::new(Distribution::Uniform);
 	// Global
 	let scale: Box<dyn Operator> = Scale::new(0.75, Distribution::Uniform);
 
 	let mut scheduler = WeightedScheduler::new(
-		[exchange, slide, scale],
-		[50.0, 48.0, 2.0],
+		[narrow_exchange, wide_exchange, slide, scale],
+		[25.0, 25.0, 48.0, 2.0],
 	);
 
 	let config = Config {

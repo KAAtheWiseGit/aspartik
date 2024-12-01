@@ -74,3 +74,46 @@ fn is_grandparent(tree: &Tree, node: Internal) -> bool {
 	let (left, right) = tree.children_of(node);
 	tree.is_internal(left) || tree.is_internal(right)
 }
+
+pub struct WideExchange {}
+
+impl WideExchange {
+	pub fn new() -> Box<dyn Operator> {
+		Box::new(Self {})
+	}
+}
+
+impl Operator for WideExchange {
+	fn propose(&self, state: &State, rng: &mut RngT) -> Proposal {
+		let tree = state.get_tree();
+
+		let i = tree.sample_node(rng);
+		let j = loop {
+			let out = tree.sample_node(rng);
+			if out != i {
+				break out;
+			}
+		};
+
+		let Some(i_parent) = tree.parent_of(i) else {
+			return Proposal::reject();
+		};
+		let Some(j_parent) = tree.parent_of(j) else {
+			return Proposal::reject();
+		};
+
+		if j != i_parent.into()
+			&& tree.weight_of(j) < tree.weight_of(i_parent)
+			&& tree.weight_of(i) < tree.weight_of(j_parent)
+		{
+			let to_i = tree.edge_index(i);
+			let to_j = tree.edge_index(j);
+			Proposal::hastings(0.0).with_edges(vec![
+				(to_j, j.into()),
+				(to_i, i.into()),
+			])
+		} else {
+			Proposal::reject()
+		}
+	}
+}
