@@ -1,9 +1,8 @@
+use anyhow::Result;
+
 use std::io::{BufRead, BufReader, Lines, Read};
 
-use base::{
-	seq::{Character, Seq},
-	Result,
-};
+use base::seq::{Character, Seq};
 
 #[derive(Debug)]
 pub struct Sequence<T: Character> {
