@@ -53,23 +53,16 @@ fn comment(input: &str) -> IResult<&str, String> {
 		.map(|(rest, s)| (rest, s.to_owned()))
 }
 
-fn length(input: &str) -> IResult<&str, f64> {
+fn distance(input: &str) -> IResult<&str, f64> {
 	float(input).map(|(rest, f)| (rest, f as f64))
 }
 
 fn body(input: &str) -> IResult<&str, Node> {
 	let (rest, name) = ws!(name)(input)?;
 	let (rest, attributes) = ws!(comment)(rest)?;
-	let (rest, length) = ws!(length)(rest)?;
+	let (rest, distance) = ws!(distance)(rest)?;
 
-	Ok((
-		rest,
-		Node {
-			name,
-			attributes,
-			distance: length,
-		},
-	))
+	Ok((rest, Node::new(name, attributes, distance)))
 }
 
 #[cfg(test)]

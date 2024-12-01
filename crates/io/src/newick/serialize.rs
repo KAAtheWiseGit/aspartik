@@ -12,6 +12,11 @@ impl Node {
 			writer.write_str(&self.name)?;
 		}
 
+		if let Some(distance) = self.distance {
+			writer.write_char(':')?;
+			writer.write_str(&distance.to_string())?;
+		}
+
 		Ok(())
 	}
 }

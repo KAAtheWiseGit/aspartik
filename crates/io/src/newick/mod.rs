@@ -11,7 +11,7 @@ pub use petgraph::stable_graph::NodeIndex;
 pub struct Node {
 	name: String,
 	attributes: String,
-	distance: f64,
+	distance: Option<f64>,
 }
 
 impl Node {
@@ -19,7 +19,7 @@ impl Node {
 		Node {
 			name,
 			attributes,
-			distance,
+			distance: Some(distance),
 		}
 	}
 
@@ -27,7 +27,7 @@ impl Node {
 		&self.name
 	}
 
-	pub fn distance(&self) -> f64 {
+	pub fn distance(&self) -> Option<f64> {
 		self.distance
 	}
 }
