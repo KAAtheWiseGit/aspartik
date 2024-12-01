@@ -7,20 +7,28 @@ mod serialize;
 
 pub use petgraph::stable_graph::NodeIndex;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Node {
 	name: String,
 	attributes: String,
-	length: f64,
+	distance: f64,
 }
 
 impl Node {
+	pub fn new(name: String, attributes: String, distance: f64) -> Node {
+		Node {
+			name,
+			attributes,
+			distance,
+		}
+	}
+
 	pub fn name(&self) -> &str {
 		&self.name
 	}
 
-	pub fn length(&self) -> f64 {
-		self.length
+	pub fn distance(&self) -> f64 {
+		self.distance
 	}
 }
 
@@ -31,6 +39,10 @@ pub struct Tree {
 }
 
 impl Tree {
+	pub fn new() -> Tree {
+		Tree::default()
+	}
+
 	pub fn root(&self) -> Option<&NodeIndex> {
 		self.root.as_ref()
 	}
@@ -41,5 +53,13 @@ impl Tree {
 
 	pub fn get_node(&self, idx: NodeIndex) -> &Node {
 		&self.graph[idx]
+	}
+
+	pub fn add_node(&mut self, node: Node) -> NodeIndex {
+		self.graph.add_node(node)
+	}
+
+	pub fn add_edge(&mut self, from: NodeIndex, to: NodeIndex) {
+		self.graph.add_edge(from, to, ());
 	}
 }

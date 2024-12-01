@@ -67,7 +67,7 @@ fn body(input: &str) -> IResult<&str, Node> {
 		Node {
 			name,
 			attributes,
-			length,
+			distance: length,
 		},
 	))
 }
