@@ -5,7 +5,11 @@ use rand_xoshiro::Xoshiro256StarStar;
 
 use std::collections::HashMap;
 
-use crate::{parameter::Parameter, state::State, tree::Node};
+use crate::{
+	parameter::Parameter,
+	state::State,
+	tree::{Internal, Node, Tree},
+};
 
 // Operators:
 // - [ ] Parameter operators
@@ -56,7 +60,7 @@ pub struct Proposal {
 	pub params: HashMap<String, Parameter>,
 	/// Update the weight of tree nodes on the left to values on the right.
 	pub weights: Vec<(Node, NodeWeight)>,
-	/// TODO: docs
+	/// TODO
 	pub edges: Vec<(usize, Node)>,
 }
 
@@ -91,6 +95,20 @@ impl Proposal {
 
 	pub fn with_edges(mut self, edges: Vec<(usize, Node)>) -> Self {
 		self.edges = edges;
+		self
+	}
+
+	pub fn with_replacement(
+		mut self,
+		tree: &Tree,
+		parent: Internal,
+		child: Node,
+		replacement: Node,
+	) -> Self {
+		assert!(tree.parent_of(child).is_some_and(|p| p == parent));
+		let edge = tree.edge_index(child);
+		self.edges.push((edge, replacement));
+
 		self
 	}
 }

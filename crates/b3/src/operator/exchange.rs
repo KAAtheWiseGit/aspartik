@@ -57,16 +57,9 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		let grandparent_to_uncle = tree.edge_index(uncle);
-		let parent_to_child = tree.edge_index(child);
-
-		Proposal::hastings(0.0).with_edges(vec![
-			// Redirect the edge coming out from grandparent from
-			// uncle to the child
-			(grandparent_to_uncle, child),
-			// Redirect the edge from parent to the uncle
-			(parent_to_child, uncle),
-		])
+		Proposal::hastings(0.0)
+			.with_replacement(tree, grandparent, uncle, child)
+			.with_replacement(tree, parent, child, uncle)
 	}
 }
 
@@ -106,12 +99,9 @@ impl Operator for WideExchange {
 			&& tree.weight_of(j) < tree.weight_of(i_parent)
 			&& tree.weight_of(i) < tree.weight_of(j_parent)
 		{
-			let to_i = tree.edge_index(i);
-			let to_j = tree.edge_index(j);
-			Proposal::hastings(0.0).with_edges(vec![
-				(to_j, j.into()),
-				(to_i, i.into()),
-			])
+			Proposal::hastings(0.0)
+				.with_replacement(tree, i_parent, i, j)
+				.with_replacement(tree, j_parent, j, i)
 		} else {
 			Proposal::reject()
 		}
