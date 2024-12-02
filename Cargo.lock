@@ -53,6 +53,7 @@ name = "b3"
 version = "0.1.0"
 dependencies = [
  "ahash",
+ "anyhow",
  "base",
  "criterion",
  "crossbeam-channel",

@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use serde_json::{json, Value as Json};
 
 use std::collections::HashMap;
@@ -85,46 +86,48 @@ impl State {
 			.sum()
 	}
 
-	/// # Panics
-	///
-	/// Panics if `name` is not a valid parameter name.
-	pub fn get_parameter<S: AsRef<str>>(&self, name: S) -> &Parameter {
+	pub fn get_parameter<S: AsRef<str>>(
+		&self,
+		name: S,
+	) -> Result<&Parameter> {
 		let name = name.as_ref();
 
 		if let Some(param) = self.proposal_params.get(name) {
-			return param;
+			return Ok(param);
 		}
 
-		&self.params[name]
+		self.params.get(name).ok_or_else(|| {
+			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
+		})
 	}
 
 	pub fn get_real_parameter<S: AsRef<str>>(
 		&self,
 		name: S,
-	) -> Option<&RealParam> {
-		match self.get_parameter(name) {
-			Parameter::Real(p) => Some(p),
-			_ => None,
+	) -> Result<Option<&RealParam>> {
+		match self.get_parameter(name)? {
+			Parameter::Real(p) => Ok(Some(p)),
+			_ => Ok(None),
 		}
 	}
 
 	pub fn get_integer_parameter<S: AsRef<str>>(
 		&self,
 		name: S,
-	) -> Option<&IntegerParam> {
-		match self.get_parameter(name) {
-			Parameter::Integer(p) => Some(p),
-			_ => None,
+	) -> Result<Option<&IntegerParam>> {
+		match self.get_parameter(name)? {
+			Parameter::Integer(p) => Ok(Some(p)),
+			_ => Ok(None),
 		}
 	}
 
 	pub fn get_boolean_parameter<S: AsRef<str>>(
 		&self,
 		name: S,
-	) -> Option<&BooleanParam> {
-		match self.get_parameter(name) {
-			Parameter::Boolean(p) => Some(p),
-			_ => None,
+	) -> Result<Option<&BooleanParam>> {
+		match self.get_parameter(name)? {
+			Parameter::Boolean(p) => Ok(Some(p)),
+			_ => Ok(None),
 		}
 	}
 

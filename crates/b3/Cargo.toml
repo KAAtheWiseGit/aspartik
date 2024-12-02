@@ -13,6 +13,7 @@ linalg = { path = "../linalg" }
 shchurvec = { path = "../shchurvec" }
 
 ahash = { workspace = true }
+anyhow = { workspace = true }
 crossbeam-channel = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }

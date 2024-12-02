@@ -10,11 +10,12 @@ pub struct Poisson {
 
 impl Probability for Poisson {
 	fn probability(&self, state: &State) -> f64 {
-		let Some(param) = state.get_integer_parameter(&self.parameter)
+		let Ok(Some(param)) =
+			state.get_integer_parameter(&self.parameter)
 		else {
 			return f64::NEG_INFINITY;
 		};
-		let Some(lambda) = state.get_real_parameter(&self.lambda)
+		let Ok(Some(lambda)) = state.get_real_parameter(&self.lambda)
 		else {
 			return f64::NEG_INFINITY;
 		};
