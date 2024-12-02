@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::{
 	parameter::Parameter,
-	state::State,
+	state::StateRef,
 	tree::{Internal, Node, Tree},
 };
 
@@ -114,5 +114,5 @@ impl Proposal {
 }
 
 pub trait Operator {
-	fn propose(&self, state: &State, rng: &mut Rng) -> Proposal;
+	fn propose(&self, state: StateRef, rng: &mut Rng) -> Proposal;
 }

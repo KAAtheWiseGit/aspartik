@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 mod distribution;
 mod likelihood;
 mod logger;

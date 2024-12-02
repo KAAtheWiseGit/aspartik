@@ -1,7 +1,7 @@
 use std::f64::consts::E;
 
 use super::Probability;
-use crate::state::State;
+use crate::state::StateRef;
 
 pub struct Poisson {
 	parameter: String,
@@ -9,7 +9,7 @@ pub struct Poisson {
 }
 
 impl Probability for Poisson {
-	fn probability(&self, state: &State) -> f64 {
+	fn probability(&self, state: StateRef) -> f64 {
 		let Ok(Some(param)) =
 			state.get_integer_parameter(&self.parameter)
 		else {

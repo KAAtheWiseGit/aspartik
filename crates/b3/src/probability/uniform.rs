@@ -1,5 +1,5 @@
 use super::Probability;
-use crate::state::State;
+use crate::state::StateRef;
 
 pub struct Uniform {
 	parameter: String,
@@ -13,7 +13,7 @@ impl Uniform {
 
 impl Probability for Uniform {
 	// can be cached, but I doubt that's needed
-	fn probability(&self, state: &State) -> f64 {
+	fn probability(&self, state: StateRef) -> f64 {
 		let Ok(Some(param)) = state.get_real_parameter(&self.parameter)
 		else {
 			return 0.0;

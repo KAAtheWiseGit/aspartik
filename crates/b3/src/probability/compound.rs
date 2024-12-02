@@ -1,5 +1,5 @@
 use super::Probability;
-use crate::state::State;
+use crate::state::StateRef;
 
 pub struct Compound {
 	probabilities: Vec<Box<dyn Probability>>,
@@ -17,7 +17,7 @@ impl Compound {
 }
 
 impl Probability for Compound {
-	fn probability(&self, state: &State) -> f64 {
+	fn probability(&self, state: StateRef) -> f64 {
 		self.probabilities
 			.iter()
 			.map(|p| p.probability(state))

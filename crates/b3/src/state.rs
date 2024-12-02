@@ -4,14 +4,25 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::{Likelihood, ThreadedLikelihood},
+	likelihood::Likelihood,
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
 };
-use base::{seq::DnaSeq, substitution::dna::Dna4Substitution};
+use base::{
+	seq::{Character, Seq},
+	substitution::dna::Dna4Substitution,
+};
+use linalg::{RowMatrix, Vector};
 
-pub struct State {
+type DynLikelihood<const N: usize> = Box<
+	dyn Likelihood<
+		Row = Vector<f64, N>,
+		Substitution = RowMatrix<f64, N, N>,
+	>,
+>;
+
+pub struct State<const N: usize> {
 	/// Map of parameters by name.
 	params: HashMap<String, Parameter>,
 	/// Proposal parameters
@@ -19,62 +30,22 @@ pub struct State {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	// TODO: generic
-	likelihoods: Vec<ThreadedLikelihood<Dna4Substitution>>,
+	likelihoods: Vec<DynLikelihood<N>>,
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
 }
 
-impl State {
-	pub fn new(tree: Tree, sequences: &[DnaSeq]) -> State {
-		let mut c1 = vec![];
-		let mut c2 = vec![];
-		let mut c3 = vec![];
-		let mut c4 = vec![];
-
-		for i in 0..sequences[0].len() {
-			let mut column = Vec::new();
-			for sequence in sequences {
-				column.push(sequence[i]);
-			}
-
-			if i % 4 == 0 {
-				c1.push(column);
-			} else if i % 4 == 1 {
-				c2.push(column);
-			} else if i % 4 == 2 {
-				c3.push(column);
-			} else {
-				c4.push(column);
-			}
-		}
-
-		let mut likelihoods = vec![
-			ThreadedLikelihood::new(
-				c1,
-				Dna4Substitution::jukes_cantor(),
-			),
-			ThreadedLikelihood::new(
-				c2,
-				Dna4Substitution::jukes_cantor(),
-			),
-			ThreadedLikelihood::new(
-				c3,
-				Dna4Substitution::jukes_cantor(),
-			),
-			ThreadedLikelihood::new(
-				c4,
-				Dna4Substitution::jukes_cantor(),
-			),
-		];
+impl<const N: usize> State<N> {
+	pub fn new<C: Character>(tree: Tree, sequences: &[Seq<C>]) -> Self {
+		let mut likelihoods: Vec<DynLikelihood<N>> = vec![];
 
 		let update = tree.update_all_likelihoods();
 		for likelihood in &mut likelihoods {
-			likelihood.propose(update.clone());
+			// likelihood.propose(update.clone());
 		}
 
-		State {
+		Self {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
@@ -90,6 +61,64 @@ impl State {
 			.sum()
 	}
 
+	pub fn as_ref(&self) -> StateRef {
+		StateRef {
+			params: &self.params,
+			proposal_params: &self.proposal_params,
+			tree: &self.tree,
+		}
+	}
+
+	pub(crate) fn propose(&mut self, mut proposal: Proposal) {
+		self.proposal_params = std::mem::take(&mut proposal.params);
+
+		let update = self.tree.propose(proposal);
+
+		for likelihood in &mut self.likelihoods {
+			// likelihood.propose(update.clone());
+		}
+	}
+
+	/// Accept the current proposal
+	pub(crate) fn accept(&mut self) {
+		for (name, param) in std::mem::take(&mut self.proposal_params) {
+			self.params.insert(name, param);
+		}
+
+		self.tree.accept();
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.accept();
+		}
+	}
+
+	pub(crate) fn reject(&mut self) {
+		self.proposal_params.clear();
+
+		self.tree.reject();
+
+		for likelihood in &mut self.likelihoods {
+			likelihood.reject();
+		}
+	}
+
+	#[allow(unused)]
+	pub(crate) fn serialize(&self) -> Json {
+		json!({
+			"tree": self.tree.serialize(),
+			"parameters": self.params,
+		})
+	}
+}
+
+#[derive(Clone, Copy)]
+pub struct StateRef<'a> {
+	params: &'a HashMap<String, Parameter>,
+	proposal_params: &'a HashMap<String, Parameter>,
+	tree: &'a Tree,
+}
+
+impl StateRef<'_> {
 	pub fn get_parameter<S: AsRef<str>>(
 		&self,
 		name: S,
@@ -141,47 +170,6 @@ impl State {
 	}
 
 	pub fn get_tree(&self) -> &Tree {
-		&self.tree
-	}
-
-	pub(crate) fn propose(&mut self, mut proposal: Proposal) {
-		self.proposal_params = std::mem::take(&mut proposal.params);
-
-		let update = self.tree.propose(proposal);
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.propose(update.clone());
-		}
-	}
-
-	/// Accept the current proposal
-	pub(crate) fn accept(&mut self) {
-		for (name, param) in std::mem::take(&mut self.proposal_params) {
-			self.params.insert(name, param);
-		}
-
-		self.tree.accept();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.accept();
-		}
-	}
-
-	pub(crate) fn reject(&mut self) {
-		self.proposal_params.clear();
-
-		self.tree.reject();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.reject();
-		}
-	}
-
-	#[allow(unused)]
-	pub(crate) fn serialize(&self) -> Json {
-		json!({
-			"tree": self.tree.serialize(),
-			"parameters": self.params,
-		})
+		self.tree
 	}
 }

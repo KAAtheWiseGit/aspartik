@@ -1,5 +1,5 @@
 use super::{Operator, Proposal, Rng};
-use crate::{distribution::Distribution, state::State};
+use crate::{distribution::Distribution, state::StateRef};
 
 pub struct Scale {
 	factor: f64,
@@ -21,7 +21,7 @@ impl Scale {
 }
 
 impl Operator for Scale {
-	fn propose(&self, state: &State, rng: &mut Rng) -> Proposal {
+	fn propose(&self, state: StateRef, rng: &mut Rng) -> Proposal {
 		let tree = state.get_tree();
 		let scale = self.distribution.gen_range(
 			self.factor,

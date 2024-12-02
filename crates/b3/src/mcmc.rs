@@ -16,9 +16,9 @@ pub struct Config {
 	pub loggers: Vec<Logger>,
 }
 
-pub fn run(
+pub fn run<const N: usize>(
 	config: Config,
-	state: &mut State,
+	state: &mut State<N>,
 	prior: Box<dyn Probability>,
 	scheduler: &mut WeightedScheduler,
 ) {
@@ -29,7 +29,7 @@ pub fn run(
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
 		let operator = scheduler.get_operator(&mut rng);
-		let proposal = operator.propose(state, &mut rng);
+		let proposal = operator.propose(state.as_ref(), &mut rng);
 
 		let hastings = match proposal.status {
 			Status::Accept => {
@@ -46,7 +46,7 @@ pub fn run(
 		state.propose(proposal);
 
 		let new_likelihood =
-			state.likelihood() + prior.probability(state);
+			state.likelihood() + prior.probability(state.as_ref());
 
 		let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -58,14 +58,14 @@ pub fn run(
 		}
 
 		for logger in &config.loggers {
-			logger.log(state, i).unwrap();
+			logger.log(state.as_ref(), i).unwrap();
 		}
 
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}",
-				state.get_tree().serialize()
+				state.as_ref().get_tree().serialize()
 			))
 			.unwrap();
 		}

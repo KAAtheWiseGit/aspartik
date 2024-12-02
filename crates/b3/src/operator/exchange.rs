@@ -2,7 +2,7 @@ use rand::Rng;
 
 use super::{Operator, Proposal, Rng as RngT};
 use crate::{
-	state::State,
+	state::StateRef,
 	tree::{Internal, Tree},
 };
 
@@ -15,7 +15,7 @@ impl NarrowExchange {
 }
 
 impl Operator for NarrowExchange {
-	fn propose(&self, state: &State, rng: &mut RngT) -> Proposal {
+	fn propose(&self, state: StateRef, rng: &mut RngT) -> Proposal {
 		let tree = state.get_tree();
 
 		if tree.num_internals() < 2 {
@@ -77,7 +77,7 @@ impl WideExchange {
 }
 
 impl Operator for WideExchange {
-	fn propose(&self, state: &State, rng: &mut RngT) -> Proposal {
+	fn propose(&self, state: StateRef, rng: &mut RngT) -> Proposal {
 		let tree = state.get_tree();
 
 		let i = tree.sample_node(rng);

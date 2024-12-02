@@ -1,5 +1,5 @@
 use super::{Operator, Proposal, Rng};
-use crate::{distribution::Distribution, state::State};
+use crate::{distribution::Distribution, state::StateRef};
 
 pub struct Slide {
 	distribution: Distribution,
@@ -12,7 +12,7 @@ impl Slide {
 }
 
 impl Operator for Slide {
-	fn propose(&self, state: &State, rng: &mut Rng) -> Proposal {
+	fn propose(&self, state: StateRef, rng: &mut Rng) -> Proposal {
 		let tree = state.get_tree();
 
 		let node = tree.sample_internal(rng);

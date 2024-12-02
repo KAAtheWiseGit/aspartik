@@ -3,7 +3,8 @@ use serde_json::{json, to_string, to_value, Value as Json};
 
 use std::{cell::RefCell, fs::File, io::Write, path::Path};
 
-use crate::State;
+use crate::state::StateRef;
+use base::seq::Character;
 
 pub struct Logger {
 	log_every: usize,
@@ -30,7 +31,7 @@ impl Logger {
 		}
 	}
 
-	pub(crate) fn log(&self, state: &State, index: usize) -> Result<()> {
+	pub(crate) fn log(&self, state: StateRef, index: usize) -> Result<()> {
 		if index % self.log_every != 0 {
 			return Ok(());
 		}

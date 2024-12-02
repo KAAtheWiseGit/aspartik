@@ -50,7 +50,7 @@ fn data(num_leaves_pow: usize) -> Data {
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
-	let mut state = State::new(tree, seqs);
+	let mut state: State<4> = State::new(tree, seqs);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -65,8 +65,7 @@ fn likelihood(data: &Data, length: usize) {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
-	let logger =
-		Logger::new(500, None, vec![], vec![]);
+	let logger = Logger::new(500, None, vec![], vec![]);
 
 	let config = Config {
 		burnin: 0,

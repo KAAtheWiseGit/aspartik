@@ -1,77 +1,58 @@
 use super::Likelihood;
 use crate::tree::Update;
 use base::substitution::Model;
+use linalg::{RowMatrix, Vector};
 use shchurvec::ShchurVec;
 
-pub struct CpuLikelihood<M: Model> {
-	model: M,
-	substitutions: ShchurVec<M::Substitution>,
-	probabilities: Vec<ShchurVec<M::Row>>,
+type Row<const N: usize> = Vector<f64, N>;
+type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
-	updated_nodes: Option<Vec<usize>>,
+pub struct CpuLikelihood<const N: usize> {
+	probabilities: Vec<ShchurVec<Row<N>>>,
+
+	updated_nodes: Vec<usize>,
 }
 
-impl<M: Model> Likelihood for CpuLikelihood<M> {
-	type Model = M;
+impl<const N: usize> Likelihood for CpuLikelihood<N> {
+	type Row = Row<N>;
+	type Substitution = Substitution<N>;
 
-	fn new(
-		sites: Vec<Vec<<Self::Model as Model>::Item>>,
-		model: Self::Model,
-	) -> Self {
-		let substitutions = ShchurVec::repeat(
-			M::Substitution::default(),
-			sites[0].len() * 2,
-		);
+	fn propose(
+		&mut self,
+		substitutions: &[Self::Substitution],
+		nodes: &[usize],
+		children: &[(usize, usize)],
+	) {
+		let num_leaves = (self.probabilities[0].len() + 1) / 2;
+		self.updated_nodes = nodes.to_vec();
 
-		let mut probabilities = vec![
-			ShchurVec::repeat(
-				M::Row::default(),
-				sites[0].len() * 2 - 1
-			);
-			sites.len()
-		];
-		for (site, probability) in sites.iter().zip(&mut probabilities)
-		{
-			for (i, base) in site.iter().enumerate() {
-				probability.set(i, M::to_row(base));
+		for probability in &mut self.probabilities {
+			for (i, (left, right)) in nodes.iter().zip(children) {
+				let left = substitutions[(i - num_leaves) * 2]
+					* probability[*left];
+				let right = substitutions
+					[(i - num_leaves) * 2 + 1]
+					* probability[*right];
+				probability.set(*i, left * right);
 			}
-			probability.accept();
 		}
-
-		Self {
-			model,
-			substitutions,
-			probabilities,
-
-			updated_nodes: None,
-		}
-	}
-
-	fn propose(&mut self, update: Update) {
-		self.update_substitutions(&update.edges, &update.lengths);
-		self.update_probabilities(&update.nodes, &update.children);
 	}
 
 	fn likelihood(&self) -> f64 {
 		self.probabilities
 			.iter()
-			.map(|p| M::probability(p.last().unwrap()))
+			.map(|p| p.last().unwrap().sum().ln())
 			.sum()
 	}
 
 	fn accept(&mut self) {
-		self.substitutions.accept();
 		for probability in &mut self.probabilities {
 			probability.accept();
 		}
 	}
 
 	fn reject(&mut self) {
-		let nodes = self.updated_nodes.take().expect(
-			"Reject must be called after 'update_probabilities'",
-		);
-
-		self.substitutions.reject();
+		let nodes = std::mem::take(&mut self.updated_nodes);
 
 		for probability in &mut self.probabilities {
 			for node in &nodes {
@@ -83,32 +64,27 @@ impl<M: Model> Likelihood for CpuLikelihood<M> {
 	}
 }
 
-impl<M: Model> CpuLikelihood<M> {
-	fn update_substitutions(&mut self, edges: &[usize], distances: &[f64]) {
-		for (edge, distance) in edges.iter().zip(distances) {
-			self.substitutions
-				.set(*edge, self.model.substitution(*distance));
-		}
-	}
+impl<const N: usize> CpuLikelihood<N> {
+	fn new(sites: Vec<Vec<Row<N>>>) -> Self {
+		let mut probabilities = vec![
+			ShchurVec::repeat(
+				Row::<N>::default(),
+				sites[0].len() * 2 - 1
+			);
+			sites.len()
+		];
 
-	fn update_probabilities(
-		&mut self,
-		nodes: &[usize],
-		children: &[(usize, usize)],
-	) {
-		let num_leaves = (self.probabilities[0].len() + 1) / 2;
-		self.updated_nodes = Some(nodes.into());
-
-		for probability in &mut self.probabilities {
-			for (i, (left, right)) in nodes.iter().zip(children) {
-				let left = self.substitutions
-					[(i - num_leaves) * 2] * probability
-					[*left];
-				let right = self.substitutions
-					[(i - num_leaves) * 2 + 1]
-					* probability[*right];
-				probability.set(*i, left * right);
+		for (rows, probability) in sites.iter().zip(&mut probabilities)
+		{
+			for (i, row) in rows.iter().enumerate() {
+				probability.set(i, *row);
 			}
+			probability.accept();
+		}
+
+		Self {
+			probabilities,
+			updated_nodes: Vec::new(),
 		}
 	}
 }

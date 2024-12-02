@@ -1,21 +1,27 @@
+#![allow(dead_code)]
+
 use crate::tree::Update;
 use base::substitution::Model;
 
+use base::seq::Character;
+use linalg::{RowMatrix, Vector};
+
 mod cpu;
-mod thread;
+// TODO: mod thread;
 
 pub use cpu::CpuLikelihood;
-pub use thread::ThreadedLikelihood;
+// pub use thread::ThreadedLikelihood;
 
 pub trait Likelihood {
-	type Model: Model;
+	type Row: Default;
+	type Substitution;
 
-	fn new(
-		sites: Vec<Vec<<Self::Model as Model>::Item>>,
-		model: Self::Model,
-	) -> Self;
-
-	fn propose(&mut self, update: Update);
+	fn propose(
+		&mut self,
+		substitutions: &[Self::Substitution],
+		nodes: &[usize],
+		children: &[(usize, usize)],
+	);
 
 	fn likelihood(&self) -> f64;
 
