@@ -68,8 +68,8 @@ fn likelihood(data: &Data, length: usize) {
 	let config = Config {
 		burnin: 0,
 		length,
-		state: 5000,
-		trees: 5000,
+		save_state_every: 5000,
+		loggers: vec![],
 	};
 
 	run(config, &mut state, prior, &mut scheduler);

@@ -4,16 +4,16 @@ use rand_xoshiro::Xoshiro256StarStar;
 use crate::{
 	operator::{scheduler::WeightedScheduler, Status},
 	probability::Probability,
-	state::State,
+	Logger, State,
 };
 
 pub struct Config {
 	pub burnin: usize,
 	pub length: usize,
 
-	pub state: usize,
-	pub trees: usize,
-	// TODO: logger
+	pub save_state_every: usize,
+
+	pub loggers: Vec<Logger>,
 }
 
 pub fn run(
@@ -23,7 +23,6 @@ pub fn run(
 	scheduler: &mut WeightedScheduler,
 ) {
 	let mut rng = Xoshiro256StarStar::seed_from_u64(4);
-	let mut old_likelihood = f64::NEG_INFINITY;
 
 	let mut file = std::fs::File::create("start.trees").unwrap();
 
@@ -46,24 +45,23 @@ pub fn run(
 
 		state.propose(proposal);
 
-		let likelihood = state.likelihood() + prior.probability(state);
+		let new_likelihood =
+			state.likelihood() + prior.probability(state);
 
-		let ratio = likelihood - old_likelihood + hastings;
+		let ratio = new_likelihood - state.likelihood + hastings;
 
 		if ratio > rng.gen::<f64>().ln() {
-			old_likelihood = likelihood;
+			state.likelihood = new_likelihood;
 			state.accept();
 		} else {
 			state.reject();
 		}
 
-		if i % config.state == 0 && i > config.burnin {}
+		for logger in &config.loggers {
+			logger.log(state, i).unwrap();
+		}
 
-		if i % config.trees == 0 && i > config.burnin {
-			let root = state.get_tree().root();
-			println!("root: {}", state.get_tree().weight_of(root));
-			println!("likelihood: {old_likelihood}");
-
+		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}",

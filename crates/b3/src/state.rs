@@ -21,6 +21,9 @@ pub struct State {
 
 	// TODO: generic
 	likelihoods: Vec<ThreadedLikelihood<Dna4Substitution>>,
+
+	/// Current likelihood, for caching purposes.
+	pub(crate) likelihood: f64,
 }
 
 impl State {
@@ -76,6 +79,7 @@ impl State {
 			proposal_params: HashMap::new(),
 			tree,
 			likelihoods,
+			likelihood: f64::NEG_INFINITY,
 		}
 	}
 
