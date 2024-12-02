@@ -3,15 +3,13 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::{fs::File, hint::black_box};
 
 use b3::{
-	distribution::Distribution,
 	mcmc::{run, Config},
 	operator::{
 		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	state::State,
-	tree::Tree,
+	Distribution, State, Tree,
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;

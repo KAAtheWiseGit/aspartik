@@ -3,7 +3,7 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::{ThreadedLikelihood, Likelihood},
+	likelihood::{Likelihood, ThreadedLikelihood},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
@@ -20,12 +20,6 @@ pub struct State {
 
 	// TODO: generic
 	likelihoods: Vec<ThreadedLikelihood<Dna4Substitution>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Verdict {
-	Accept,
-	Reject,
 }
 
 impl State {
@@ -84,7 +78,7 @@ impl State {
 		}
 	}
 
-	pub fn likelihood(&self) -> f64 {
+	pub(crate) fn likelihood(&self) -> f64 {
 		self.likelihoods
 			.iter()
 			.map(|likelihood| likelihood.likelihood())
@@ -143,7 +137,7 @@ impl State {
 		&self.tree
 	}
 
-	pub fn propose(&mut self, mut proposal: Proposal) {
+	pub(crate) fn propose(&mut self, mut proposal: Proposal) {
 		self.proposal_params = std::mem::take(&mut proposal.params);
 
 		let update = self.tree.propose(proposal);
@@ -154,7 +148,7 @@ impl State {
 	}
 
 	/// Accept the current proposal
-	pub fn accept(&mut self) {
+	pub(crate) fn accept(&mut self) {
 		for (name, param) in std::mem::take(&mut self.proposal_params) {
 			self.params.insert(name, param);
 		}
@@ -166,7 +160,7 @@ impl State {
 		}
 	}
 
-	pub fn reject(&mut self) {
+	pub(crate) fn reject(&mut self) {
 		self.proposal_params.clear();
 
 		self.tree.reject();
@@ -176,7 +170,8 @@ impl State {
 		}
 	}
 
-	pub fn serialize(&self) -> Json {
+	#[allow(unused)]
+	pub(crate) fn serialize(&self) -> Json {
 		json!({
 			"tree": self.tree.serialize(),
 			"parameters": self.params,
