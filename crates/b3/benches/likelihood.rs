@@ -9,7 +9,7 @@ use b3::{
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	Distribution, State, Tree,
+	Distribution, Logger, State, Tree,
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
@@ -65,11 +65,14 @@ fn likelihood(data: &Data, length: usize) {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
+	let logger =
+		Logger::new(500, None, vec![], vec![]);
+
 	let config = Config {
 		burnin: 0,
 		length,
 		save_state_every: 5000,
-		loggers: vec![],
+		loggers: vec![logger],
 	};
 
 	run(config, &mut state, prior, &mut scheduler);

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde_json::{json, to_string, to_value, Value as Json};
 
 use std::{cell::RefCell, fs::File, io::Write, path::Path};
 
@@ -34,17 +35,24 @@ impl Logger {
 			return Ok(());
 		}
 
-		let out = String::new();
+		let parameters = self
+			.parameters
+			.iter()
+			.map(|parameter| -> Result<Json> {
+				let param = state.get_parameter(parameter)?;
 
-		for parameter in &self.parameters {
-			let _param = state.get_parameter(parameter)?;
+				Ok(to_value(param)?)
+			})
+			.collect::<Result<Vec<Json>>>()?;
 
-			// TODO: parameter serialization
-		}
+		let out = to_string(&json![{
+			"parameters": parameters,
+			"distributions": "TODO",
+		}])? + "\n";
 
 		self.file.borrow_mut().as_mut().map_or_else(
 			|| {
-				println!("{out}");
+				println!("{}", out);
 			},
 			|file| {
 				file.write_all(out.as_bytes()).unwrap();
