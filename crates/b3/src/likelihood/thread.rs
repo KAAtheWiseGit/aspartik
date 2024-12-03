@@ -1,30 +1,60 @@
 use crossbeam_channel::{bounded, select, Receiver, Sender};
 
-use std::{marker::PhantomData, thread};
+use std::thread;
 
 use super::{CpuLikelihood, Likelihood};
-use crate::tree::Update;
-use base::substitution::Model;
+use linalg::{RowMatrix, Vector};
 
-pub struct ThreadedLikelihood<M: Model> {
-	propose: Sender<Update>,
+type Row<const N: usize> = Vector<f64, N>;
+type Substitution<const N: usize> = RowMatrix<f64, N, N>;
+
+type Update<const N: usize> =
+	(Vec<Substitution<N>>, Vec<usize>, Vec<(usize, usize)>);
+
+pub struct ThreadedLikelihood<const N: usize> {
+	propose: Sender<Update<N>>,
 	likelihood: Receiver<f64>,
 	accept: Sender<()>,
 	reject: Sender<()>,
-
-	marker: PhantomData<M>,
 }
 
-impl<M: Model + 'static> Likelihood for ThreadedLikelihood<M> {
-	type Model = M;
+impl<const N: usize> Likelihood for ThreadedLikelihood<N> {
+	type Row = Row<N>;
+	type Substitution = Substitution<N>;
 
-	fn new(
-		sites: Vec<Vec<<Self::Model as Model>::Item>>,
-		model: Self::Model,
-	) -> Self {
-		let mut likelihood = CpuLikelihood::new(sites, model);
+	fn propose(
+		&mut self,
+		substitutions: &[Self::Substitution],
+		nodes: &[usize],
+		children: &[(usize, usize)],
+	) {
+		self.propose
+			.send((
+				substitutions.to_vec(),
+				nodes.to_vec(),
+				children.to_vec(),
+			))
+			.unwrap();
+	}
 
-		let (propose_sender, propose_reciever) = bounded::<Update>(1);
+	fn likelihood(&self) -> f64 {
+		self.likelihood.recv().unwrap()
+	}
+
+	fn accept(&mut self) {
+		self.accept.send(()).unwrap()
+	}
+
+	fn reject(&mut self) {
+		self.reject.send(()).unwrap()
+	}
+}
+
+impl<const N: usize> ThreadedLikelihood<N> {
+	#[allow(dead_code)]
+	pub fn new(mut likelihood: CpuLikelihood<N>) -> Self {
+		let (propose_sender, propose_reciever) =
+			bounded::<Update<N>>(1);
 		let (likelihood_sender, likelihood_reciever) = bounded(1);
 		let (accept_sender, accept_reciever) = bounded(1);
 		let (reject_sender, reject_reciever) = bounded(1);
@@ -35,7 +65,7 @@ impl<M: Model + 'static> Likelihood for ThreadedLikelihood<M> {
 					let Ok(update) = update else {
 						break;
 					};
-					likelihood.propose(update);
+					likelihood.propose(&update.0, &update.1, &update.2);
 					let _ = likelihood_sender.send(likelihood.likelihood());
 				}
 				recv(accept_reciever) -> _ => {
@@ -52,24 +82,6 @@ impl<M: Model + 'static> Likelihood for ThreadedLikelihood<M> {
 			likelihood: likelihood_reciever,
 			accept: accept_sender,
 			reject: reject_sender,
-
-			marker: PhantomData,
 		}
-	}
-
-	fn propose(&mut self, update: Update) {
-		self.propose.send(update).unwrap();
-	}
-
-	fn likelihood(&self) -> f64 {
-		self.likelihood.recv().unwrap()
-	}
-
-	fn accept(&mut self) {
-		self.accept.send(()).unwrap()
-	}
-
-	fn reject(&mut self) {
-		self.reject.send(()).unwrap()
 	}
 }

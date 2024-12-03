@@ -1,8 +1,9 @@
 mod cpu;
-// TODO: mod thread;
+mod thread;
 
 pub use cpu::CpuLikelihood;
-// pub use thread::ThreadedLikelihood;
+#[allow(unused)] // TODO: dynamically use in `State`
+pub use thread::ThreadedLikelihood;
 
 pub trait Likelihood {
 	type Row: Default;
