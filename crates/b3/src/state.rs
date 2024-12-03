@@ -7,18 +7,16 @@ use crate::{
 	likelihood::{CpuLikelihood, Likelihood},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	substitution::Substitution,
 	tree::Tree,
+	Substitutions,
 };
-use base::seq::Character;
-use linalg::{RowMatrix, Vector};
+use base::{
+	seq::Character,
+	substitution::{Row, Substitution},
+};
 
-type DynLikelihood<const N: usize> = Box<
-	dyn Likelihood<
-		Row = Vector<f64, N>,
-		Substitution = RowMatrix<f64, N, N>,
-	>,
->;
+type DynLikelihood<const N: usize> =
+	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
 
 pub struct State<C: Character, const N: usize> {
 	/// Map of parameters by name.
@@ -28,7 +26,7 @@ pub struct State<C: Character, const N: usize> {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	model: Substitution<C, N>,
+	models: Substitutions<C, N>,
 
 	likelihoods: Vec<DynLikelihood<N>>,
 
@@ -39,17 +37,17 @@ pub struct State<C: Character, const N: usize> {
 impl<C: Character, const N: usize> State<C, N> {
 	pub fn new(
 		tree: Tree,
-		sites: Vec<Vec<Vector<f64, N>>>,
-		mut model: Substitution<C, N>,
+		sites: Vec<Vec<Row<N>>>,
+		mut models: Substitutions<C, N>,
 	) -> Self {
 		let likelihood = Box::new(CpuLikelihood::new(sites));
 		let mut likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
 
 		let update = tree.update_all_likelihoods();
 
-		model.propose(&update.edges, &update.lengths);
-		model.accept();
-		let substitutions = model.substitutions();
+		models.propose(&update.edges, &update.lengths);
+		models.accept();
+		let substitutions = models.substitutions();
 
 		for likelihood in &mut likelihoods {
 			likelihood.propose(
@@ -64,7 +62,7 @@ impl<C: Character, const N: usize> State<C, N> {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			model,
+			models,
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 		}
@@ -90,8 +88,8 @@ impl<C: Character, const N: usize> State<C, N> {
 
 		let update = self.tree.propose(proposal);
 
-		self.model.propose(&update.edges, &update.lengths);
-		let substitutions = self.model.substitutions();
+		self.models.propose(&update.edges, &update.lengths);
+		let substitutions = self.models.substitutions();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.propose(
@@ -109,7 +107,7 @@ impl<C: Character, const N: usize> State<C, N> {
 		}
 
 		self.tree.accept();
-		self.model.accept();
+		self.models.accept();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.accept();
@@ -120,7 +118,7 @@ impl<C: Character, const N: usize> State<C, N> {
 		self.proposal_params.clear();
 
 		self.tree.reject();
-		self.model.reject();
+		self.models.reject();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.reject();

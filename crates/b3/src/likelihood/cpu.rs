@@ -1,9 +1,6 @@
 use super::Likelihood;
-use linalg::{RowMatrix, Vector};
+use base::substitution::{Row, Substitution};
 use shchurvec::ShchurVec;
-
-type Row<const N: usize> = Vector<f64, N>;
-type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
 pub struct CpuLikelihood<const N: usize> {
 	probabilities: Vec<ShchurVec<Row<N>>>,

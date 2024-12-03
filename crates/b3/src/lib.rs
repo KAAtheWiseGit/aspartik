@@ -13,4 +13,4 @@ pub use distribution::Distribution;
 pub use state::State;
 pub use tree::Tree;
 pub use logger::Logger;
-pub use substitution::Substitution;
+pub use substitution::Substitutions;

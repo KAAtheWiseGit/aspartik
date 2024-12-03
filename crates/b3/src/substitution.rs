@@ -2,12 +2,12 @@ use base::{seq::Character, substitution::Model};
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
-pub struct Substitution<C: Character, const N: usize> {
+pub struct Substitutions<C: Character, const N: usize> {
 	model: Model<C, N>,
 	substitutions: ShchurVec<RowMatrix<f64, N, N>>,
 }
 
-impl<C: Character, const N: usize> Substitution<C, N> {
+impl<C: Character, const N: usize> Substitutions<C, N> {
 	pub fn new(model: Model<C, N>, length: usize) -> Self {
 		let substitutions =
 			ShchurVec::repeat(RowMatrix::default(), length);

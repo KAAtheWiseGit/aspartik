@@ -3,10 +3,7 @@ use crossbeam_channel::{bounded, select, Receiver, Sender};
 use std::thread;
 
 use super::{CpuLikelihood, Likelihood};
-use linalg::{RowMatrix, Vector};
-
-type Row<const N: usize> = Vector<f64, N>;
-type Substitution<const N: usize> = RowMatrix<f64, N, N>;
+use base::substitution::{Row, Substitution};
 
 type Update<const N: usize> =
 	(Vec<Substitution<N>>, Vec<usize>, Vec<(usize, usize)>);
