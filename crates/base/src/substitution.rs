@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use crate::{seq::Character, DnaNucleoBase};
 use linalg::{RowMatrix, Vector};
 
-type Row<const N: usize> = Vector<f64, N>;
-type Substitution<const N: usize> = RowMatrix<f64, N, N>;
+pub type Row<const N: usize> = Vector<f64, N>;
+pub type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
 pub struct Model<C: Character, const N: usize> {
 	inner: Matrix<N>,
