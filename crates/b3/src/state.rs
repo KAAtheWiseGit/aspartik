@@ -9,10 +9,7 @@ use crate::{
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
 };
-use base::{
-	seq::{Character, Seq},
-	substitution::dna::Dna4Substitution,
-};
+use base::seq::{Character, Seq};
 use linalg::{RowMatrix, Vector};
 
 type DynLikelihood<const N: usize> = Box<
