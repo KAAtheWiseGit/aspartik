@@ -8,6 +8,16 @@ pub struct Substitution<C: Character, const N: usize> {
 }
 
 impl<C: Character, const N: usize> Substitution<C, N> {
+	pub fn new(model: Model<C, N>, length: usize) -> Self {
+		let substitutions =
+			ShchurVec::repeat(RowMatrix::default(), length);
+
+		Self {
+			model,
+			substitutions,
+		}
+	}
+
 	pub fn propose(&mut self, edges: &[usize], distances: &[f64]) {
 		for (edge, distance) in edges.iter().zip(distances) {
 			self.substitutions
@@ -25,5 +35,9 @@ impl<C: Character, const N: usize> Substitution<C, N> {
 
 	pub fn substitutions(&self) -> Vec<RowMatrix<f64, N, N>> {
 		self.substitutions.iter().copied().collect()
+	}
+
+	pub fn model(&self) -> &Model<C, N> {
+		&self.model
 	}
 }

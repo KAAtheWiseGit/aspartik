@@ -53,7 +53,7 @@ impl Logger {
 
 		self.file.borrow_mut().as_mut().map_or_else(
 			|| {
-				println!("{}", out);
+				print!("{}", out);
 			},
 			|file| {
 				file.write_all(out.as_bytes()).unwrap();

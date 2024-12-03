@@ -65,7 +65,7 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 }
 
 impl<const N: usize> CpuLikelihood<N> {
-	fn new(sites: Vec<Vec<Row<N>>>) -> Self {
+	pub fn new(sites: Vec<Vec<Row<N>>>) -> Self {
 		let mut probabilities = vec![
 			ShchurVec::repeat(
 				Row::<N>::default(),

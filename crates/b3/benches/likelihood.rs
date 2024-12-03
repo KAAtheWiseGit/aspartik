@@ -9,9 +9,9 @@ use b3::{
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	Distribution, Logger, State, Tree,
+	Distribution, Logger, State, Substitution, Tree,
 };
-use base::{seq::DnaSeq, DnaNucleoBase};
+use base::{seq::DnaSeq, substitution::Model, DnaNucleoBase};
 use io::fasta::FastaReader;
 
 type Data = (Vec<DnaSeq>, Vec<f64>, Vec<usize>);
@@ -50,7 +50,9 @@ fn data(num_leaves_pow: usize) -> Data {
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
-	let mut state: State<4> = State::new(tree, seqs);
+	let model = Model::jukes_cantor();
+	let model = Substitution::new(model, children.len() * 2 - 1);
+	let mut state = State::new(tree, seqs, model);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -65,7 +67,7 @@ fn likelihood(data: &Data, length: usize) {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
-	let logger = Logger::new(500, None, vec![], vec![]);
+	let logger = Logger::new(1_000_000, None, vec![], vec![]);
 
 	let config = Config {
 		burnin: 0,

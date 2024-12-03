@@ -6,6 +6,7 @@ use crate::{
 	probability::Probability,
 	Logger, State,
 };
+use base::seq::Character;
 
 pub struct Config {
 	pub burnin: usize,
@@ -16,9 +17,9 @@ pub struct Config {
 	pub loggers: Vec<Logger>,
 }
 
-pub fn run<const N: usize>(
+pub fn run<C: Character, const N: usize>(
 	config: Config,
-	state: &mut State<N>,
+	state: &mut State<C, N>,
 	prior: Box<dyn Probability>,
 	scheduler: &mut WeightedScheduler,
 ) {

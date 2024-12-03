@@ -4,12 +4,16 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::Likelihood,
+	likelihood::{CpuLikelihood, Likelihood},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+	substitution::Substitution,
 	tree::Tree,
 };
-use base::seq::{Character, Seq};
+use base::{
+	seq::{Character, Seq},
+	substitution::Model,
+};
 use linalg::{RowMatrix, Vector};
 
 type DynLikelihood<const N: usize> = Box<
@@ -19,7 +23,7 @@ type DynLikelihood<const N: usize> = Box<
 	>,
 >;
 
-pub struct State<const N: usize> {
+pub struct State<C: Character, const N: usize> {
 	/// Map of parameters by name.
 	params: HashMap<String, Parameter>,
 	/// Proposal parameters
@@ -27,25 +31,53 @@ pub struct State<const N: usize> {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
+	model: Substitution<C, N>,
+
 	likelihoods: Vec<DynLikelihood<N>>,
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
 }
 
-impl<const N: usize> State<N> {
-	pub fn new<C: Character>(tree: Tree, sequences: &[Seq<C>]) -> Self {
+impl<C: Character, const N: usize> State<C, N> {
+	pub fn new(
+		tree: Tree,
+		sequences: &[Seq<C>],
+		mut model: Substitution<C, N>,
+	) -> Self {
+		let mut sites = Vec::new();
+		for i in 0..sequences[0].len() {
+			let mut column = Vec::new();
+			for sequence in sequences {
+				column.push(sequence[i]);
+			}
+			sites.push(column);
+		}
+		// TODO: convert characters to vectors
+
+		// let likelihood = CpuLikelihood::new();
 		let mut likelihoods: Vec<DynLikelihood<N>> = vec![];
 
 		let update = tree.update_all_likelihoods();
+
+		model.propose(&update.edges, &update.lengths);
+		model.accept();
+		let substitutions = model.substitutions();
+
 		for likelihood in &mut likelihoods {
-			// likelihood.propose(update.clone());
+			likelihood.propose(
+				&substitutions,
+				&update.nodes,
+				&update.children,
+			);
+			likelihood.accept();
 		}
 
 		Self {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
+			model,
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 		}
@@ -71,8 +103,15 @@ impl<const N: usize> State<N> {
 
 		let update = self.tree.propose(proposal);
 
+		self.model.propose(&update.edges, &update.lengths);
+		let substitutions = self.model.substitutions();
+
 		for likelihood in &mut self.likelihoods {
-			// likelihood.propose(update.clone());
+			likelihood.propose(
+				&substitutions,
+				&update.nodes,
+				&update.children,
+			);
 		}
 	}
 
@@ -83,6 +122,7 @@ impl<const N: usize> State<N> {
 		}
 
 		self.tree.accept();
+		self.model.accept();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.accept();
@@ -93,6 +133,7 @@ impl<const N: usize> State<N> {
 		self.proposal_params.clear();
 
 		self.tree.reject();
+		self.model.reject();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.reject();

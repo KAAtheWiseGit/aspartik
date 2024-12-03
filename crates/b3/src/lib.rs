@@ -8,10 +8,11 @@ pub mod operator;
 mod parameter;
 pub mod probability;
 mod state;
-mod substitution;
 mod tree;
+mod substitution;
 
 pub use distribution::Distribution;
-pub use logger::Logger;
 pub use state::State;
 pub use tree::Tree;
+pub use logger::Logger;
+pub use substitution::Substitution;
