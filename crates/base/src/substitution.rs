@@ -1,33 +1,34 @@
+use std::marker::PhantomData;
+
+use crate::{seq::Character, DnaNucleoBase};
 use linalg::{RowMatrix, Vector};
 
-use super::Model;
-use crate::DnaNucleoBase;
+type Row<const N: usize> = Vector<f64, N>;
+type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
-type Row = Vector<f64, 4>;
-type Substitution = RowMatrix<f64, 4, 4>;
-
-pub struct Dna4Substitution {
-	inner: Matrix,
+pub struct Model<C: Character, const N: usize> {
+	inner: Matrix<N>,
+	character: PhantomData<C>,
 }
 
 // It's fine, the other variant will be big too
 #[allow(clippy::large_enum_variant)]
-enum Matrix {
-	Diagonalizable(Diagonalizable),
-	Defective(Defective),
+enum Matrix<const N: usize> {
+	Diagonalizable(Diagonalizable<N>),
+	Defective(Defective<N>),
 }
 
-struct Diagonalizable {
-	p: Substitution,
-	p_rev: Substitution,
-	d: Substitution,
+struct Diagonalizable<const N: usize> {
+	p: Substitution<N>,
+	p_rev: Substitution<N>,
+	d: Substitution<N>,
 }
 
-struct Defective {
+struct Defective<const N: usize> {
 	// TODO
 }
 
-impl Dna4Substitution {
+impl Model<DnaNucleoBase, 4> {
 	pub fn jukes_cantor() -> Self {
 		let p = Substitution::from([
 			[-1.0, -1.0, -1.0, 1.0],
@@ -54,25 +55,11 @@ impl Dna4Substitution {
 				p_rev,
 				d,
 			}),
+			character: PhantomData,
 		}
 	}
-}
 
-impl Dna4Substitution {
-	fn as_diagonalizable(&self) -> Option<&Diagonalizable> {
-		match &self.inner {
-			Matrix::Diagonalizable(d) => Some(d),
-			_ => None,
-		}
-	}
-}
-
-impl Model for Dna4Substitution {
-	type Item = DnaNucleoBase;
-	type Row = Row;
-	type Substitution = Substitution;
-
-	fn to_row(item: &DnaNucleoBase) -> Row {
+	pub fn to_row(item: &DnaNucleoBase) -> Row<4> {
 		match item {
 			DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
 			DnaNucleoBase::Cytosine => [0.0, 0.0, 1.0, 0.0],
@@ -83,13 +70,15 @@ impl Model for Dna4Substitution {
 		}
 		.into()
 	}
+}
 
-	fn probability(row: &Row) -> f64 {
+impl<C: Character, const N: usize> Model<C, N> {
+	pub fn probability(row: &Row<N>) -> f64 {
 		row.sum().ln()
 	}
 
-	fn substitution(&self, distance: f64) -> Substitution {
-		if let Some(diag) = self.as_diagonalizable() {
+	pub fn substitution(&self, distance: f64) -> Substitution<N> {
+		if let Matrix::Diagonalizable(diag) = &self.inner {
 			let mut e_d = diag.d;
 			for i in 0..4 {
 				e_d[(i, i)] = f64::exp(distance * e_d[(i, i)]);
