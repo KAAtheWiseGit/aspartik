@@ -1,6 +1,4 @@
 use super::Likelihood;
-use crate::tree::Update;
-use base::substitution::Model;
 use linalg::{RowMatrix, Vector};
 use shchurvec::ShchurVec;
 

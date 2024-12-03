@@ -53,6 +53,8 @@ fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
 	let height = seqs.len();
 
 	let mut out = vec![vec![Vector::default(); height]; width];
+
+	#[allow(clippy::needless_range_loop)]
 	for i in 0..width {
 		for j in 0..height {
 			out[i][j] = Model::to_row(&seqs[j][i])

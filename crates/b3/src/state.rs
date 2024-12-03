@@ -10,10 +10,7 @@ use crate::{
 	substitution::Substitution,
 	tree::Tree,
 };
-use base::{
-	seq::{Character, Seq},
-	substitution::Model,
-};
+use base::seq::Character;
 use linalg::{RowMatrix, Vector};
 
 type DynLikelihood<const N: usize> = Box<

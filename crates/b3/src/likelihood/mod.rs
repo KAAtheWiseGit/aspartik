@@ -1,11 +1,3 @@
-#![allow(dead_code)]
-
-use crate::tree::Update;
-use base::substitution::Model;
-
-use base::seq::Character;
-use linalg::{RowMatrix, Vector};
-
 mod cpu;
 // TODO: mod thread;
 

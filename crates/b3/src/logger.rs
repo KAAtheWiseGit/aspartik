@@ -4,12 +4,12 @@ use serde_json::{json, to_string, to_value, Value as Json};
 use std::{cell::RefCell, fs::File, io::Write, path::Path};
 
 use crate::state::StateRef;
-use base::seq::Character;
 
 pub struct Logger {
 	log_every: usize,
 	file: RefCell<Option<File>>,
 
+	#[allow(unused)]
 	distributions: Vec<String>,
 	parameters: Vec<String>,
 }
