@@ -29,11 +29,11 @@ impl Character for DnaNucleoBase {}
 pub type DnaSeq = Seq<DnaNucleoBase>;
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
-pub struct Seq<T: Character> {
-	value: Vec<T>,
+pub struct Seq<C: Character> {
+	value: Vec<C>,
 }
 
-impl<T: Character> Seq<T> {
+impl<C: Character> Seq<C> {
 	pub fn new() -> Self {
 		Seq { value: Vec::new() }
 	}
@@ -48,11 +48,11 @@ impl<T: Character> Seq<T> {
 		self.value.append(&mut other.value);
 	}
 
-	pub fn push(&mut self, character: T) {
+	pub fn push(&mut self, character: C) {
 		self.value.push(character);
 	}
 
-	pub fn iter(&self) -> std::slice::Iter<'_, T> {
+	pub fn iter(&self) -> std::slice::Iter<'_, C> {
 		self.value.iter()
 	}
 
@@ -65,7 +65,7 @@ impl<T: Character> Seq<T> {
 	}
 }
 
-impl<T: Character> Display for Seq<T> {
+impl<C: Character> Display for Seq<C> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let mut s = String::new();
 
@@ -77,7 +77,7 @@ impl<T: Character> Display for Seq<T> {
 	}
 }
 
-impl<T: Character> TryFrom<&str> for Seq<T> {
+impl<C: Character> TryFrom<&str> for Seq<C> {
 	type Error = Error;
 
 	fn try_from(value: &str) -> Result<Self> {
@@ -94,15 +94,15 @@ impl<T: Character> TryFrom<&str> for Seq<T> {
 	}
 }
 
-impl<T: Character> Index<usize> for Seq<T> {
-	type Output = T;
+impl<C: Character> Index<usize> for Seq<C> {
+	type Output = C;
 
 	fn index(&self, index: usize) -> &Self::Output {
 		&self.value[index]
 	}
 }
 
-impl<T: Character> IndexMut<usize> for Seq<T> {
+impl<C: Character> IndexMut<usize> for Seq<C> {
 	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
 		&mut self.value[index]
 	}
