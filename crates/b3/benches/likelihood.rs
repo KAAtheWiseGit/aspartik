@@ -13,6 +13,7 @@ use b3::{
 };
 use base::{seq::DnaSeq, substitution::Model, DnaNucleoBase};
 use io::fasta::FastaReader;
+use linalg::Vector;
 
 type Data = (Vec<DnaSeq>, Vec<f64>, Vec<usize>);
 
@@ -47,12 +48,26 @@ fn data(num_leaves_pow: usize) -> Data {
 	(seqs, weights, children)
 }
 
+fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
+	let width = seqs[0].len();
+	let height = seqs.len();
+
+	let mut out = vec![vec![Vector::default(); height]; width];
+	for i in 0..width {
+		for j in 0..height {
+			out[i][j] = Model::to_row(&seqs[j][i])
+		}
+	}
+
+	out
+}
+
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
 	let model = Model::jukes_cantor();
 	let model = Substitution::new(model, children.len() * 2 - 1);
-	let mut state = State::new(tree, seqs, model);
+	let mut state = State::new(tree, to_rows(seqs), model);
 	let prior = Box::new(Compound::new([]));
 
 	// Local

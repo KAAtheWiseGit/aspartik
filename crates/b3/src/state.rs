@@ -42,21 +42,11 @@ pub struct State<C: Character, const N: usize> {
 impl<C: Character, const N: usize> State<C, N> {
 	pub fn new(
 		tree: Tree,
-		sequences: &[Seq<C>],
+		sites: Vec<Vec<Vector<f64, N>>>,
 		mut model: Substitution<C, N>,
 	) -> Self {
-		let mut sites = Vec::new();
-		for i in 0..sequences[0].len() {
-			let mut column = Vec::new();
-			for sequence in sequences {
-				column.push(sequence[i]);
-			}
-			sites.push(column);
-		}
-		// TODO: convert characters to vectors
-
-		// let likelihood = CpuLikelihood::new();
-		let mut likelihoods: Vec<DynLikelihood<N>> = vec![];
+		let likelihood = Box::new(CpuLikelihood::new(sites));
+		let mut likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
 
 		let update = tree.update_all_likelihoods();
 

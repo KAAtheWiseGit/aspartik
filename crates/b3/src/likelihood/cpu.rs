@@ -74,6 +74,12 @@ impl<const N: usize> CpuLikelihood<N> {
 			sites.len()
 		];
 
+		for (i, site) in sites.iter().enumerate() {
+			for (j, row) in site.iter().enumerate() {
+				probabilities[i].set(j, *row);
+			}
+		}
+
 		for (rows, probability) in sites.iter().zip(&mut probabilities)
 		{
 			for (i, row) in rows.iter().enumerate() {
