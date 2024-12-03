@@ -108,6 +108,15 @@ impl<T: Character> IndexMut<usize> for Seq<T> {
 	}
 }
 
+impl<'a, C: Character> IntoIterator for &'a Seq<C> {
+	type Item = &'a C;
+	type IntoIter = std::slice::Iter<'a, C>;
+
+	fn into_iter(self) -> Self::IntoIter {
+		self.iter()
+	}
+}
+
 impl DnaSeq {
 	fn complement(&self) -> Self {
 		let mut out = self.clone();
