@@ -28,16 +28,20 @@ impl<T: Copy, const N: usize, const M: usize> From<[[T; N]; M]>
 
 // Mathematical constructors
 impl<T: Copy + Num, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	/// A matrix with all of it's elements set to zero.
 	pub fn zeros() -> Self {
-		[Vector::zeros(); M].into()
+		Self::from_element(T::zero())
 	}
 
+	/// A matrix with all of it's elements set to one.  Not that useful, but
+	/// still here to make use of the `One` `Num` subtrait.
 	pub fn ones() -> Self {
-		[Vector::ones(); M].into()
+		Self::from_element(T::one())
 	}
 }
 
 impl<T: Copy + Num, const N: usize> RowMatrix<T, N, N> {
+	/// Identity matrix.
 	pub fn identity() -> Self {
 		let mut out = Self::zeros();
 		for i in 0..N {
@@ -48,6 +52,7 @@ impl<T: Copy + Num, const N: usize> RowMatrix<T, N, N> {
 }
 
 impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	/// Creates a new matrix with all of it's elements set to `value`.
 	pub fn from_element(value: T) -> Self {
 		[Vector::from([value; N]); M].into()
 	}
@@ -179,7 +184,8 @@ where
 
 	// This is a suboptimal algorithm.  There's a more cache-friendly one,
 	// but it requires calculating a bunch of things, including a square
-	// root.  I implement both, compare the assembly output, and benchmark.
+	// root.  I should implement both, compare the assembly output, and
+	// benchmark.
 	//
 	// https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm
 	fn mul(self, rhs: RowMatrix<T, M, P>) -> Self::Output {
