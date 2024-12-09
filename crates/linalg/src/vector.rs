@@ -143,3 +143,9 @@ where
 		out
 	}
 }
+
+impl<T: Copy, const N: usize> Vector<T, N> {
+	pub fn as_mut_ptr(&mut self) -> *mut T {
+		self.v.as_mut_ptr()
+	}
+}

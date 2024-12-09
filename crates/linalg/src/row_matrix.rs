@@ -220,3 +220,9 @@ where
 		true
 	}
 }
+
+impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	pub fn as_mut_ptr(&mut self) -> *mut T {
+		self[0].as_mut_ptr()
+	}
+}
