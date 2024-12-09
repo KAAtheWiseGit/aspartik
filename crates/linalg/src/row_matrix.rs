@@ -197,3 +197,20 @@ where
 		out
 	}
 }
+
+impl<T, const N: usize> RowMatrix<T, N, N>
+where
+	T: Copy + PartialEq,
+{
+	pub fn is_symmetric(&self) -> bool {
+		for i in 0..N {
+			for j in (i + 1)..N {
+				if self[i][j] != self[j][i] {
+					return false;
+				}
+			}
+		}
+
+		true
+	}
+}
