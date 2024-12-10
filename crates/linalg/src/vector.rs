@@ -18,32 +18,7 @@ impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 	}
 }
 
-impl<T: Copy, const N: usize> From<T> for Vector<T, N> {
-	fn from(value: T) -> Self {
-		[value; N].into()
-	}
-}
-
-// Mathematical constructors
-impl<T: Copy + Num, const N: usize> Vector<T, N> {
-	pub fn zeros() -> Self {
-		[T::zero(); N].into()
-	}
-
-	pub fn ones() -> Self {
-		[T::one(); N].into()
-	}
-
-	/// A standard basis vector: all elements are zero, except the one at
-	/// index `i`, which is set to one.
-	pub fn sbv(i: usize) -> Self {
-		let mut out = Self::zeros();
-		out[i] = T::one();
-		out
-	}
-}
-
-impl<T: Copy + Default, const N: usize> Vector<T, N> {
+impl<T: Copy, const N: usize> Vector<T, N> {
 	fn from_element(value: T) -> Self {
 		[value; N].into()
 	}
@@ -54,6 +29,25 @@ impl<T: Copy + Default, const N: usize> Vector<T, N> {
 impl<T: Copy + Default, const N: usize> Default for Vector<T, N> {
 	fn default() -> Self {
 		[T::default(); N].into()
+	}
+}
+
+// Mathematical constructors
+impl<T: Copy + Num, const N: usize> Vector<T, N> {
+	pub fn zeros() -> Self {
+		Self::from_element(T::zero())
+	}
+
+	pub fn ones() -> Self {
+		Self::from_element(T::one())
+	}
+
+	/// A standard basis vector: all elements are zero, except the one at
+	/// index `i`, which is set to one.
+	pub fn sbv(i: usize) -> Self {
+		let mut out = Self::zeros();
+		out[i] = T::one();
+		out
 	}
 }
 
