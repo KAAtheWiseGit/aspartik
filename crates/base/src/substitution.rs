@@ -1,92 +1,37 @@
-use std::marker::PhantomData;
+use linalg::RowMatrix;
 
-use crate::{seq::Character, DnaNucleoBase};
-use linalg::{RowMatrix, Vector};
-
-pub type Row<const N: usize> = Vector<f64, N>;
 pub type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
-pub struct Model<C: Character, const N: usize> {
-	inner: Matrix<N>,
-	character: PhantomData<C>,
+pub fn jukes_cantor() -> Substitution<4> {
+	RowMatrix::from([
+		[-3.0, 1.0, 1.0, 1.0],
+		[1.0, -3.0, 1.0, 1.0],
+		[1.0, 1.0, -3.0, 1.0],
+		[1.0, 1.0, 1.0, -3.0],
+	]) * (1.0 / 3.0)
 }
 
-// It's fine, the other variant will be big too
-#[allow(clippy::large_enum_variant)]
-enum Matrix<const N: usize> {
-	Diagonalizable(Diagonalizable<N>),
-	Defective(Defective<N>),
+pub fn k80(kappa: f64) -> Substitution<4> {
+	let diag = -2.0 - kappa;
+	let scale = 1.0 / (2.0 + kappa);
+
+	RowMatrix::from([
+		[diag, 1.0, kappa, 1.0],
+		[1.0, diag, 1.0, kappa],
+		[kappa, 1.0, diag, 1.0],
+		[1.0, kappa, 1.0, diag],
+	]) * scale
 }
 
-struct Diagonalizable<const N: usize> {
-	p: Substitution<N>,
-	p_rev: Substitution<N>,
-	d: Substitution<N>,
-}
+pub fn f81(a: f64, c: f64, g: f64, t: f64) -> Substitution<4> {
+	assert_eq!(a + c + g + t, 1.0);
 
-struct Defective<const N: usize> {
-	// TODO
-}
+	let scale = 1.0 / (1.0 - a * a - c * c - g * g - t * t);
 
-impl Model<DnaNucleoBase, 4> {
-	pub fn jukes_cantor() -> Self {
-		let p = Substitution::from([
-			[-1.0, -1.0, -1.0, 1.0],
-			[0.0, 0.0, 0.0, 1.0],
-			[0.0, 0.0, 0.0, 1.0],
-			[0.0, 0.0, 0.0, 1.0],
-		]);
-		let p_rev = Substitution::from([
-			[-1.0 / 4.0, -1.0 / 4.0, -1.0 / 4.0, 3.0 / 4.0],
-			[-1.0 / 4.0, -1.0 / 4.0, 3.0 / 4.0, -1.0 / 4.0],
-			[-1.0 / 4.0, 3.0 / 4.0, -1.0 / 4.0, -1.0 / 4.0],
-			[1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0],
-		]);
-		let d = Substitution::from([
-			[-4.0 / 3.0, 0.0, 0.0, 0.0],
-			[0.0, -4.0 / 3.0, 0.0, 0.0],
-			[0.0, 0.0, -4.0 / 3.0, 0.0],
-			[0.0, 0.0, 0.0, 0.0],
-		]);
-
-		Self {
-			inner: Matrix::Diagonalizable(Diagonalizable {
-				p,
-				p_rev,
-				d,
-			}),
-			character: PhantomData,
-		}
-	}
-
-	pub fn to_row(item: &DnaNucleoBase) -> Row<4> {
-		match item {
-			DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
-			DnaNucleoBase::Cytosine => [0.0, 0.0, 1.0, 0.0],
-			DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
-			DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
-			// TODO: other types
-			_ => [0.25, 0.25, 0.25, 0.25],
-		}
-		.into()
-	}
-}
-
-impl<C: Character, const N: usize> Model<C, N> {
-	pub fn probability(row: &Row<N>) -> f64 {
-		row.sum().ln()
-	}
-
-	pub fn substitution(&self, distance: f64) -> Substitution<N> {
-		if let Matrix::Diagonalizable(diag) = &self.inner {
-			let mut e_d = diag.d;
-			for i in 0..4 {
-				e_d[(i, i)] = f64::exp(distance * e_d[(i, i)]);
-			}
-
-			diag.p * e_d * diag.p_rev
-		} else {
-			todo!()
-		}
-	}
+	RowMatrix::from([
+		[a - 1.0, c, g, t],
+		[a, c - 1.0, g, t],
+		[a, c, g - 1.0, t],
+		[a, c, g, t - 1.0],
+	]) * scale
 }
