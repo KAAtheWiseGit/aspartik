@@ -2,7 +2,9 @@ use num_traits::Num;
 
 use std::{
 	fmt::{self, Display},
-	ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
+	ops::{
+		Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign,
+	},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -94,10 +96,64 @@ impl<T: Copy + MulAssign, const N: usize> MulAssign for Vector<T, N> {
 impl<T: Copy + MulAssign, const N: usize> Mul for Vector<T, N> {
 	type Output = Self;
 
-	fn mul(self, rhs: Self) -> Self::Output {
-		let mut out = self;
-		out *= rhs;
-		out
+	fn mul(mut self, rhs: Self) -> Self::Output {
+		self *= rhs;
+		self
+	}
+}
+
+impl<T: Copy + MulAssign, const N: usize> MulAssign<T> for Vector<T, N> {
+	fn mul_assign(&mut self, rhs: T) {
+		for i in 0..N {
+			self[i] *= rhs;
+		}
+	}
+}
+
+impl<T: Copy + MulAssign, const N: usize> Mul<T> for Vector<T, N> {
+	type Output = Self;
+
+	fn mul(mut self, rhs: T) -> Self::Output {
+		for i in 0..N {
+			self[i] *= rhs;
+		}
+		self
+	}
+}
+
+impl<T: Copy + DivAssign, const N: usize> DivAssign for Vector<T, N> {
+	fn div_assign(&mut self, rhs: Self) {
+		for i in 0..N {
+			self[i] /= rhs[i];
+		}
+	}
+}
+
+impl<T: Copy + DivAssign, const N: usize> Div for Vector<T, N> {
+	type Output = Self;
+
+	fn div(mut self, rhs: Self) -> Self::Output {
+		self /= rhs;
+		self
+	}
+}
+
+impl<T: Copy + DivAssign, const N: usize> DivAssign<T> for Vector<T, N> {
+	fn div_assign(&mut self, rhs: T) {
+		for i in 0..N {
+			self[i] /= rhs;
+		}
+	}
+}
+
+impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
+	type Output = Self;
+
+	fn div(mut self, rhs: T) -> Self::Output {
+		for i in 0..N {
+			self[i] /= rhs;
+		}
+		self
 	}
 }
 
