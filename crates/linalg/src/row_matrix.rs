@@ -168,6 +168,25 @@ where
 	}
 }
 
+impl<T, const N: usize, const M: usize> Mul<T> for RowMatrix<T, N, M>
+where
+	T: Copy + MulAssign,
+{
+	type Output = Self;
+
+	fn mul(self, rhs: T) -> Self::Output {
+		let mut out = self;
+
+		for i in 0..N {
+			for j in 0..M {
+				out[(i, j)] *= rhs;
+			}
+		}
+
+		out
+	}
+}
+
 impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
 	const NUM_ROWS: usize = N;
 	const NUM_COLUMNS: usize = M;
