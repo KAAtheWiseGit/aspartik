@@ -1,6 +1,9 @@
 use num_traits::Num;
 
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
+use std::{
+	fmt::{self, Display},
+	ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
+};
 
 use crate::vector::Vector;
 
@@ -243,5 +246,35 @@ where
 impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
 	pub fn as_mut_ptr(&mut self) -> *mut T {
 		self[0].as_mut_ptr()
+	}
+}
+
+impl<T, const N: usize, const M: usize> Display for RowMatrix<T, N, M>
+where
+	T: Copy + Display,
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("[")?;
+
+		for i in 0..N {
+			for j in 0..M {
+				self[(i, j)].fmt(f)?;
+
+				if !(i == N - 1 && j == M - 1) {
+					f.write_str(",")?;
+				}
+				if j != M - 1 {
+					f.write_str(" ")?;
+				}
+			}
+
+			if i != N - 1 {
+				f.write_str("\n ")?;
+			}
+		}
+
+		f.write_str("]")?;
+
+		Ok(())
 	}
 }

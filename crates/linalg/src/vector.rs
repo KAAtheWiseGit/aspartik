@@ -1,6 +1,9 @@
 use num_traits::Num;
 
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign};
+use std::{
+	fmt::{self, Display},
+	ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
+};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -147,5 +150,22 @@ where
 impl<T: Copy, const N: usize> Vector<T, N> {
 	pub fn as_mut_ptr(&mut self) -> *mut T {
 		self.v.as_mut_ptr()
+	}
+}
+
+impl<T: Copy + Display, const N: usize> Display for Vector<T, N> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("[")?;
+
+		for i in 0..N {
+			self[i].fmt(f)?;
+			if i != N - 1 {
+				f.write_str(", ")?;
+			}
+		}
+
+		f.write_str("]")?;
+
+		Ok(())
 	}
 }
