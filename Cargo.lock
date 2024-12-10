@@ -341,6 +341,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lapack-sys"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "447f56c85fb410a7a3d36701b2153c1018b1d2b908c5fbaf01c1b04fac33bcbe"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.163"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -356,6 +365,7 @@ checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
 name = "linalg"
 version = "0.1.0"
 dependencies = [
+ "lapack-sys",
  "num-traits",
 ]
 

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod math;
 mod row_matrix;
 mod vector;
 

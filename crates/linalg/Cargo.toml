@@ -6,5 +6,8 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
+build = "build.rs"
+
 [dependencies]
+lapack-sys = "0.14.0"
 num-traits = { workspace = true }
