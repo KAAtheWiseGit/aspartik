@@ -22,6 +22,19 @@ pub fn f81(p_a: f64, p_c: f64, p_g: f64, p_t: f64) -> Substitution<4> {
 	gtr(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, p_a, p_c, p_g, p_t)
 }
 
+pub fn hky(
+	kappa: f64,
+	p_a: f64,
+	p_c: f64,
+	p_g: f64,
+	p_t: f64,
+) -> Substitution<4> {
+	gtr(
+		1.0, kappa, 1.0, 1.0, kappa, 1.0, // exchange
+		p_a, p_c, p_g, p_t, // probabilites
+	)
+}
+
 // Sorry, a lot of free parameters here.
 #[allow(clippy::too_many_arguments)]
 pub fn gtr(
