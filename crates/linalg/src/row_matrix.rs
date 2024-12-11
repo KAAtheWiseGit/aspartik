@@ -1,4 +1,4 @@
-use num_traits::Num;
+use num_traits::{Num, NumAssign};
 
 use std::{
 	fmt::{self, Display},
@@ -155,7 +155,7 @@ impl<T: Copy + AddAssign, const N: usize, const M: usize> RowMatrix<T, N, M> {
 
 impl<T, const N: usize, const M: usize> Mul<Vector<T, N>> for RowMatrix<T, N, M>
 where
-	T: Copy + AddAssign + MulAssign + Default,
+	T: Copy + NumAssign + Default,
 {
 	type Output = Vector<T, M>;
 

@@ -1,4 +1,4 @@
-use num_traits::Num;
+use num_traits::{Num, NumAssign};
 
 use std::{
 	fmt::{self, Display},
@@ -23,6 +23,23 @@ impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 impl<T: Copy, const N: usize> Vector<T, N> {
 	fn from_element(value: T) -> Self {
 		[value; N].into()
+	}
+}
+
+impl<T: Copy + Display, const N: usize> Display for Vector<T, N> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("[")?;
+
+		for i in 0..N {
+			self[i].fmt(f)?;
+			if i != N - 1 {
+				f.write_str(", ")?;
+			}
+		}
+
+		f.write_str("]")?;
+
+		Ok(())
 	}
 }
 
@@ -53,6 +70,7 @@ impl<T: Copy + Num, const N: usize> Vector<T, N> {
 	}
 }
 
+// Operators and overloading in general.
 impl<T: Copy, const N: usize> Index<usize> for Vector<T, N> {
 	type Output = T;
 
@@ -160,9 +178,14 @@ impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
 // Arithmetic-agnostic implementations.
 impl<T: Copy, const N: usize> Vector<T, N> {
 	const LENGTH: usize = N;
+
+	pub fn as_mut_ptr(&mut self) -> *mut T {
+		self.v.as_mut_ptr()
+	}
 }
 
-impl<T: Copy + AddAssign, const N: usize> Vector<T, N> {
+// Mathematical methods.
+impl<T: Copy + NumAssign, const N: usize> Vector<T, N> {
 	pub fn sum(&self) -> T {
 		let mut out = self[0];
 		for i in 1..N {
@@ -170,9 +193,7 @@ impl<T: Copy + AddAssign, const N: usize> Vector<T, N> {
 		}
 		out
 	}
-}
 
-impl<T: Copy + MulAssign, const N: usize> Vector<T, N> {
 	pub fn product(&self) -> T {
 		let mut out = self[0];
 		for i in 1..N {
@@ -180,12 +201,7 @@ impl<T: Copy + MulAssign, const N: usize> Vector<T, N> {
 		}
 		out
 	}
-}
 
-impl<T, const N: usize> Vector<T, N>
-where
-	T: Copy + AddAssign + Mul<Output = T>,
-{
 	pub fn dot(&self, other: &Vector<T, N>) -> T {
 		let mut out = self.v[0] * other.v[0];
 
@@ -194,28 +210,5 @@ where
 		}
 
 		out
-	}
-}
-
-impl<T: Copy, const N: usize> Vector<T, N> {
-	pub fn as_mut_ptr(&mut self) -> *mut T {
-		self.v.as_mut_ptr()
-	}
-}
-
-impl<T: Copy + Display, const N: usize> Display for Vector<T, N> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str("[")?;
-
-		for i in 0..N {
-			self[i].fmt(f)?;
-			if i != N - 1 {
-				f.write_str(", ")?;
-			}
-		}
-
-		f.write_str("]")?;
-
-		Ok(())
 	}
 }
