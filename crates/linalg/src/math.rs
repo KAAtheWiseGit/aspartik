@@ -9,7 +9,8 @@ impl<const N: usize> RowMatrix<f64, N, N> {
 		&self,
 	) -> (Vector<f64, N>, RowMatrix<f64, N, N>, RowMatrix<f64, N, N>) {
 		if self.is_symmetric() {
-			todo!()
+			let (_, values, vectors) = dsyev(self, true);
+			(values, vectors, vectors)
 		} else {
 			let (_, values, left, right) = dgeev(self, true, true);
 			(values, left, right)
@@ -86,4 +87,41 @@ fn dgeev<const N: usize>(
 	}
 
 	(info, wr, vl, vr)
+}
+
+fn dsyev<const N: usize>(
+	matrix: &RowMatrix<f64, N, N>,
+	compute_eigenvectors: bool,
+) -> (i32, Vector<f64, N>, RowMatrix<f64, N, N>) {
+	let jobz = calc_char(compute_eigenvectors);
+	// doesn't matter, as the input must be symmetric
+	let uplo = b'U' as c_char;
+
+	let n = N as c_int;
+
+	let mut a = *matrix;
+	let lda = N as c_int;
+
+	let mut w: Vector<f64, N> = Default::default();
+
+	let mut work = vec![0.0; 4 * N];
+	let lwork = 4 * N as c_int;
+
+	let mut info: i32 = 0;
+
+	unsafe {
+		lapack::dsyev_(
+			&jobz,
+			&uplo,
+			&n,
+			a.as_mut_ptr(),
+			&lda,
+			w.as_mut_ptr(),
+			work.as_mut_ptr(),
+			&lwork,
+			&mut info,
+		)
+	}
+
+	(info, w, a)
 }
