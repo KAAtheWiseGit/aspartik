@@ -1,4 +1,4 @@
-use num_traits::{Num, NumAssign};
+use num_traits::{Float, Num, NumAssign};
 
 use std::{
 	fmt::{self, Display},
@@ -203,12 +203,28 @@ impl<T: Copy + NumAssign, const N: usize> Vector<T, N> {
 	}
 
 	pub fn dot(&self, other: &Vector<T, N>) -> T {
-		let mut out = self.v[0] * other.v[0];
+		let mut out = self[0] * other[0];
 
 		for i in 1..N {
-			out += self.v[i] * other.v[i];
+			out += self[i] * other[i];
 		}
 
 		out
+	}
+}
+
+impl<T: Copy + Float + NumAssign, const N: usize> Vector<T, N> {
+	pub fn norm(&self) -> T {
+		let mut out = self[0] * self[0];
+
+		for i in 1..N {
+			out += self[i] * self[i];
+		}
+
+		out.sqrt()
+	}
+
+	pub fn normalize(&self) -> Self {
+		*self / self.norm()
 	}
 }
