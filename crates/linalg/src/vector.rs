@@ -182,6 +182,29 @@ impl<T: Copy, const N: usize> Vector<T, N> {
 	pub fn as_mut_ptr(&mut self) -> *mut T {
 		self.v.as_mut_ptr()
 	}
+
+	pub fn apply<F>(&mut self, f: F)
+	where
+		F: Fn(&mut T),
+	{
+		self.v.each_mut().map(f);
+	}
+
+	pub fn map<F, U>(&self, f: F) -> Vector<U, N>
+	where
+		U: Copy,
+		F: Fn(T) -> U,
+	{
+		self.v.map(f).into()
+	}
+
+	pub fn truncate<const M: usize>(&self) -> Vector<T, M> {
+		assert!(M < N, "New length must be smaller");
+
+		let subslice: &[T; M] = self.v.first_chunk().unwrap();
+
+		Vector::from(*subslice)
+	}
 }
 
 // Mathematical methods.
