@@ -13,6 +13,7 @@ pub struct RowMatrix<T: Copy, const N: usize, const M: usize> {
 	m: [Vector<T, N>; M],
 }
 
+// Constructors
 impl<T: Copy, const N: usize, const M: usize> From<[Vector<T, N>; M]>
 	for RowMatrix<T, N, M>
 {
@@ -29,7 +30,37 @@ impl<T: Copy, const N: usize, const M: usize> From<[[T; N]; M]>
 	}
 }
 
-// Mathematical constructors
+impl<T, const N: usize, const M: usize> Display for RowMatrix<T, N, M>
+where
+	T: Copy + Display,
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("[")?;
+
+		for i in 0..N {
+			for j in 0..M {
+				self[(i, j)].fmt(f)?;
+
+				if !(i == N - 1 && j == M - 1) {
+					f.write_str(",")?;
+				}
+				if j != M - 1 {
+					f.write_str(" ")?;
+				}
+			}
+
+			if i != N - 1 {
+				f.write_str("\n ")?;
+			}
+		}
+
+		f.write_str("]")?;
+
+		Ok(())
+	}
+}
+
+// Numerical constructors
 impl<T: Copy + Num, const N: usize, const M: usize> RowMatrix<T, N, M> {
 	/// A matrix with all of it's elements set to zero.
 	pub fn zeros() -> Self {
@@ -52,6 +83,16 @@ impl<T: Copy + Num, const N: usize> RowMatrix<T, N, N> {
 		}
 		out
 	}
+
+	pub fn from_diagonal(diag: Vector<T, N>) -> Self {
+		let mut out = Self::zeros();
+
+		for i in 0..N {
+			out[(i, i)] = diag[i];
+		}
+
+		out
+	}
 }
 
 impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
@@ -68,6 +109,8 @@ impl<T: Copy + Default, const N: usize, const M: usize> Default
 		Self::from_element(T::default())
 	}
 }
+
+// Operators
 
 impl<T: Copy, const N: usize, const M: usize> Index<usize>
 	for RowMatrix<T, N, M>
@@ -190,13 +233,6 @@ where
 	}
 }
 
-impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
-	const NUM_ROWS: usize = N;
-	const NUM_COLUMNS: usize = M;
-	const NUM_ITEMS: usize = N * M;
-	const IS_SQUARE: bool = N == M;
-}
-
 impl<T, const N: usize, const M: usize, const P: usize> Mul<RowMatrix<T, M, P>>
 	for RowMatrix<T, N, M>
 where
@@ -226,11 +262,24 @@ where
 	}
 }
 
-impl<T, const N: usize> RowMatrix<T, N, N>
-where
-	T: Copy + PartialEq,
-{
-	pub fn is_symmetric(&self) -> bool {
+// Type-agnostic implementations.
+impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
+	const NUM_ROWS: usize = N;
+	const NUM_COLUMNS: usize = M;
+	const NUM_ITEMS: usize = N * M;
+	const IS_SQUARE: bool = N == M;
+
+	pub fn as_mut_ptr(&mut self) -> *mut T {
+		self[0].as_mut_ptr()
+	}
+}
+
+// Numeric methods.
+impl<T: Copy, const N: usize> RowMatrix<T, N, N> {
+	pub fn is_symmetric(&self) -> bool
+	where
+		T: PartialEq,
+	{
 		for i in 0..N {
 			for j in (i + 1)..N {
 				if self[i][j] != self[j][i] {
@@ -240,41 +289,5 @@ where
 		}
 
 		true
-	}
-}
-
-impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
-	pub fn as_mut_ptr(&mut self) -> *mut T {
-		self[0].as_mut_ptr()
-	}
-}
-
-impl<T, const N: usize, const M: usize> Display for RowMatrix<T, N, M>
-where
-	T: Copy + Display,
-{
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str("[")?;
-
-		for i in 0..N {
-			for j in 0..M {
-				self[(i, j)].fmt(f)?;
-
-				if !(i == N - 1 && j == M - 1) {
-					f.write_str(",")?;
-				}
-				if j != M - 1 {
-					f.write_str(" ")?;
-				}
-			}
-
-			if i != N - 1 {
-				f.write_str("\n ")?;
-			}
-		}
-
-		f.write_str("]")?;
-
-		Ok(())
 	}
 }

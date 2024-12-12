@@ -175,7 +175,7 @@ impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
 	}
 }
 
-// Arithmetic-agnostic implementations.
+// Type-agnostic implementations.
 impl<T: Copy, const N: usize> Vector<T, N> {
 	const LENGTH: usize = N;
 
@@ -207,7 +207,7 @@ impl<T: Copy, const N: usize> Vector<T, N> {
 	}
 }
 
-// Mathematical methods.
+// Numeric methods.
 impl<T: Copy + NumAssign, const N: usize> Vector<T, N> {
 	pub fn sum(&self) -> T {
 		let mut out = self[0];
