@@ -292,6 +292,19 @@ impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
 		self.m.map(|v| v.map(&f)).into()
 	}
 
+	pub fn map_diagonal<F>(&self, f: F) -> RowMatrix<T, N, M>
+	where
+		F: Fn(T) -> T,
+	{
+		let mut out = *self;
+
+		for i in 0..std::cmp::min(N, M) {
+			out[(i, i)] = f(out[(i, i)]);
+		}
+
+		out
+	}
+
 	pub fn truncate<const NX: usize, const MX: usize>(
 		&self,
 	) -> RowMatrix<T, NX, MX> {
