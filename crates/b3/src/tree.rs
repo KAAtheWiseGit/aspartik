@@ -46,7 +46,7 @@ pub struct Update {
 	pub lengths: Vec<f64>,
 
 	pub nodes: Vec<usize>,
-	pub children: Vec<(usize, usize)>,
+	pub children: Vec<usize>,
 }
 
 impl Tree {
@@ -109,7 +109,7 @@ impl Tree {
 	fn update_probabilities(
 		&self,
 		nodes: &[Node],
-	) -> (Vec<usize>, Vec<(usize, usize)>) {
+	) -> (Vec<usize>, Vec<usize>) {
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();
 
@@ -141,13 +141,13 @@ impl Tree {
 		}
 
 		let nodes: Vec<_> = deq.into();
-		let children: Vec<_> = nodes
-			.iter()
-			.map(|n| n - self.num_leaves())
-			.map(|i| {
-				(self.children[i * 2], self.children[i * 2 + 1])
-			})
-			.collect();
+
+		let mut children = Vec::with_capacity(nodes.len() * 2);
+		for node in &nodes {
+			let n = node - self.num_leaves();
+			children.push(n * 2);
+			children.push(n * 2 + 1);
+		}
 
 		(nodes, children)
 	}

@@ -14,21 +14,24 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 
 	fn propose(
 		&mut self,
-		substitutions: &[Self::Substitution],
 		nodes: &[usize],
-		children: &[(usize, usize)],
+		substitutions: &[Self::Substitution],
+		children: &[usize],
 	) {
+		assert_eq!(nodes.len() * 2, substitutions.len());
+		assert_eq!(nodes.len() * 2, children.len());
+
 		let num_leaves = (self.probabilities[0].len() + 1) / 2;
 		self.updated_nodes = nodes.to_vec();
 
 		for probability in &mut self.probabilities {
-			for (i, (left, right)) in nodes.iter().zip(children) {
+			for i in 0..nodes.len() {
 				let left = substitutions[(i - num_leaves) * 2]
-					* probability[*left];
+					* probability[children[i * 2]];
 				let right = substitutions
 					[(i - num_leaves) * 2 + 1]
-					* probability[*right];
-				probability.set(*i, left * right);
+					* probability[children[i * 2 + 1]];
+				probability.set(i, left * right);
 			}
 		}
 	}

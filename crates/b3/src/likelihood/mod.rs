@@ -13,9 +13,9 @@ pub trait Likelihood {
 
 	fn propose(
 		&mut self,
-		substitutions: &[Self::Substitution],
 		nodes: &[usize],
-		children: &[(usize, usize)],
+		substitutions: &[Self::Substitution],
+		children: &[usize],
 	);
 
 	fn likelihood(&self) -> f64;

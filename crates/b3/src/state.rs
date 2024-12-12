@@ -75,8 +75,8 @@ impl<const N: usize> State<N> {
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.propose(
-				&substitutions,
 				&update.nodes,
+				&substitutions,
 				&update.children,
 			);
 		}
