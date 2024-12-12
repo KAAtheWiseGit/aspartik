@@ -276,6 +276,33 @@ impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
 	pub fn as_ptr(&self) -> *const T {
 		self[0].as_ptr()
 	}
+
+	pub fn apply<F>(&mut self, f: F)
+	where
+		F: Fn(&mut T),
+	{
+		self.m.each_mut().map(|v| v.apply(&f));
+	}
+
+	pub fn map<F, U>(&self, f: F) -> RowMatrix<U, N, M>
+	where
+		U: Copy,
+		F: Fn(T) -> U,
+	{
+		self.m.map(|v| v.map(&f)).into()
+	}
+
+	pub fn truncate<const NX: usize, const MX: usize>(
+		&self,
+	) -> RowMatrix<T, NX, MX> {
+		assert!(NX < N, "New length must be smaller");
+		assert!(MX < M, "New length must be smaller");
+
+		let subslice: &[Vector<T, N>; MX] =
+			self.m.first_chunk().unwrap();
+
+		subslice.map(|v| v.truncate()).into()
+	}
 }
 
 // Numeric methods.
