@@ -19,7 +19,7 @@ pub enum Model {
 	Gtr,
 }
 
-pub struct Substitutions<C: Character, const N: usize> {
+pub struct Substitutions<const N: usize> {
 	model: Model,
 	parameters: Vec<String>,
 
@@ -30,11 +30,9 @@ pub struct Substitutions<C: Character, const N: usize> {
 	inv_p: RowMatrix<f64, N, N>,
 
 	transitions: ShchurVec<RowMatrix<f64, N, N>>,
-
-	character: PhantomData<C>,
 }
 
-impl<C: Character, const N: usize> Substitutions<C, N> {
+impl<const N: usize> Substitutions<N> {
 	pub fn new(model: Model, length: usize) -> Self {
 		let transitions =
 			ShchurVec::repeat(RowMatrix::default(), length);
@@ -50,8 +48,6 @@ impl<C: Character, const N: usize> Substitutions<C, N> {
 			inv_p: Default::default(),
 
 			transitions,
-
-			character: PhantomData,
 		}
 	}
 

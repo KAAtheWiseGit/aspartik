@@ -9,9 +9,10 @@ use b3::{
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	Distribution, Logger, State, Substitutions, Tree,
+	substitution::{Model, Substitutions},
+	Distribution, Logger, State, Tree,
 };
-use base::{seq::DnaSeq, substitution::Model, DnaNucleoBase};
+use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 
@@ -54,10 +55,23 @@ fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
 
 	let mut out = vec![vec![Vector::default(); height]; width];
 
+	// TODO: find a place for this
+	fn to_row(base: &DnaNucleoBase) -> Vector<f64, 4> {
+		match base {
+			DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
+			DnaNucleoBase::Cytosine => [0.0, 1.0, 0.0, 0.0],
+			DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
+			DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
+
+			_ => [0.25, 0.25, 0.25, 0.25],
+		}
+		.into()
+	}
+
 	#[allow(clippy::needless_range_loop)]
 	for i in 0..width {
 		for j in 0..height {
-			out[i][j] = Model::to_row(&seqs[j][i])
+			out[i][j] = to_row(&seqs[j][i])
 		}
 	}
 
@@ -67,8 +81,8 @@ fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
-	let model = Model::jukes_cantor();
-	let model = Substitutions::new(model, children.len() * 2 - 1);
+	let model =
+		Substitutions::new(Model::JukesCantor, children.len() * 2 - 1);
 	let mut state = State::new(tree, to_rows(seqs), model);
 	let prior = Box::new(Compound::new([]));
 

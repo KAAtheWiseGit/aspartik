@@ -7,15 +7,15 @@ use crate::{
 	likelihood::{CpuLikelihood, Likelihood, Row},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+	substitution::Substitutions,
 	tree::Tree,
-	Substitutions,
 };
-use base::{seq::Character, substitution::Substitution};
+use base::substitution::Substitution;
 
 type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
 
-pub struct State<C: Character, const N: usize> {
+pub struct State<const N: usize> {
 	/// Map of parameters by name.
 	params: HashMap<String, Parameter>,
 	/// Proposal parameters
@@ -23,7 +23,7 @@ pub struct State<C: Character, const N: usize> {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	models: Substitutions<C, N>,
+	models: Substitutions<N>,
 
 	likelihoods: Vec<DynLikelihood<N>>,
 
@@ -31,11 +31,11 @@ pub struct State<C: Character, const N: usize> {
 	pub(crate) likelihood: f64,
 }
 
-impl<C: Character, const N: usize> State<C, N> {
+impl<const N: usize> State<N> {
 	pub fn new(
 		tree: Tree,
 		sites: Vec<Vec<Row<N>>>,
-		models: Substitutions<C, N>,
+		models: Substitutions<N>,
 	) -> Self {
 		let likelihood = Box::new(CpuLikelihood::new(sites));
 		let likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
