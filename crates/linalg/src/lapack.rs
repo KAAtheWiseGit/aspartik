@@ -5,6 +5,17 @@ use std::ffi::{c_char, c_int};
 
 use crate::{RowMatrix, Vector};
 
+macro_rules! assert_info {
+	($info:ident, $($rest:expr),+ $(,)?) => {
+		if $info < 0 {
+			panic!("Argument {} has an illegal value", -$info);
+		}
+		if $info > 0 {
+			panic!($($rest),+)
+		}
+	};
+}
+
 /// Returns `V` for true and `N` for false.
 fn job_char(do_job: bool) -> c_char {
 	if do_job {
@@ -22,12 +33,7 @@ pub fn dgeev<const N: usize>(
 	matrix: &RowMatrix<f64, N, N>,
 	left: bool,
 	right: bool,
-) -> (
-	i32,
-	Vector<f64, N>,
-	RowMatrix<f64, N, N>,
-	RowMatrix<f64, N, N>,
-) {
+) -> (Vector<f64, N>, RowMatrix<f64, N, N>, RowMatrix<f64, N, N>) {
 	let jobvl = job_char(left);
 	let jobvr = job_char(right);
 	let n = N as c_int;
@@ -68,7 +74,12 @@ pub fn dgeev<const N: usize>(
 		)
 	}
 
-	(info, wr, vl, vr)
+	assert_info!(
+		info,
+		"the QR algorithm failed to compute all the eigenvalues"
+	);
+
+	(wr, vl, vr)
 }
 
 /// Calculates eigenvalues and optionally eigenvectors for a symmetric matrix.
@@ -78,7 +89,7 @@ pub fn dgeev<const N: usize>(
 pub fn dsyev<const N: usize>(
 	matrix: &RowMatrix<f64, N, N>,
 	compute_eigenvectors: bool,
-) -> (i32, Vector<f64, N>, RowMatrix<f64, N, N>) {
+) -> (Vector<f64, N>, RowMatrix<f64, N, N>) {
 	let jobz = job_char(compute_eigenvectors);
 	// doesn't matter, as the input must be symmetric
 	let uplo = b'U' as c_char;
@@ -109,7 +120,9 @@ pub fn dsyev<const N: usize>(
 		)
 	}
 
-	(info, w, a)
+	assert_info!(info, "the algorithm failed to converge, {info} off-diagonal elements of an intermediate tridiagonal form did not converge to zero");
+
+	(w, a)
 }
 
 pub fn dgetrf<const N: usize, const M: usize>(
@@ -135,6 +148,8 @@ pub fn dgetrf<const N: usize, const M: usize>(
 			&mut info,
 		)
 	}
+
+	assert_info!(info, "U({info}, {info}) is exactly zero.  Division by zero will occur if U is used");
 
 	(a, ipiv)
 }
@@ -168,6 +183,8 @@ pub fn dgetri<const N: usize>(
 			&mut info,
 		)
 	}
+
+	assert_info!(info, "U({info}, {info}) is exactly zero, the input matrix is singular");
 
 	a
 }

@@ -29,11 +29,9 @@ fn eigen<const N: usize>(
 	right: bool,
 ) -> (Vector<f64, N>, RowMatrix<f64, N, N>, RowMatrix<f64, N, N>) {
 	if matrix.is_symmetric() {
-		let (_, values, vectors) = lapack::dsyev(matrix, left || right);
+		let (values, vectors) = lapack::dsyev(matrix, left || right);
 		(values, vectors, vectors)
 	} else {
-		let (_, values, left, right) =
-			lapack::dgeev(matrix, left, right);
-		(values, left, right)
+		lapack::dgeev(matrix, left, right)
 	}
 }
