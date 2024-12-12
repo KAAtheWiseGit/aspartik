@@ -4,14 +4,19 @@ use std::ffi::{c_char, c_int};
 
 use crate::{RowMatrix, Vector};
 
-fn calc_char(yes: bool) -> c_char {
-	if yes {
+/// Returns `V` for true and `N` for false.
+fn job_char(do_job: bool) -> c_char {
+	if do_job {
 		b'V' as c_char
 	} else {
 		b'N' as c_char
 	}
 }
 
+/// Calculates eigenvalues and optionally left and/or right eigenvectors if
+/// `left` and `right` are set.  Note that it discards the imaginary parts of
+/// eigenvalues.  If `left` or `right` aren't set, the values of the returning
+/// eigenvector matrices are undefined.
 pub fn dgeev<const N: usize>(
 	matrix: &RowMatrix<f64, N, N>,
 	left: bool,
@@ -22,8 +27,8 @@ pub fn dgeev<const N: usize>(
 	RowMatrix<f64, N, N>,
 	RowMatrix<f64, N, N>,
 ) {
-	let jobvl = calc_char(left);
-	let jobvr = calc_char(right);
+	let jobvl = job_char(left);
+	let jobvr = job_char(right);
 	let n = N as c_int;
 
 	let mut a = *matrix;
@@ -65,11 +70,15 @@ pub fn dgeev<const N: usize>(
 	(info, wr, vl, vr)
 }
 
+/// Calculates eigenvalues and optionally eigenvectors for a symmetric matrix.
+/// Note that it's the callers responsibility to verify that `matrix` is
+/// symmetric.  If it's not, it'll be treated as if it was a matrix symmetric
+/// against the upper triangle of `matrix`.
 pub fn dsyev<const N: usize>(
 	matrix: &RowMatrix<f64, N, N>,
 	compute_eigenvectors: bool,
 ) -> (i32, Vector<f64, N>, RowMatrix<f64, N, N>) {
-	let jobz = calc_char(compute_eigenvectors);
+	let jobz = job_char(compute_eigenvectors);
 	// doesn't matter, as the input must be symmetric
 	let uplo = b'U' as c_char;
 
