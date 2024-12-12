@@ -82,16 +82,17 @@ impl<const N: usize> State<N> {
 
 		self.tree.propose(proposal);
 
-		self.models.update_model(make_ref!(self));
-		self.models.update_edges(&self.tree.edges_to_update(), &[]);
+		let full = self.models.update(make_ref!(self));
 		let substitutions = self.models.substitutions();
 
+		let nodes = if full {
+			self.tree.full_update()
+		} else {
+			self.tree.nodes_to_update()
+		};
+
 		for likelihood in &mut self.likelihoods {
-			likelihood.propose(
-				&self.tree.nodes_to_update(),
-				&substitutions,
-				&[],
-			);
+			likelihood.propose(&nodes, &substitutions, &[]);
 		}
 	}
 
