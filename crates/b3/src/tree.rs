@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use rand::{
 	distributions::{Distribution, Uniform},
 	Rng,
@@ -63,6 +61,7 @@ impl Tree {
 
 	pub fn propose(&mut self, proposal: Proposal) {
 		self.update_edges(&proposal.edges);
+		self.update_weights(&proposal.weights);
 
 		self.verify();
 	}
@@ -91,10 +90,20 @@ impl Tree {
 	}
 
 	pub fn nodes_to_update(&self) -> Vec<usize> {
+		self.walk_nodes(&self.updated_nodes)
+	}
+
+	pub fn full_update(&self) -> Vec<usize> {
+		let internals: Vec<Node> =
+			self.internals().map(|n| n.into()).collect();
+		self.walk_nodes(&internals)
+	}
+
+	fn walk_nodes(&self, nodes: &[Node]) -> Vec<usize> {
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();
 
-		for node in &self.updated_nodes {
+		for node in nodes {
 			let mut curr = node.0;
 			let mut chain = Vec::new();
 
@@ -270,6 +279,12 @@ impl Tree {
 		} else {
 			(parent.0 - self.num_leaves()) * 2 + 1
 		}
+	}
+
+	pub fn edge_distance(&self, edge: usize) -> f64 {
+		let (parent, child) = self.edge_nodes(edge);
+
+		self.weight_of(child) - self.weight_of(parent)
 	}
 
 	fn edge_nodes(&self, edge: usize) -> (Node, Internal) {
