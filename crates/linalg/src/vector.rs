@@ -179,6 +179,10 @@ impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
 impl<T: Copy, const N: usize> Vector<T, N> {
 	const LENGTH: usize = N;
 
+	pub fn as_ptr(&self) -> *const T {
+		self.v.as_ptr()
+	}
+
 	pub fn as_mut_ptr(&mut self) -> *mut T {
 		self.v.as_mut_ptr()
 	}
