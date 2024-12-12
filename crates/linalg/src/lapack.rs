@@ -1,5 +1,6 @@
 //! Wrappers around the LAPACK functions and utilities for them.
 
+use std::cmp::min;
 use std::ffi::{c_char, c_int};
 
 use crate::{RowMatrix, Vector};
@@ -32,16 +33,16 @@ pub fn dgeev<const N: usize>(
 	let n = N as c_int;
 
 	let mut a = *matrix;
-	let lda = N as c_int;
+	let lda = n;
 
 	let mut wr: Vector<f64, N> = Default::default();
 	let mut wi: Vector<f64, N> = Default::default();
 
 	let mut vl: RowMatrix<f64, N, N> = Default::default();
-	let ldvl = N as c_int;
+	let ldvl = n;
 
 	let mut vr: RowMatrix<f64, N, N> = Default::default();
-	let ldvr = N as c_int;
+	let ldvr = n;
 
 	let mut work = vec![0f64; 4 * N];
 	let lwork = work.len() as c_int;
@@ -85,7 +86,7 @@ pub fn dsyev<const N: usize>(
 	let n = N as c_int;
 
 	let mut a = *matrix;
-	let lda = N as c_int;
+	let lda = n;
 
 	let mut w: Vector<f64, N> = Default::default();
 
@@ -109,4 +110,64 @@ pub fn dsyev<const N: usize>(
 	}
 
 	(info, w, a)
+}
+
+pub fn dgetrf<const N: usize, const M: usize>(
+	matrix: &RowMatrix<f64, N, M>,
+) -> (RowMatrix<f64, N, M>, Vec<i32>) {
+	let m = M as c_int;
+	let n = N as c_int;
+
+	let mut a = *matrix;
+	let lda = m;
+
+	let mut ipiv = vec![0; min(N, M)];
+
+	let mut info: i32 = 0;
+
+	unsafe {
+		lapack_sys::dgetrf_(
+			&m,
+			&n,
+			a.as_mut_ptr(),
+			&lda,
+			ipiv.as_mut_ptr(),
+			&mut info,
+		)
+	}
+
+	(a, ipiv)
+}
+
+pub fn dgetri<const N: usize>(
+	matrix: &RowMatrix<f64, N, N>,
+	ipiv: &[i32],
+) -> RowMatrix<f64, N, N> {
+	assert_eq!(ipiv.len(), N);
+
+	let n = N as c_int;
+
+	let mut a = *matrix;
+	let lda = n;
+
+	// TODO: blocksize
+	let len = N * 4;
+	let mut work = vec![0.0; len];
+	let lwork = len as c_int;
+
+	let mut info: i32 = 0;
+
+	unsafe {
+		lapack_sys::dgetri_(
+			&n,
+			a.as_mut_ptr(),
+			&lda,
+			ipiv.as_ptr(),
+			work.as_mut_ptr(),
+			&lwork,
+			&mut info,
+		)
+	}
+
+	a
 }

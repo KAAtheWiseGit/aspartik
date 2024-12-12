@@ -16,6 +16,11 @@ impl<const N: usize> RowMatrix<f64, N, N> {
 		let (values, _, _) = eigen(self, false, false);
 		values
 	}
+
+	pub fn inverse(&self) -> Self {
+		let (lu, ipiv) = lapack::dgetrf(self);
+		lapack::dgetri(&lu, &ipiv)
+	}
 }
 
 fn eigen<const N: usize>(
