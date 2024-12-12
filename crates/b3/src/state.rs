@@ -68,14 +68,22 @@ impl<const N: usize> State<N> {
 	pub(crate) fn propose(&mut self, mut proposal: Proposal) {
 		self.proposal_params = std::mem::take(&mut proposal.params);
 
-		let update = self.tree.propose(proposal);
+		self.tree.propose(proposal);
 
-		self.models.update_edges(&update.edges, &update.lengths);
+		self.models.update_model(&StateRef {
+			params: &self.params,
+			proposal_params: &self.proposal_params,
+			tree: &self.tree,
+		});
+		self.models.update_edges(
+			&self.tree.edges_to_update(),
+			&update.lengths,
+		);
 		let substitutions = self.models.substitutions();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.propose(
-				&update.nodes,
+				&self.tree.nodes_to_update(),
 				&substitutions,
 				&update.children,
 			);

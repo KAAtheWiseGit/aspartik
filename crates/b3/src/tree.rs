@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use rand::{
 	distributions::{Distribution, Uniform},
 	Rng,
@@ -17,6 +19,9 @@ pub struct Tree {
 	children: ShchurVec<usize>,
 	parents: ShchurVec<usize>,
 	weights: ShchurVec<f64>,
+
+	updated_edges: Vec<usize>,
+	updated_nodes: Vec<Node>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,80 +45,56 @@ pub struct Internal(usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Leaf(usize);
 
-#[derive(Debug, Clone)]
-pub struct Update {
-	pub edges: Vec<usize>,
-	pub lengths: Vec<f64>,
-
-	pub nodes: Vec<usize>,
-	pub children: Vec<usize>,
-}
-
 impl Tree {
 	pub fn new(weights: &[f64], children: &[usize]) -> Self {
 		let mut out = Self {
 			children: children.into(),
 			parents: ShchurVec::repeat(ROOT, weights.len()),
 			weights: weights.into(),
+
+			updated_edges: Vec::new(),
+			updated_nodes: Vec::new(),
 		};
 
-		out.update_all_parents();
-		out.accept();
+		out.set_all_parents();
 
 		out
 	}
 
-	pub fn propose(&mut self, proposal: Proposal) -> Update {
-		let (mut edges, mut nodes) = self.update_edges(&proposal.edges);
-
-		// TODO: should probably be a separate function
-		for (node, weight) in proposal.weights {
-			self.weights.set(node.0, weight);
-
-			nodes.push(node);
-			if self.parent_of(node).is_some() {
-				edges.push(self.edge_index(node));
-			}
-			if let Some(node) = self.as_internal(node) {
-				let (left, right) = self.children_of(node);
-				edges.push(self.edge_index(left));
-				edges.push(self.edge_index(right));
-			}
-		}
+	pub fn propose(&mut self, proposal: Proposal) {
+		self.update_edges(&proposal.edges);
 
 		self.verify();
-
-		let (edges, lengths) = self.update_substitutions(&edges);
-		let (nodes, children) = self.update_probabilities(&nodes);
-
-		Update {
-			edges,
-			lengths,
-			nodes,
-			children,
-		}
 	}
 
 	pub fn accept(&mut self) {
 		self.children.accept();
 		self.parents.accept();
 		self.weights.accept();
+		self.clear_updated();
 	}
 
 	pub fn reject(&mut self) {
 		self.children.reject();
 		self.parents.reject();
 		self.weights.reject();
+		self.clear_updated();
 	}
 
-	fn update_probabilities(
-		&self,
-		nodes: &[Node],
-	) -> (Vec<usize>, Vec<usize>) {
+	fn clear_updated(&mut self) {
+		self.updated_edges.clear();
+		self.updated_nodes.clear();
+	}
+
+	pub fn edges_to_update(&self) -> Vec<usize> {
+		self.updated_edges.clone()
+	}
+
+	pub fn nodes_to_update(&self) -> Vec<usize> {
 		let mut deq = VecDeque::<usize>::new();
 		let mut set = HashSet::<usize>::new();
 
-		for node in nodes {
+		for node in &self.updated_nodes {
 			let mut curr = node.0;
 			let mut chain = Vec::new();
 
@@ -140,43 +121,43 @@ impl Tree {
 			}
 		}
 
-		let nodes: Vec<_> = deq.into();
-
-		let mut children = Vec::with_capacity(nodes.len() * 2);
-		for node in &nodes {
-			let n = node - self.num_leaves();
-			children.push(n * 2);
-			children.push(n * 2 + 1);
-		}
-
-		(nodes, children)
+		deq.into()
 	}
 
-	fn update_edges(
-		&mut self,
-		edges: &[(usize, Node)],
-	) -> (Vec<usize>, Vec<Node>) {
-		let mut e = vec![];
-		let mut n = vec![];
-
+	fn update_edges(&mut self, edges: &[(usize, Node)]) {
 		for (edge, new_child) in edges.iter().copied() {
 			let (_, parent) = self.edge_nodes(edge);
 
 			self.children.set(edge, new_child.0);
 			self.parents.set(new_child.0, parent.0);
 
-			e.push(edge);
+			self.updated_edges.push(edge);
 
 			// `parent` is now the parent of `new_child`, so it'll
-			// be updated.  The old child must be handled separately
-			// by the operator.
-			n.push(new_child);
+			// be updated.  The operator must handle the old node
+			// separately.
+			self.updated_nodes.push(new_child);
 		}
-
-		(e, n)
 	}
 
-	fn update_all_parents(&mut self) {
+	fn update_weights(&mut self, weights: &[(Node, f64)]) {
+		for (node, weight) in weights.iter().copied() {
+			self.weights.set(node.0, weight);
+
+			self.updated_nodes.push(node);
+
+			if self.parent_of(node).is_some() {
+				self.updated_edges.push(self.edge_index(node));
+			}
+			if let Some(node) = self.as_internal(node) {
+				let (left, right) = self.children_of(node);
+				self.updated_edges.push(self.edge_index(left));
+				self.updated_edges.push(self.edge_index(right));
+			}
+		}
+	}
+
+	fn set_all_parents(&mut self) {
 		let num_leaves = self.num_leaves();
 
 		let mut iter = self.children.into_iter();
@@ -187,39 +168,8 @@ impl Tree {
 			self.parents.set(*right, i + num_leaves);
 			i += 1;
 		}
-	}
 
-	pub fn update_all_likelihoods(&self) -> Update {
-		let edges: Vec<usize> = (0..self.children.len()).collect();
-		let (edges, lengths) = self.update_substitutions(&edges);
-
-		let nodes: Vec<Node> = self.nodes().collect();
-		let (nodes, children) = self.update_probabilities(&nodes);
-
-		Update {
-			edges,
-			lengths,
-			nodes,
-			children,
-		}
-	}
-
-	fn update_substitutions(
-		&self,
-		edges: &[usize],
-	) -> (Vec<usize>, Vec<f64>) {
-		let distances: Vec<f64> = edges
-			.iter()
-			.copied()
-			.map(|e| {
-				let child = self.children[e];
-				let parent = e / 2 + self.num_leaves();
-
-				self.weights[parent] - self.weights[child]
-			})
-			.collect();
-
-		(edges.to_vec(), distances)
+		self.parents.accept();
 	}
 
 	fn verify(&self) {
