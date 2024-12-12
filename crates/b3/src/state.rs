@@ -31,6 +31,18 @@ pub struct State<const N: usize> {
 	pub(crate) likelihood: f64,
 }
 
+/// A workaround because the `as_ref` method requires a full `state` borrow,
+/// blocking partial mutable borrows.
+macro_rules! make_ref {
+	($state:ident) => {
+		&StateRef {
+			params: &$state.params,
+			proposal_params: &$state.proposal_params,
+			tree: &$state.tree,
+		}
+	};
+}
+
 impl<const N: usize> State<N> {
 	pub fn new(
 		tree: Tree,
@@ -70,22 +82,15 @@ impl<const N: usize> State<N> {
 
 		self.tree.propose(proposal);
 
-		self.models.update_model(&StateRef {
-			params: &self.params,
-			proposal_params: &self.proposal_params,
-			tree: &self.tree,
-		});
-		self.models.update_edges(
-			&self.tree.edges_to_update(),
-			&update.lengths,
-		);
+		self.models.update_model(make_ref!(self));
+		self.models.update_edges(&self.tree.edges_to_update(), &[]);
 		let substitutions = self.models.substitutions();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.propose(
 				&self.tree.nodes_to_update(),
 				&substitutions,
-				&update.children,
+				&[],
 			);
 		}
 	}
