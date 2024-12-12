@@ -1,9 +1,11 @@
 mod cpu;
-mod thread;
+// mod thread;
 
 pub use cpu::CpuLikelihood;
-#[allow(unused)] // TODO: dynamically use in `State`
-pub use thread::ThreadedLikelihood;
+// #[allow(unused)] // TODO: use dynamically in `State`
+// pub use thread::ThreadedLikelihood;
+
+pub type Row<const N: usize> = linalg::Vector<f64, N>;
 
 pub trait Likelihood {
 	type Row: Default;

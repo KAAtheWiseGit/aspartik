@@ -1,5 +1,5 @@
-use super::Likelihood;
-use base::substitution::{Row, Substitution};
+use super::{Likelihood, Row};
+use base::substitution::Substitution;
 use shchurvec::ShchurVec;
 
 pub struct CpuLikelihood<const N: usize> {

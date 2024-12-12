@@ -4,16 +4,13 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::{CpuLikelihood, Likelihood},
+	likelihood::{CpuLikelihood, Likelihood, Row},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
 	Substitutions,
 };
-use base::{
-	seq::Character,
-	substitution::{Row, Substitution},
-};
+use base::{seq::Character, substitution::Substitution};
 
 type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
@@ -38,25 +35,10 @@ impl<C: Character, const N: usize> State<C, N> {
 	pub fn new(
 		tree: Tree,
 		sites: Vec<Vec<Row<N>>>,
-		mut models: Substitutions<C, N>,
+		models: Substitutions<C, N>,
 	) -> Self {
 		let likelihood = Box::new(CpuLikelihood::new(sites));
-		let mut likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
-
-		let update = tree.update_all_likelihoods();
-
-		models.propose(&update.edges, &update.lengths);
-		models.accept();
-		let substitutions = models.substitutions();
-
-		for likelihood in &mut likelihoods {
-			likelihood.propose(
-				&substitutions,
-				&update.nodes,
-				&update.children,
-			);
-			likelihood.accept();
-		}
+		let likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
 
 		Self {
 			params: HashMap::new(),
@@ -88,7 +70,7 @@ impl<C: Character, const N: usize> State<C, N> {
 
 		let update = self.tree.propose(proposal);
 
-		self.models.propose(&update.edges, &update.lengths);
+		self.models.update_edges(&update.edges, &update.lengths);
 		let substitutions = self.models.substitutions();
 
 		for likelihood in &mut self.likelihoods {

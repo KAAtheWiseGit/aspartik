@@ -1,43 +1,87 @@
-use base::{seq::Character, substitution::Model};
+#![allow(unused)]
+
+use std::marker::PhantomData;
+
+use base::{
+	seq::Character,
+	substitution::{self, Substitution},
+};
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
+use crate::state::StateRef;
+
+pub enum Model {
+	JukesCantor,
+	K80,
+	F81,
+	Hky,
+	Gtr,
+}
+
 pub struct Substitutions<C: Character, const N: usize> {
-	model: Model<C, N>,
-	substitutions: ShchurVec<RowMatrix<f64, N, N>>,
+	model: Model,
+	parameters: Vec<String>,
+
+	current: Substitution<N>,
+
+	p: RowMatrix<f64, N, N>,
+	diag: RowMatrix<f64, N, N>,
+	inv_p: RowMatrix<f64, N, N>,
+
+	transitions: ShchurVec<RowMatrix<f64, N, N>>,
+
+	character: PhantomData<C>,
 }
 
 impl<C: Character, const N: usize> Substitutions<C, N> {
-	pub fn new(model: Model<C, N>, length: usize) -> Self {
-		let substitutions =
+	pub fn new(model: Model, length: usize) -> Self {
+		let transitions =
 			ShchurVec::repeat(RowMatrix::default(), length);
 
 		Self {
 			model,
-			substitutions,
+			parameters: vec![],
+
+			current: Default::default(),
+
+			p: Default::default(),
+			diag: Default::default(),
+			inv_p: Default::default(),
+
+			transitions,
+
+			character: PhantomData,
 		}
 	}
 
-	pub fn propose(&mut self, edges: &[usize], distances: &[f64]) {
+	pub fn update_model(&mut self, state: &StateRef) {
+		// model update pulling from state
+
+		// compare new model with the current one
+
+		// if it's different, update all transitions
+	}
+
+	pub fn update_edges(&mut self, edges: &[usize], distances: &[f64]) {
 		for (edge, distance) in edges.iter().zip(distances) {
-			self.substitutions
-				.set(*edge, self.model.substitution(*distance));
+			let transition = self.p
+				* self.diag.map_diagonal(|v| v.exp())
+				* self.inv_p;
+
+			self.transitions.set(*edge, transition);
 		}
 	}
 
 	pub fn accept(&mut self) {
-		self.substitutions.accept();
+		self.transitions.accept();
 	}
 
 	pub fn reject(&mut self) {
-		self.substitutions.reject();
+		self.transitions.reject();
 	}
 
 	pub fn substitutions(&self) -> Vec<RowMatrix<f64, N, N>> {
-		self.substitutions.iter().copied().collect()
-	}
-
-	pub fn model(&self) -> &Model<C, N> {
-		&self.model
+		self.transitions.iter().copied().collect()
 	}
 }
