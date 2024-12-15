@@ -7,7 +7,7 @@ use std::{
 
 use crate::vector::Vector;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 #[repr(C)]
 pub struct RowMatrix<T: Copy, const N: usize, const M: usize> {
 	m: [Vector<T, N>; M],

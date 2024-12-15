@@ -7,7 +7,7 @@ use std::{
 	},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 #[repr(C)]
 pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
