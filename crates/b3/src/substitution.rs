@@ -1,17 +1,16 @@
-#![allow(unused)]
-
-use std::marker::PhantomData;
-
-use base::{
-	seq::Character,
-	substitution::{self, Substitution},
-};
+use base::substitution::{self, Substitution};
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
 use crate::state::StateRef;
 
-pub enum Model {
+pub trait Model {
+	type Substitution;
+
+	fn get_matrix(&self, state: &StateRef);
+}
+
+pub enum ModelT {
 	JukesCantor,
 	K80,
 	F81,
@@ -20,9 +19,6 @@ pub enum Model {
 }
 
 pub struct Substitutions<const N: usize> {
-	model: Model,
-	parameters: Vec<String>,
-
 	current: Substitution<N>,
 
 	p: RowMatrix<f64, N, N>,
@@ -33,14 +29,11 @@ pub struct Substitutions<const N: usize> {
 }
 
 impl<const N: usize> Substitutions<N> {
-	pub fn new(model: Model, length: usize) -> Self {
+	pub fn new(length: usize) -> Self {
 		let transitions =
 			ShchurVec::repeat(RowMatrix::default(), length);
 
 		Self {
-			model,
-			parameters: vec![],
-
 			current: Default::default(),
 
 			p: Default::default(),
@@ -55,7 +48,7 @@ impl<const N: usize> Substitutions<N> {
 	pub fn update(&mut self, state: &StateRef) -> bool {
 		let tree = state.get_tree();
 
-		let full = self.update_model(state);
+		let full = todo!(); // self.update_sub(state);
 
 		let edges: Vec<usize> = if full {
 			(0..(tree.num_internals() * 2)).collect()
@@ -74,11 +67,7 @@ impl<const N: usize> Substitutions<N> {
 	}
 
 	/// Returns `true` if the substitution matrix has changed.
-	fn update_model(&mut self, state: &StateRef) -> bool {
-		// model update pulling from state
-
-		// compare new model with the current one and return true if it
-		// has changed
+	fn update_sub(&mut self, sub: Substitution<N>) -> bool {
 		todo!()
 	}
 

@@ -7,13 +7,14 @@ use crate::{
 	likelihood::{CpuLikelihood, Likelihood, Row},
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	substitution::Substitutions,
+	substitution::{Model, Substitutions},
 	tree::Tree,
 };
 use base::substitution::Substitution;
 
 type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
+type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitutions<N>>>;
 
 pub struct State<const N: usize> {
 	/// Map of parameters by name.
@@ -23,7 +24,8 @@ pub struct State<const N: usize> {
 	/// The phylogenetic tree, which also contains the genetic data.
 	tree: Tree,
 
-	models: Substitutions<N>,
+	model: DynModel<N>,
+	substitutions: Substitutions<N>,
 
 	likelihoods: Vec<DynLikelihood<N>>,
 
@@ -47,8 +49,10 @@ impl<const N: usize> State<N> {
 	pub fn new(
 		tree: Tree,
 		sites: Vec<Vec<Row<N>>>,
-		models: Substitutions<N>,
+		models: DynModel<N>,
 	) -> Self {
+		let num_edges = (&sites[0].len() - 1) * 2;
+
 		let likelihood = Box::new(CpuLikelihood::new(sites));
 		let likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
 
@@ -56,7 +60,8 @@ impl<const N: usize> State<N> {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			models,
+			model: models,
+			substitutions: Substitutions::new(num_edges),
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 		}
@@ -82,8 +87,8 @@ impl<const N: usize> State<N> {
 
 		self.tree.propose(proposal);
 
-		let full = self.models.update(make_ref!(self));
-		let substitutions = self.models.substitutions();
+		let full = self.substitutions.update(make_ref!(self));
+		let substitutions = self.substitutions.substitutions();
 
 		let nodes = if full {
 			self.tree.full_update()
@@ -103,7 +108,7 @@ impl<const N: usize> State<N> {
 		}
 
 		self.tree.accept();
-		self.models.accept();
+		self.substitutions.accept();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.accept();
@@ -114,7 +119,7 @@ impl<const N: usize> State<N> {
 		self.proposal_params.clear();
 
 		self.tree.reject();
-		self.models.reject();
+		self.substitutions.reject();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.reject();
