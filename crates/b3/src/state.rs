@@ -50,7 +50,7 @@ impl<const N: usize> State<N> {
 	pub fn new(
 		tree: Tree,
 		sites: Vec<Vec<Row<N>>>,
-		models: DynModel<N>,
+		model: DynModel<N>,
 	) -> Self {
 		let num_edges = (&sites[0].len() - 1) * 2;
 
@@ -61,7 +61,7 @@ impl<const N: usize> State<N> {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			model: models,
+			model,
 			substitutions: Transitions::new(num_edges),
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
@@ -88,6 +88,8 @@ impl<const N: usize> State<N> {
 
 		self.tree.propose(proposal);
 
+		let substitution = self.model.get_matrix(make_ref!(self));
+		// use the matrix for transitions
 		let full = self.substitutions.update(make_ref!(self));
 		let substitutions = self.substitutions.substitutions();
 
