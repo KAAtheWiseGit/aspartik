@@ -8,8 +8,8 @@ use crate::{
 	model::Model,
 	operator::Proposal,
 	parameter::Parameter,
-	transitions::Transitions,
 	tree::Tree,
+	Transitions,
 };
 use base::substitution::Substitution;
 

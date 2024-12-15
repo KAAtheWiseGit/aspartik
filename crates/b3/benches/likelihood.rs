@@ -4,12 +4,12 @@ use std::{fs::File, hint::black_box};
 
 use b3::{
 	mcmc::{run, Config},
+	model::DnaModel,
 	operator::{
 		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	substitution::{Model, Substitutions},
 	Distribution, Logger, State, Tree,
 };
 use base::{seq::DnaSeq, DnaNucleoBase};
@@ -81,8 +81,7 @@ fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
 fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
-	let model =
-		Substitutions::new(Model::JukesCantor, children.len() * 2 - 1);
+	let model = Box::new(DnaModel::JukesCantor);
 	let mut state = State::new(tree, to_rows(seqs), model);
 	let prior = Box::new(Compound::new([]));
 
