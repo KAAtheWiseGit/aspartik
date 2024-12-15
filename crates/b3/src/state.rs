@@ -26,7 +26,7 @@ pub struct State<const N: usize> {
 	tree: Tree,
 
 	model: DynModel<N>,
-	substitutions: Transitions<N>,
+	transitions: Transitions<N>,
 
 	likelihoods: Vec<DynLikelihood<N>>,
 
@@ -62,7 +62,7 @@ impl<const N: usize> State<N> {
 			proposal_params: HashMap::new(),
 			tree,
 			model,
-			substitutions: Transitions::new(num_edges),
+			transitions: Transitions::new(num_edges),
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 		}
@@ -88,18 +88,22 @@ impl<const N: usize> State<N> {
 
 		self.tree.propose(proposal);
 
+		// Update the substitution matrix
 		let substitution = self.model.get_matrix(make_ref!(self));
-		// use the matrix for transitions
-		let full = self.substitutions.update(make_ref!(self));
-		let substitutions = self.substitutions.substitutions();
+		// If the matrix has changed, `full` is true
+		let full =
+			self.transitions.update(substitution, make_ref!(self));
+		let substitutions = self.transitions.matrices();
 
 		let nodes = if full {
+			// Full update, as matrices impact likelihoods
 			self.tree.full_update()
 		} else {
 			self.tree.nodes_to_update()
 		};
 
 		for likelihood in &mut self.likelihoods {
+			// TODO: get children from the tree
 			likelihood.propose(&nodes, &substitutions, &[]);
 		}
 	}
@@ -111,7 +115,7 @@ impl<const N: usize> State<N> {
 		}
 
 		self.tree.accept();
-		self.substitutions.accept();
+		self.transitions.accept();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.accept();
@@ -122,7 +126,7 @@ impl<const N: usize> State<N> {
 		self.proposal_params.clear();
 
 		self.tree.reject();
-		self.substitutions.reject();
+		self.transitions.reject();
 
 		for likelihood in &mut self.likelihoods {
 			likelihood.reject();

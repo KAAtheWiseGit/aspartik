@@ -31,12 +31,19 @@ impl<const N: usize> Transitions<N> {
 	}
 
 	/// Returns `true` if a full update is needed.
-	pub fn update(&mut self, state: &StateRef) -> bool {
+	pub fn update(
+		&mut self,
+		substitution: Substitution<N>,
+		state: &StateRef,
+	) -> bool {
 		let tree = state.get_tree();
 
-		let full = todo!(); // self.update_sub(state);
+		let full_update = substitution != self.current;
+		if full_update {
+			self.current = substitution;
+		}
 
-		let edges: Vec<usize> = if full {
+		let edges: Vec<usize> = if full_update {
 			(0..(tree.num_internals() * 2)).collect()
 		} else {
 			tree.edges_to_update()
@@ -49,19 +56,16 @@ impl<const N: usize> Transitions<N> {
 
 		self.update_edges(&edges, &distances);
 
-		full
-	}
-
-	/// Returns `true` if the substitution matrix has changed.
-	fn update_sub(&mut self, sub: Substitution<N>) -> bool {
-		todo!()
+		full_update
 	}
 
 	fn update_edges(&mut self, edges: &[usize], distances: &[f64]) {
 		for (edge, distance) in edges.iter().zip(distances) {
-			let transition = self.p
-				* self.diag.map_diagonal(|v| v.exp())
-				* self.inv_p;
+			let diag = self
+				.diag
+				.map_diagonal(|v| (v * distance).exp());
+
+			let transition = self.p * diag * self.inv_p;
 
 			self.transitions.set(*edge, transition);
 		}
@@ -75,7 +79,7 @@ impl<const N: usize> Transitions<N> {
 		self.transitions.reject();
 	}
 
-	pub fn substitutions(&self) -> Vec<RowMatrix<f64, N, N>> {
+	pub fn matrices(&self) -> Vec<RowMatrix<f64, N, N>> {
 		self.transitions.iter().copied().collect()
 	}
 }

@@ -89,6 +89,7 @@ impl Tree {
 		self.updated_edges.clone()
 	}
 
+	// should retrun `Internal`
 	pub fn nodes_to_update(&self) -> Vec<usize> {
 		self.walk_nodes(&self.updated_nodes)
 	}
