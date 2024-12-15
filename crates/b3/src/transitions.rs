@@ -1,24 +1,10 @@
-use base::substitution::{self, Substitution};
+use base::substitution::Substitution;
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
 use crate::state::StateRef;
 
-pub trait Model {
-	type Substitution;
-
-	fn get_matrix(&self, state: &StateRef);
-}
-
-pub enum ModelT {
-	JukesCantor,
-	K80,
-	F81,
-	Hky,
-	Gtr,
-}
-
-pub struct Substitutions<const N: usize> {
+pub struct Transitions<const N: usize> {
 	current: Substitution<N>,
 
 	p: RowMatrix<f64, N, N>,
@@ -28,7 +14,7 @@ pub struct Substitutions<const N: usize> {
 	transitions: ShchurVec<RowMatrix<f64, N, N>>,
 }
 
-impl<const N: usize> Substitutions<N> {
+impl<const N: usize> Transitions<N> {
 	pub fn new(length: usize) -> Self {
 		let transitions =
 			ShchurVec::repeat(RowMatrix::default(), length);

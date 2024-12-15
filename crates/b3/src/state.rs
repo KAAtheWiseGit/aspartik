@@ -5,16 +5,17 @@ use std::collections::HashMap;
 
 use crate::{
 	likelihood::{CpuLikelihood, Likelihood, Row},
+	model::Model,
 	operator::Proposal,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	substitution::{Model, Substitutions},
+	transitions::Transitions,
 	tree::Tree,
 };
 use base::substitution::Substitution;
 
 type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
-type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitutions<N>>>;
+type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitution<N>>>;
 
 pub struct State<const N: usize> {
 	/// Map of parameters by name.
@@ -25,7 +26,7 @@ pub struct State<const N: usize> {
 	tree: Tree,
 
 	model: DynModel<N>,
-	substitutions: Substitutions<N>,
+	substitutions: Transitions<N>,
 
 	likelihoods: Vec<DynLikelihood<N>>,
 
@@ -61,7 +62,7 @@ impl<const N: usize> State<N> {
 			proposal_params: HashMap::new(),
 			tree,
 			model: models,
-			substitutions: Substitutions::new(num_edges),
+			substitutions: Transitions::new(num_edges),
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 		}
