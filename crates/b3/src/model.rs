@@ -20,7 +20,10 @@ pub enum DnaModel {
 		kappa: String,
 		probabilities: String,
 	},
-	Gtr {},
+	Gtr {
+		exchanges: String,
+		probabilities: String,
+	},
 }
 
 impl Model for DnaModel {
@@ -39,7 +42,73 @@ impl Model for DnaModel {
 
 				substitution::k80(kappa)
 			}
-			_ => todo!(),
+			DnaModel::F81 { probabilities } => {
+				let probabilities = state
+					.get_parameter(probabilities)
+					.unwrap()
+					.as_real()
+					.unwrap();
+
+				substitution::f81(
+					probabilities.values[0],
+					probabilities.values[1],
+					probabilities.values[2],
+					probabilities.values[3],
+				)
+			}
+			DnaModel::Hky {
+				kappa,
+				probabilities,
+			} => {
+				let kappa = state
+					.get_parameter(kappa)
+					.unwrap()
+					.as_real()
+					.unwrap()
+					.first();
+
+				let probabilities = state
+					.get_parameter(probabilities)
+					.unwrap()
+					.as_real()
+					.unwrap();
+
+				substitution::hky(
+					kappa,
+					probabilities.values[0],
+					probabilities.values[1],
+					probabilities.values[2],
+					probabilities.values[3],
+				)
+			}
+			DnaModel::Gtr {
+				exchanges,
+				probabilities,
+			} => {
+				let exchanges = state
+					.get_parameter(exchanges)
+					.unwrap()
+					.as_real()
+					.unwrap();
+
+				let probabilities = state
+					.get_parameter(probabilities)
+					.unwrap()
+					.as_real()
+					.unwrap();
+				substitution::gtr(
+					exchanges.values[0],
+					exchanges.values[1],
+					exchanges.values[2],
+					exchanges.values[3],
+					exchanges.values[4],
+					exchanges.values[5],
+					probabilities.values[0],
+					probabilities.values[1],
+					probabilities.values[2],
+					probabilities.values[3],
+				)
+			}
 		}
 	}
 }
