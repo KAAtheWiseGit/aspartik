@@ -7,7 +7,7 @@ use crate::{
 	likelihood::{CpuLikelihood, Likelihood, Row},
 	model::Model,
 	operator::Proposal,
-	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
+	parameter::Parameter,
 	transitions::Transitions,
 	tree::Tree,
 };
@@ -163,36 +163,6 @@ impl StateRef<'_> {
 		self.params.get(name).ok_or_else(|| {
 			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
 		})
-	}
-
-	pub fn get_real_parameter<S: AsRef<str>>(
-		&self,
-		name: S,
-	) -> Result<Option<&RealParam>> {
-		match self.get_parameter(name)? {
-			Parameter::Real(p) => Ok(Some(p)),
-			_ => Ok(None),
-		}
-	}
-
-	pub fn get_integer_parameter<S: AsRef<str>>(
-		&self,
-		name: S,
-	) -> Result<Option<&IntegerParam>> {
-		match self.get_parameter(name)? {
-			Parameter::Integer(p) => Ok(Some(p)),
-			_ => Ok(None),
-		}
-	}
-
-	pub fn get_boolean_parameter<S: AsRef<str>>(
-		&self,
-		name: S,
-	) -> Result<Option<&BooleanParam>> {
-		match self.get_parameter(name)? {
-			Parameter::Boolean(p) => Ok(Some(p)),
-			_ => Ok(None),
-		}
 	}
 
 	pub fn has_parameter<S: AsRef<str>>(&self, name: S) -> bool {

@@ -29,6 +29,13 @@ impl<T: Copy + PartialOrd> Param<T> {
 			// all items are true
 			.all(|x| x)
 	}
+
+	/// Get the first value of the parameter.
+	pub fn first(&self) -> T {
+		*self.values
+			.first()
+			.expect("Parameters must have at least one dimension")
+	}
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,11 +46,34 @@ pub enum Parameter {
 }
 
 impl Parameter {
+	/// Checks that the parameter is valid: all of its values must lie
+	/// within bounds.
 	pub fn is_valid(&self) -> bool {
 		match self {
 			Parameter::Real(p) => p.is_valid(),
 			Parameter::Integer(p) => p.is_valid(),
 			Parameter::Boolean(p) => p.is_valid(),
+		}
+	}
+
+	pub fn as_real(&self) -> Option<&RealParam> {
+		match self {
+			Parameter::Real(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn as_integer(&self) -> Option<&IntegerParam> {
+		match self {
+			Parameter::Integer(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn as_boolean(&self) -> Option<&BooleanParam> {
+		match self {
+			Parameter::Boolean(p) => Some(p),
+			_ => None,
 		}
 	}
 }

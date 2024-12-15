@@ -30,12 +30,12 @@ impl Model for DnaModel {
 		match self {
 			DnaModel::JukesCantor => substitution::jukes_cantor(),
 			DnaModel::K80 { kappa } => {
-				// TODO: a more ergonomic parameter API
 				let kappa = state
-					.get_real_parameter(kappa)
+					.get_parameter(kappa)
 					.unwrap()
+					.as_real()
 					.unwrap()
-					.values[0];
+					.first();
 
 				substitution::k80(kappa)
 			}

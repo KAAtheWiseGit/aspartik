@@ -10,12 +10,14 @@ pub struct Poisson {
 
 impl Probability for Poisson {
 	fn probability(&self, state: StateRef) -> f64 {
-		let Ok(Some(param)) =
-			state.get_integer_parameter(&self.parameter)
+		let Ok(Some(param)) = state
+			.get_parameter(&self.parameter)
+			.map(|p| p.as_integer())
 		else {
 			return f64::NEG_INFINITY;
 		};
-		let Ok(Some(lambda)) = state.get_real_parameter(&self.lambda)
+		let Ok(Some(lambda)) =
+			state.get_parameter(&self.lambda).map(|p| p.as_real())
 		else {
 			return f64::NEG_INFINITY;
 		};
@@ -33,7 +35,7 @@ impl Probability for Poisson {
 				lambda.powi(k as i32) * E.powf(-lambda)
 					/ factorial(k)
 			})
-			.map(|p| p.ln())
+			.map(|p: f64| p.ln())
 			.sum()
 	}
 }
