@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use std::ops::{Index, IndexMut};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Param<T: Copy + PartialOrd> {
 	pub values: Vec<T>,
@@ -35,6 +37,20 @@ impl<T: Copy + PartialOrd> Param<T> {
 		*self.values
 			.first()
 			.expect("Parameters must have at least one dimension")
+	}
+}
+
+impl<T: Copy + PartialOrd> Index<usize> for Param<T> {
+	type Output = T;
+
+	fn index(&self, index: usize) -> &Self::Output {
+		&self.values[index]
+	}
+}
+
+impl<T: Copy + PartialOrd> IndexMut<usize> for Param<T> {
+	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+		&mut self.values[index]
 	}
 }
 

@@ -50,10 +50,10 @@ impl Model for DnaModel {
 					.unwrap();
 
 				substitution::f81(
-					probabilities.values[0],
-					probabilities.values[1],
-					probabilities.values[2],
-					probabilities.values[3],
+					probabilities[0],
+					probabilities[1],
+					probabilities[2],
+					probabilities[3],
 				)
 			}
 			DnaModel::Hky {
@@ -75,10 +75,10 @@ impl Model for DnaModel {
 
 				substitution::hky(
 					kappa,
-					probabilities.values[0],
-					probabilities.values[1],
-					probabilities.values[2],
-					probabilities.values[3],
+					probabilities[0],
+					probabilities[1],
+					probabilities[2],
+					probabilities[3],
 				)
 			}
 			DnaModel::Gtr {
@@ -97,16 +97,16 @@ impl Model for DnaModel {
 					.as_real()
 					.unwrap();
 				substitution::gtr(
-					exchanges.values[0],
-					exchanges.values[1],
-					exchanges.values[2],
-					exchanges.values[3],
-					exchanges.values[4],
-					exchanges.values[5],
-					probabilities.values[0],
-					probabilities.values[1],
-					probabilities.values[2],
-					probabilities.values[3],
+					exchanges[0],
+					exchanges[1],
+					exchanges[2],
+					exchanges[3],
+					exchanges[4],
+					exchanges[5],
+					probabilities[0],
+					probabilities[1],
+					probabilities[2],
+					probabilities[3],
 				)
 			}
 		}
