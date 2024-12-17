@@ -100,8 +100,12 @@ impl Tree {
 		self.walk_nodes(&internals)
 	}
 
-	pub fn to_lists(&self, nodes: &[Internal]) -> (Vec<usize>, Vec<usize>) {
+	pub fn to_lists(
+		&self,
+		nodes: &[Internal],
+	) -> (Vec<usize>, Vec<usize>, Vec<usize>) {
 		let mut out_nodes = Vec::new();
+		let mut edges = Vec::new();
 		let mut children = Vec::new();
 
 		for node in nodes {
@@ -109,9 +113,12 @@ impl Tree {
 			let (left, right) = self.children_of(*node);
 			children.push(left.0);
 			children.push(right.0);
+
+			edges.push(self.edge_index(left));
+			edges.push(self.edge_index(right));
 		}
 
-		(out_nodes, children)
+		(out_nodes, edges, children)
 	}
 
 	fn walk_nodes(&self, nodes: &[Node]) -> Vec<Internal> {
@@ -120,9 +127,10 @@ impl Tree {
 
 		for node in nodes {
 			let mut chain = Vec::new();
-			let mut curr = self
-				.as_internal(*node)
-				.unwrap_or_else(|| self.parent_of(*node).unwrap());
+			let mut curr =
+				self.as_internal(*node).unwrap_or_else(|| {
+					self.parent_of(*node).unwrap()
+				});
 
 			// Walk up from the starting nodes until the root, stop
 			// when we encounter a node we have already walked.

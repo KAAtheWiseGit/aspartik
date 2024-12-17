@@ -93,7 +93,6 @@ impl<const N: usize> State<N> {
 		// If the matrix has changed, `full` is true
 		let full =
 			self.transitions.update(substitution, make_ref!(self));
-		let substitutions = self.transitions.matrices();
 
 		let nodes = if full {
 			// Full update, as matrices impact likelihoods
@@ -102,10 +101,12 @@ impl<const N: usize> State<N> {
 			self.tree.nodes_to_update()
 		};
 
-		let (nodes, children) = self.tree.to_lists(&nodes);
+		let (nodes, edges, children) = self.tree.to_lists(&nodes);
+
+		let transitions = self.transitions.matrices(&edges);
 
 		for likelihood in &mut self.likelihoods {
-			likelihood.propose(&nodes, &substitutions, &children);
+			likelihood.propose(&nodes, &transitions, &children);
 		}
 	}
 

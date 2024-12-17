@@ -21,15 +21,13 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 		assert_eq!(nodes.len() * 2, substitutions.len());
 		assert_eq!(nodes.len() * 2, children.len());
 
-		let num_leaves = (self.probabilities[0].len() + 1) / 2;
 		self.updated_nodes = nodes.to_vec();
 
 		for probability in &mut self.probabilities {
 			for i in 0..nodes.len() {
-				let left = substitutions[(i - num_leaves) * 2]
+				let left = substitutions[i * 2]
 					* probability[children[i * 2]];
-				let right = substitutions
-					[(i - num_leaves) * 2 + 1]
+				let right = substitutions[i * 2 + 1]
 					* probability[children[i * 2 + 1]];
 				probability.set(i, left * right);
 			}

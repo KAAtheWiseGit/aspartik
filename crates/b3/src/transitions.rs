@@ -79,7 +79,13 @@ impl<const N: usize> Transitions<N> {
 		self.transitions.reject();
 	}
 
-	pub fn matrices(&self) -> Vec<RowMatrix<f64, N, N>> {
-		self.transitions.iter().copied().collect()
+	pub fn matrices(&self, edges: &[usize]) -> Vec<RowMatrix<f64, N, N>> {
+		let mut out = Vec::with_capacity(edges.len());
+
+		for edge in edges {
+			out.push(self.transitions[*edge])
+		}
+
+		out
 	}
 }
