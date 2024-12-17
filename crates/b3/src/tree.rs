@@ -37,10 +37,10 @@ impl From<Leaf> for Node {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Internal(usize);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Leaf(usize);
 
 impl Tree {
@@ -90,44 +90,63 @@ impl Tree {
 	}
 
 	// should retrun `Internal`
-	pub fn nodes_to_update(&self) -> Vec<usize> {
+	pub fn nodes_to_update(&self) -> Vec<Internal> {
 		self.walk_nodes(&self.updated_nodes)
 	}
 
-	pub fn full_update(&self) -> Vec<usize> {
+	pub fn full_update(&self) -> Vec<Internal> {
 		let internals: Vec<Node> =
 			self.internals().map(|n| n.into()).collect();
 		self.walk_nodes(&internals)
 	}
 
-	fn walk_nodes(&self, nodes: &[Node]) -> Vec<usize> {
-		let mut deq = VecDeque::<usize>::new();
-		let mut set = HashSet::<usize>::new();
+	pub fn to_lists(&self, nodes: &[Internal]) -> (Vec<usize>, Vec<usize>) {
+		let mut out_nodes = Vec::new();
+		let mut children = Vec::new();
 
 		for node in nodes {
-			let mut curr = node.0;
+			out_nodes.push(node.0);
+			let (left, right) = self.children_of(*node);
+			children.push(left.0);
+			children.push(right.0);
+		}
+
+		(out_nodes, children)
+	}
+
+	fn walk_nodes(&self, nodes: &[Node]) -> Vec<Internal> {
+		let mut deq = VecDeque::<Internal>::new();
+		let mut set = HashSet::<Internal>::new();
+
+		for node in nodes {
 			let mut chain = Vec::new();
+			let mut curr = self
+				.as_internal(*node)
+				.unwrap_or_else(|| self.parent_of(*node).unwrap());
 
 			// Walk up from the starting nodes until the root, stop
 			// when we encounter a node we have already walked.
-			while !set.contains(&curr) && curr != ROOT {
-				set.insert(curr);
-
-				// If the node is internal, add it to the
-				// current chain.
-				if curr >= self.num_leaves() {
-					chain.push(curr);
+			loop {
+				if set.contains(&curr) {
+					break;
 				}
 
-				curr = self.parents[curr];
+				set.insert(curr);
+				chain.push(curr);
+
+				if let Some(parent) = self.parent_of(curr) {
+					curr = parent;
+				} else {
+					break;
+				}
 			}
 
 			// Prepend the chain to the deque.  The first chain will
 			// insert the root node and walk backwards.  All of the
 			// rest will also go in the front, ensuring that
 			// children always go befor their parents.
-			while let Some(val) = chain.pop() {
-				deq.push_front(val);
+			while let Some(node) = chain.pop() {
+				deq.push_front(node);
 			}
 		}
 

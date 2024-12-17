@@ -102,9 +102,10 @@ impl<const N: usize> State<N> {
 			self.tree.nodes_to_update()
 		};
 
+		let (nodes, children) = self.tree.to_lists(&nodes);
+
 		for likelihood in &mut self.likelihoods {
-			// TODO: get children from the tree
-			likelihood.propose(&nodes, &substitutions, &[]);
+			likelihood.propose(&nodes, &substitutions, &children);
 		}
 	}
 
