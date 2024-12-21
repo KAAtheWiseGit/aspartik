@@ -91,10 +91,9 @@ impl<C: Character> Seq<C> {
 		Seq { inner: Vec::new() }
 	}
 
-	pub fn reverse(&self) -> Self {
-		let mut out = self.clone();
-		out.inner.reverse();
-		out
+	/// Reverses the characters in-place.
+	pub fn reverse(&mut self) {
+		self.inner.reverse();
 	}
 
 	pub fn append(&mut self, mut other: Self) {
@@ -133,11 +132,21 @@ impl<C: Character> Seq<C> {
 
 // DNA-specific methods
 impl DnaSeq {
-	fn complement(&self) -> Self {
+	/// Returns the sequence complement of `self`.  Note that this function
+	/// doesn't reverse the direction of the sequence, use
+	/// [`reverse_complement`][`DnaSeq::reverse_complement`] for that.
+	pub fn complement(&self) -> Self {
 		let mut out = self.clone();
 		for base in out.inner.iter_mut() {
 			*base = base.complement();
 		}
+		out
+	}
+
+	pub fn reverse_complement(&self) -> Self {
+		let mut out = self.complement();
+		out.reverse();
+
 		out
 	}
 }
@@ -161,5 +170,12 @@ mod test {
 		assert_eq!(s.count(DnaNucleoBase::Cytosine), 12);
 		assert_eq!(s.count(DnaNucleoBase::Guanine), 17);
 		assert_eq!(s.count(DnaNucleoBase::Thymine), 21);
+	}
+
+	#[test]
+	fn dna_complement() {
+		let s: DnaSeq = "AAAACCCGGT".try_into().unwrap();
+
+		assert_eq!(s.reverse_complement().to_string(), "ACCGGGTTTT");
 	}
 }
