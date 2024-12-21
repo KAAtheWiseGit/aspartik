@@ -30,46 +30,14 @@ pub type DnaSeq = Seq<DnaNucleoBase>;
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct Seq<C: Character> {
-	value: Vec<C>,
-}
-
-impl<C: Character> Seq<C> {
-	pub fn new() -> Self {
-		Seq { value: Vec::new() }
-	}
-
-	pub fn reverse(&self) -> Self {
-		let mut out = self.clone();
-		out.value.reverse();
-		out
-	}
-
-	pub fn append(&mut self, mut other: Self) {
-		self.value.append(&mut other.value);
-	}
-
-	pub fn push(&mut self, character: C) {
-		self.value.push(character);
-	}
-
-	pub fn iter(&self) -> std::slice::Iter<'_, C> {
-		self.value.iter()
-	}
-
-	pub fn len(&self) -> usize {
-		self.value.len()
-	}
-
-	pub fn is_empty(&self) -> bool {
-		self.value.is_empty()
-	}
+	inner: Vec<C>,
 }
 
 impl<C: Character> Display for Seq<C> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let mut s = String::new();
 
-		for item in &self.value {
+		for item in &self.inner {
 			s.push((*item).into());
 		}
 
@@ -81,10 +49,10 @@ impl<C: Character> TryFrom<&str> for Seq<C> {
 	type Error = Error;
 
 	fn try_from(value: &str) -> Result<Self> {
-		let mut out = Seq { value: Vec::new() };
+		let mut out = Seq { inner: Vec::new() };
 
 		for char in value.chars() {
-			out.value.push(char.try_into().with_context(|| {
+			out.inner.push(char.try_into().with_context(|| {
 				let width = out.len();
 				format!("\n\tAn illegal character encountered in the sequence:\n> {}\n> {:width$}^", value, "")
 			})?);
@@ -98,13 +66,13 @@ impl<C: Character> Index<usize> for Seq<C> {
 	type Output = C;
 
 	fn index(&self, index: usize) -> &Self::Output {
-		&self.value[index]
+		&self.inner[index]
 	}
 }
 
 impl<C: Character> IndexMut<usize> for Seq<C> {
 	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-		&mut self.value[index]
+		&mut self.inner[index]
 	}
 }
 
@@ -117,10 +85,44 @@ impl<'a, C: Character> IntoIterator for &'a Seq<C> {
 	}
 }
 
+// Character-agnostic methods
+impl<C: Character> Seq<C> {
+	pub fn new() -> Self {
+		Seq { inner: Vec::new() }
+	}
+
+	pub fn reverse(&self) -> Self {
+		let mut out = self.clone();
+		out.inner.reverse();
+		out
+	}
+
+	pub fn append(&mut self, mut other: Self) {
+		self.inner.append(&mut other.inner);
+	}
+
+	pub fn push(&mut self, character: C) {
+		self.inner.push(character);
+	}
+
+	pub fn iter(&self) -> std::slice::Iter<'_, C> {
+		self.inner.iter()
+	}
+
+	pub fn len(&self) -> usize {
+		self.inner.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.inner.is_empty()
+	}
+}
+
+// DNA-specific methods
 impl DnaSeq {
 	fn complement(&self) -> Self {
 		let mut out = self.clone();
-		for base in out.value.iter_mut() {
+		for base in out.inner.iter_mut() {
 			*base = base.complement();
 		}
 		out
