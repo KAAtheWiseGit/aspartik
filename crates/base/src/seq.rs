@@ -45,11 +45,21 @@ impl<C: Character> Display for Seq<C> {
 	}
 }
 
+impl<C: Character> From<&[C]> for Seq<C> {
+	fn from(value: &[C]) -> Self {
+		Seq {
+			inner: value.into(),
+		}
+	}
+}
+
 impl<C: Character> TryFrom<&str> for Seq<C> {
 	type Error = Error;
 
 	fn try_from(value: &str) -> Result<Self> {
-		let mut out = Seq { inner: Vec::new() };
+		let mut out = Seq {
+			inner: Vec::with_capacity(value.len()),
+		};
 
 		for char in value.chars() {
 			out.inner.push(char.try_into().with_context(|| {
@@ -114,6 +124,17 @@ impl<C: Character> Seq<C> {
 
 	pub fn is_empty(&self) -> bool {
 		self.inner.is_empty()
+	}
+
+	/// Returns the underlying character slice.
+	pub fn as_slice(&self) -> &[C] {
+		&self.inner
+	}
+
+	/// Returns the character slice which backs the sequence.  Mutating it
+	/// will change the sequence accordingly.
+	pub fn as_mut_slice(&mut self) -> &mut [C] {
+		&mut self.inner
 	}
 
 	/// Counts how many times the character `c` occurs in the sequence.
