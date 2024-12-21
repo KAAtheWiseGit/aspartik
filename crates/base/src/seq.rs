@@ -128,6 +128,26 @@ impl<C: Character> Seq<C> {
 
 		out
 	}
+
+	/// Calculates the Hamming distance between two sequences.
+	///
+	///
+	/// # Panics
+	///
+	/// Panics if lengths of the sequences are not equal.
+	pub fn hamming_distance(&self, other: &Self) -> usize {
+		assert_eq!(self.len(), other.len());
+
+		let mut out = 0;
+
+		for i in 0..self.len() {
+			if self[i] != other[i] {
+				out += 1;
+			}
+		}
+
+		out
+	}
 }
 
 // DNA-specific methods
@@ -177,5 +197,13 @@ mod test {
 		let s: DnaSeq = "AAAACCCGGT".try_into().unwrap();
 
 		assert_eq!(s.reverse_complement().to_string(), "ACCGGGTTTT");
+	}
+
+	#[test]
+	fn hamming() {
+		let s1: DnaSeq = "GAGCCTACTAACGGGAT".try_into().unwrap();
+		let s2: DnaSeq = "CATCGTAATGACGGCCT".try_into().unwrap();
+
+		assert_eq!(s1.hamming_distance(&s2), 7);
 	}
 }
