@@ -116,6 +116,19 @@ impl<C: Character> Seq<C> {
 	pub fn is_empty(&self) -> bool {
 		self.inner.is_empty()
 	}
+
+	/// Counts how many times the character `c` occurs in the sequence.
+	pub fn count(&self, c: C) -> usize {
+		let mut out = 0;
+
+		for current in self.iter().copied() {
+			if current == c {
+				out += 1
+			}
+		}
+
+		out
+	}
 }
 
 // DNA-specific methods
@@ -138,5 +151,15 @@ mod test {
 		let s = "ACTGxACTG";
 		let seq: Result<Seq<DnaNucleoBase>> = s.try_into();
 		assert!(seq.is_err());
+	}
+
+	#[test]
+	fn count() {
+		let s: DnaSeq = "AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC".try_into().unwrap();
+
+		assert_eq!(s.count(DnaNucleoBase::Adenine), 20);
+		assert_eq!(s.count(DnaNucleoBase::Cytosine), 12);
+		assert_eq!(s.count(DnaNucleoBase::Guanine), 17);
+		assert_eq!(s.count(DnaNucleoBase::Thymine), 21);
 	}
 }
