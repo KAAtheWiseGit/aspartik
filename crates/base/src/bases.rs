@@ -12,21 +12,22 @@ pub enum NucleoBaseError {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum DnaNucleoBase {
-	Guanine = 0b0001,
-	Adenine = 0b0010,
-	Thymine = 0b0100,
-	Cytosine = 0b1000,
+	Adenine = 0b0001,
+	Cytosine = 0b0010,
+	Guanine = 0b0100,
+	Thymine = 0b1000,
 
-	Purine = 0b0011,
-	Pyrimidine = 0b1100,
-	Amino = 0b1010,
-	Keto = 0b0101,
-	Strong = 0b1001,
-	Weak = 0b0110,
-	NotGuanine = 0b1110,
-	NotAdenine = 0b1101,
-	NotThymine = 0b1011,
-	NotCytosine = 0b0111,
+	Weak = 0b1001,
+	Strong = 0b0110,
+	Amino = 0b1100,
+	Ketone = 0b0011,
+	Purine = 0b0101,
+	Pyrimidine = 0b1010,
+
+	NotAdenine = 0b1110,
+	NotCytosine = 0b1101,
+	NotGuanine = 0b1011,
+	NotThymine = 0b0111,
 
 	Any = 0b1111,
 
@@ -44,23 +45,25 @@ impl TryFrom<u8> for DnaNucleoBase {
 
 	fn try_from(value: u8) -> Result<Self, Self::Error> {
 		Ok(match value {
-			0b0001 => Self::Guanine,
-			0b0010 => Self::Adenine,
-			0b0100 => Self::Thymine,
-			0b1000 => Self::Cytosine,
+			0b0001 => Self::Adenine,
+			0b0010 => Self::Cytosine,
+			0b0100 => Self::Guanine,
+			0b1000 => Self::Thymine,
 
-			0b0011 => Self::Purine,
-			0b1100 => Self::Pyrimidine,
-			0b1010 => Self::Amino,
-			0b0101 => Self::Keto,
-			0b1001 => Self::Strong,
-			0b0110 => Self::Weak,
-			0b1110 => Self::NotGuanine,
-			0b1101 => Self::NotAdenine,
-			0b1011 => Self::NotThymine,
-			0b0111 => Self::NotCytosine,
+			0b1001 => Self::Weak,
+			0b0110 => Self::Strong,
+			0b1100 => Self::Amino,
+			0b0011 => Self::Ketone,
+			0b0101 => Self::Purine,
+			0b1010 => Self::Pyrimidine,
+
+			0b1110 => Self::NotAdenine,
+			0b1101 => Self::NotCytosine,
+			0b1011 => Self::NotGuanine,
+			0b0111 => Self::NotThymine,
 
 			0b1111 => Self::Any,
+
 			0b1_0000 => Self::Gap,
 
 			_ => Err(NucleoBaseError::InvalidByte(value))?,
@@ -74,21 +77,22 @@ impl TryFrom<char> for DnaNucleoBase {
 	// https://genome.ucsc.edu/goldenPath/help/iupac.html
 	fn try_from(value: char) -> Result<Self, Self::Error> {
 		Ok(match value {
-			'G' => Self::Guanine,
 			'A' => Self::Adenine,
-			'T' => Self::Thymine,
 			'C' => Self::Cytosine,
+			'G' => Self::Guanine,
+			'T' => Self::Thymine,
 
+			'W' => Self::Weak,
+			'S' => Self::Strong,
+			'M' => Self::Amino,
+			'K' => Self::Ketone,
 			'R' => Self::Purine,
 			'Y' => Self::Pyrimidine,
-			'M' => Self::Amino,
-			'K' => Self::Keto,
-			'S' => Self::Strong,
-			'W' => Self::Weak,
-			'H' => Self::NotGuanine,
+
 			'B' => Self::NotAdenine,
-			'V' => Self::NotThymine,
 			'D' => Self::NotCytosine,
+			'H' => Self::NotGuanine,
+			'V' => Self::NotThymine,
 
 			'N' => Self::Any,
 			'-' => Self::Gap,
@@ -101,21 +105,22 @@ impl TryFrom<char> for DnaNucleoBase {
 impl From<DnaNucleoBase> for char {
 	fn from(value: DnaNucleoBase) -> char {
 		match value {
-			DnaNucleoBase::Guanine => 'G',
 			DnaNucleoBase::Adenine => 'A',
-			DnaNucleoBase::Thymine => 'T',
 			DnaNucleoBase::Cytosine => 'C',
+			DnaNucleoBase::Guanine => 'G',
+			DnaNucleoBase::Thymine => 'T',
 
+			DnaNucleoBase::Weak => 'W',
+			DnaNucleoBase::Strong => 'S',
+			DnaNucleoBase::Amino => 'M',
+			DnaNucleoBase::Ketone => 'K',
 			DnaNucleoBase::Purine => 'R',
 			DnaNucleoBase::Pyrimidine => 'Y',
-			DnaNucleoBase::Amino => 'M',
-			DnaNucleoBase::Keto => 'K',
-			DnaNucleoBase::Strong => 'S',
-			DnaNucleoBase::Weak => 'W',
-			DnaNucleoBase::NotGuanine => 'H',
+
 			DnaNucleoBase::NotAdenine => 'B',
-			DnaNucleoBase::NotThymine => 'V',
 			DnaNucleoBase::NotCytosine => 'D',
+			DnaNucleoBase::NotGuanine => 'H',
+			DnaNucleoBase::NotThymine => 'V',
 
 			DnaNucleoBase::Any => 'N',
 			DnaNucleoBase::Gap => '-',
@@ -130,22 +135,22 @@ impl DnaNucleoBase {
 
 	pub fn complement(&self) -> Self {
 		match self {
-			Self::Guanine => Self::Cytosine,
 			Self::Adenine => Self::Thymine,
-			Self::Thymine => Self::Adenine,
 			Self::Cytosine => Self::Guanine,
+			Self::Guanine => Self::Cytosine,
+			Self::Thymine => Self::Adenine,
 
+			Self::Weak => Self::Strong,
+			Self::Strong => Self::Weak,
+			Self::Amino => Self::Ketone,
+			Self::Ketone => Self::Amino,
 			Self::Purine => Self::Pyrimidine,
 			Self::Pyrimidine => Self::Purine,
-			Self::Amino => Self::Keto,
-			Self::Keto => Self::Amino,
-			Self::Strong => Self::Weak,
-			Self::Weak => Self::Strong,
 
-			Self::NotGuanine => Self::NotCytosine,
 			Self::NotAdenine => Self::NotThymine,
-			Self::NotThymine => Self::NotAdenine,
 			Self::NotCytosine => Self::NotGuanine,
+			Self::NotGuanine => Self::NotCytosine,
+			Self::NotThymine => Self::NotAdenine,
 
 			Self::Any => Self::Any,
 			Self::Gap => Self::Gap,
