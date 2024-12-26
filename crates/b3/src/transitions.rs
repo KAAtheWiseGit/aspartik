@@ -41,6 +41,12 @@ impl<const N: usize> Transitions<N> {
 		let full_update = substitution != self.current;
 		if full_update {
 			self.current = substitution;
+
+			self.diag = RowMatrix::from_diagonal(
+				substitution.eigenvalues(),
+			);
+			self.p = substitution.eigenvectors();
+			self.inv_p = self.p.inverse();
 		}
 
 		let edges: Vec<usize> = if full_update {
