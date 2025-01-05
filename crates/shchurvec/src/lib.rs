@@ -1,6 +1,6 @@
 mod eq;
 
-use std::{ mem::MaybeUninit, ops::Index};
+use std::{mem::MaybeUninit, ops::Index};
 
 // TODO: docs: element vs item, description of the inner workings.
 #[derive(Debug)]
@@ -397,6 +397,18 @@ impl<T> ShchurVec<T> {
 
 impl<T: Clone> From<&[T]> for ShchurVec<T> {
 	fn from(values: &[T]) -> Self {
+		let mut out = Self::with_capacity(values.len());
+
+		for value in values {
+			out.push(value.clone());
+		}
+
+		out
+	}
+}
+
+impl<T: Clone, const N: usize> From<[T; N]> for ShchurVec<T> {
+	fn from(values: [T; N]) -> Self {
 		let mut out = Self::with_capacity(values.len());
 
 		for value in values {
