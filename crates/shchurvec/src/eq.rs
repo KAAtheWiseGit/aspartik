@@ -36,6 +36,12 @@ impl<T: PartialEq, const N: usize> PartialEq<[T; N]> for ShchurVec<T> {
 	}
 }
 
+impl<T: PartialEq> PartialEq<Vec<T>> for ShchurVec<T> {
+	fn eq(&self, other: &Vec<T>) -> bool {
+		impl_inside!(self, other)
+	}
+}
+
 impl<T: PartialEq> PartialEq<ShchurVec<T>> for [T] {
 	fn eq(&self, other: &ShchurVec<T>) -> bool {
 		impl_inside!(self, other)
@@ -43,6 +49,12 @@ impl<T: PartialEq> PartialEq<ShchurVec<T>> for [T] {
 }
 
 impl<T: PartialEq, const N: usize> PartialEq<ShchurVec<T>> for [T; N] {
+	fn eq(&self, other: &ShchurVec<T>) -> bool {
+		impl_inside!(self, other)
+	}
+}
+
+impl<T: PartialEq> PartialEq<ShchurVec<T>> for Vec<T> {
 	fn eq(&self, other: &ShchurVec<T>) -> bool {
 		impl_inside!(self, other)
 	}
