@@ -2,7 +2,16 @@ mod eq;
 
 use std::{mem::MaybeUninit, ops::Index};
 
-// TODO: docs: element vs item, description of the inner workings.
+/// Epoch-versioned `Vec`-like storage.  See crate-level documentation for usage
+/// examples.
+///
+/// `ShchurVec` is made up of *elements*.  Each element is addressable by its
+/// index and is made out of two *items*.  The first item is the original value
+/// of the element in a single epoch.  The second one is the new, edited value,
+/// created with [`set`][ShchurVec::set].  On [`accept`][ShchurVec::accept] the
+/// second item will become the primary one and the old one will be erased.  And
+/// on [`reject`][ShchurVec::reject] the second item will be erased, with the
+/// element falling back to the original one.
 #[derive(Debug)]
 pub struct ShchurVec<T> {
 	/// The underlying storage.  It's twice as long as the number of items
