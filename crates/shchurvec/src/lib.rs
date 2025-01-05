@@ -404,3 +404,17 @@ impl<T: Clone> From<&[T]> for ShchurVec<T> {
 		out
 	}
 }
+
+/// Works identically to [`vec!`].
+#[macro_export]
+macro_rules! shchurvec {
+	() => {
+		$crate::ShchurVec::new()
+	};
+	($elem:expr; $n:expr) => {
+		$crate::ShchurVec::repeat($elem, $n)
+	};
+	($($x:expr),+ $(,)?) => {
+		$crate::ShchurVec::from([$($x),+])
+	}
+}
