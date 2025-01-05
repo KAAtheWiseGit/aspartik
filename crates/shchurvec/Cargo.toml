@@ -6,4 +6,10 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
-[dependencies]
+[dev-dependencies]
+criterion = { workspace = true, features = ["html_reports"] }
+rand = { workspace = true, features = ["small_rng"] }
+
+[[bench]]
+name = "double"
+harness = false
