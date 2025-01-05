@@ -128,13 +128,21 @@ impl<T> ShchurVec<T> {
 	/// operations (via [`ShchurVec::index`] or the `[]` operator) will
 	/// return the updated item which equals value.
 	pub fn set(&mut self, index: usize, value: T) {
+		// If we are overwriting an older item, drop it.
+		if self.edited[index] {
+			// SAFETY: if the item has been edited, it must have a
+			// valid value.
+			unsafe {
+				self.active_inner_mut(index).assume_init_drop();
+			}
+		}
+
 		if !self.edited[index] {
 			self.mask[index] ^= 1;
 			self.edited[index] = true;
 		}
 
-		self.inner[index * 2 + self.mask[index] as usize] =
-			MaybeUninit::new(value);
+		*self.active_inner_mut(index) = MaybeUninit::new(value);
 	}
 
 	/// Roll back the item at `index`.

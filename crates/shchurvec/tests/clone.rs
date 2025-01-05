@@ -74,6 +74,14 @@ fn r#macro() {
 
 #[test]
 fn set() {
+	let mut v = shchurvec![Leak::new(); 10];
+	v.set(0, Leak::new());
+	v.set(9, Leak::new());
+	assert_no_leak!(v);
+}
+
+#[test]
+fn double_set() {
 	let mut v = shchurvec![Leak::new()];
 	v.set(0, Leak::new());
 	v.set(0, Leak::new());
