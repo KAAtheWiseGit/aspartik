@@ -1,14 +1,14 @@
 use std::{mem::MaybeUninit, ops::Index};
 
-// TODO: docs, glossary: item vs value, description of the inner workings.
+// TODO: docs: element vs item, description of the inner workings.
 #[derive(Debug)]
 pub struct ShchurVec<T> {
-	/// The actual storage.  It's twice as long as the number of items
-	/// `ShchurVec` can hold at a time.  Each item takes up two values in
-	/// `inner`, only one of which is active, determined by the `mask` at
+	/// The underlying storage.  It's twice as long as the number of items
+	/// `ShchurVec` can hold at a time.  Each element consits of two items
+	/// in `inner`, only one of which is active, determined by the `mask` at
 	/// the index.
 	inner: Vec<MaybeUninit<T>>,
-	/// True if the value had been edited.  It uses the `bool` type, which
+	/// True if an element had been edited.  It uses the `bool` type, which
 	/// is guaranteed to be one byte:
 	///
 	/// - <https://doc.rust-lang.org/std/mem/fn.size_of.html#:~:text=bool>
@@ -20,7 +20,7 @@ pub struct ShchurVec<T> {
 	///
 	/// - Masks must have the values of either 0 or 1.
 	///
-	/// - Masks must point at initialized memory.  When an value pair is
+	/// - Masks must point at initialized memory.  When an element is
 	///   created for the first time, the 0th one is presumed to be
 	///   initialized.  This can change after an `accept` call.
 	mask: Vec<u8>,
@@ -28,11 +28,12 @@ pub struct ShchurVec<T> {
 
 // Memoization-related methods
 impl<T> ShchurVec<T> {
+	/// Returns the currently active item at index `i`.
 	fn active_inner(&self, i: usize) -> &MaybeUninit<T> {
 		&self.inner[i * 2 + self.mask[i] as usize]
 	}
 
-	/// The slot at index `i` pointed at by the mask.
+	/// Mutable version of [`active_inner`][ShchurVec::active_inner].
 	fn active_inner_mut(&mut self, i: usize) -> &mut MaybeUninit<T> {
 		&mut self.inner[i * 2 + self.mask[i] as usize]
 	}
@@ -52,13 +53,14 @@ impl<T> ShchurVec<T> {
 		}
 	}
 
-	/// See [`ShchurVec::active_inner_drop`].
+	/// [`ShchurVec::active_inner_drop`] for the inactive item.
 	unsafe fn inactive_inner_drop(&mut self, i: usize) {
 		if std::mem::needs_drop::<T>() {
 			self.inactive_inner_mut(i).assume_init_drop();
 		}
 	}
 
+	/// Zero-out the edited status array.
 	fn clear_edited(&mut self) {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
@@ -66,17 +68,18 @@ impl<T> ShchurVec<T> {
 	/// Accept all of the changes made since the creation of the vector or
 	/// the last call to `accept` or [`reject`][ShchurVec::reject].
 	///
-	/// If `T` is [`Drop`], all of the overwritten values will be dropped.
-	/// If `T` is not [`Drop`], this method is very fast.
+	/// If `T` is [`Drop`], all of the overwritten elements will be dropped,
+	/// which will take awhile for long arrays.  If `T` is not [`Drop`],
+	/// this method much faster.
 	pub fn accept(&mut self) {
 		// Don't waste time dropping values which don't need it.
 		if std::mem::needs_drop::<T>() {
 			for i in 0..self.len() {
 				if self.edited[i] {
-					// SAFETY: Only initialized values can
-					// be edited.  Since the value at index
-					// `i` has been set, it must've been
-					// initialized.
+					// SAFETY: Only initialized elements can
+					// be edited.  Since the element at
+					// index `i` has been updated, it
+					// must've been initialized.
 					unsafe {
 						self.inactive_inner_drop(i);
 					}
@@ -87,20 +90,21 @@ impl<T> ShchurVec<T> {
 		self.clear_edited();
 	}
 
-	/// Reject all of the changes made this epoch.  All edited values will
-	/// be dropped and the items will roll back to their old values.
+	/// Reject all of the changes made this epoch.  All edited items will be
+	/// dropped and the items will roll back to their old values.
 	///
-	/// This method is much slower than `accept` for non-[`Drop`] values, as
-	/// it has to iterate over the vector to search for edited values.
+	/// This method is much slower than `accept` for non-[`Drop`] types, as
+	/// it has to iterate over the vector to search for edited elements.
 	pub fn reject(&mut self) {
 		// Additional check on top to ensure that `reject` doesn't even
 		// contain the loop when `T` isn't `Drop`.
 		if std::mem::needs_drop::<T>() {
 			for i in 0..self.len() {
 				if self.edited[i] {
-					// SAFETY: only initialized values can
-					// be set.  Since the value at index `i`
-					// was set, it must've been initialized.
+					// SAFETY: only initialized elements can
+					// be changed.  Since the element at
+					// index `i` was updated, it must've
+					// been initialized.
 					unsafe {
 						self.active_inner_drop(i);
 					}
@@ -110,7 +114,7 @@ impl<T> ShchurVec<T> {
 
 		for i in 0..self.len() {
 			if self.edited[i] {
-				// Point back to the old value.
+				// Point back to the old item.
 				self.mask[i] ^= 1;
 			}
 		}
@@ -119,8 +123,8 @@ impl<T> ShchurVec<T> {
 	}
 
 	/// Sets the item at `index` to `value`.  All of the subsequent index
-	/// operations (via [`ShchurVec::index`] or `[]`) will return this new
-	/// value.
+	/// operations (via [`ShchurVec::index`] or the `[]` operator) will
+	/// return the updated item which equals value.
 	pub fn set(&mut self, index: usize, value: T) {
 		if !self.edited[index] {
 			self.mask[index] ^= 1;
@@ -133,8 +137,8 @@ impl<T> ShchurVec<T> {
 
 	/// Roll back the item at `index`.
 	///
-	/// - If the item was edited, this will drop the edited value if needed
-	///   and roll back to the old value.  It will not be affected by
+	/// - If the item was edited, this will drop the edited item if needed
+	///   and roll back to the old one.  It will not be affected by
 	///   subsequent calls to [`accept`][`ShchurVec::accept`] or
 	///   [`reject`][`ShchurVec::reject`].
 	///
@@ -156,7 +160,7 @@ impl<T> ShchurVec<T> {
 	///
 	/// This function acts independently of the `accept` and `reject`
 	/// methods.  A subsequent call to either of those won't change the
-	/// value or status of the accepted item.
+	/// element or status of the accepted item.
 	///
 	/// Essentially, this is an item-local version of `accept`.
 	pub fn accept_item(&mut self, index: usize) {
@@ -197,14 +201,14 @@ impl<T> Index<usize> for ShchurVec<T> {
 	fn index(&self, index: usize) -> &T {
 		// SAFETY:
 		//
-		// - When a value is added to the vector for the first time,
-		//   it's initialized and mask points at it.
+		// - When an element is added to the vector for the first time,
+		//   it's initialized and the mask points at it.
 		//
-		// - When a value is set, mask is moved to point to that
-		//   initialized value.
+		// - When an element is set, mask is moved to point to the
+		//   item.
 		//
 		// - During `accept` and `reject` the invariant of `mask`
-		//   pointing to the initialized values should be preserved.
+		//   pointing to the initialized items should be preserved.
 		//
 		// All of that means that this is sound, as long as mutating
 		// methods, constructors, `accept`, `reject`, `set`, and in
@@ -371,13 +375,16 @@ impl<T> ShchurVec<T> {
 }
 
 // Custom
-impl<T: Copy> ShchurVec<T> {
-	// TODO: replace with a macro
-	pub fn repeat(value: T, length: usize) -> Self {
+impl<T> ShchurVec<T> {
+	/// Constructs a vector made out of `value` repeated `length` times.
+	pub fn repeat(value: T, length: usize) -> Self
+	where
+		T: Clone,
+	{
 		let mut out = ShchurVec::with_capacity(length);
 
 		for _ in 0..length {
-			out.push(value);
+			out.push(value.clone());
 		}
 
 		out
