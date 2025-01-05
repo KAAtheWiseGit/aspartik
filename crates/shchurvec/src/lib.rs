@@ -1,4 +1,6 @@
-use std::{mem::MaybeUninit, ops::Index};
+mod eq;
+
+use std::{ mem::MaybeUninit, ops::Index};
 
 // TODO: docs: element vs item, description of the inner workings.
 #[derive(Debug)]
