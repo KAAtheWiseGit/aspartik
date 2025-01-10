@@ -12,7 +12,7 @@ use b3::{
 	probability::Compound,
 	Distribution, Logger, State, Tree,
 };
-use base::{seq::DnaSeq, DnaNucleoBase};
+use core::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 

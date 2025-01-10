@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-base = { path = "../base" }
+core = { path = "../core" }
 
 anyhow = { workspace = true }
 nom = { workspace = true }

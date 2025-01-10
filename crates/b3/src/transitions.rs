@@ -1,4 +1,4 @@
-use base::substitution::Substitution;
+use core::substitution::Substitution;
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 

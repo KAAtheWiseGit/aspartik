@@ -3,7 +3,7 @@ use crossbeam_channel::{bounded, select, Receiver, Sender};
 use std::thread;
 
 use super::{CpuLikelihood, Likelihood};
-use base::substitution::{Row, Substitution};
+use core::substitution::{Row, Substitution};
 
 type Update<const N: usize> =
 	(Vec<Substitution<N>>, Vec<usize>, Vec<(usize, usize)>);

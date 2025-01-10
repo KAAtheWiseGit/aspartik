@@ -11,7 +11,7 @@ use crate::{
 	tree::Tree,
 	Transitions,
 };
-use base::substitution::Substitution;
+use core::substitution::Substitution;
 
 type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;

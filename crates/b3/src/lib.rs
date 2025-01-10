@@ -13,5 +13,5 @@ mod tree;
 pub use distribution::Distribution;
 pub use logger::Logger;
 pub use state::State;
-pub use tree::Tree;
 pub use transitions::Transitions;
+pub use tree::Tree;
