@@ -5,18 +5,7 @@ use serde_json::{json, Value as Json};
 
 use std::collections::HashMap;
 
-use crate::{
-	likelihood::{Likelihood, Row},
-	model::Model,
-	parameter::Parameter,
-	tree::Tree,
-	Transitions,
-};
-use core::substitution::Substitution;
-
-type DynLikelihood<const N: usize> =
-	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
-type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitution<N>>>;
+use crate::{parameter::Parameter, tree::Tree};
 
 pub struct State<const N: usize> {
 	/// Map of parameters by name.
@@ -25,9 +14,6 @@ pub struct State<const N: usize> {
 	pub(crate) proposal_params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	pub(crate) tree: Tree,
-
-	pub(crate) model: DynModel<N>,
-	pub(crate) transitions: Transitions<N>,
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
@@ -49,16 +35,11 @@ macro_rules! make_ref {
 }
 
 impl<const N: usize> State<N> {
-	pub fn new(tree: Tree, model: DynModel<N>) -> Self {
-		// let num_edges = (&sites[0].len() - 1) * 2;
-		let num_edges = 0;
-
+	pub fn new(tree: Tree) -> Self {
 		Self {
 			params: HashMap::new(),
 			proposal_params: HashMap::new(),
 			tree,
-			model,
-			transitions: Transitions::new(num_edges),
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),
 		}

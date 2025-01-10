@@ -12,7 +12,7 @@ use b3::{
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	Distribution, State, Tree,
+	Distribution, State, Transitions, Tree,
 };
 use core::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
@@ -88,7 +88,10 @@ fn likelihood(data: &Data, length: usize) {
 	let likelihood = Box::new(CpuLikelihood::new(to_rows(seqs)));
 	let likelihoods: Vec<DynLikelihood<4>> = vec![likelihood];
 
-	let mut state = State::new(tree, model);
+	let num_edges = (seqs.len() - 1) * 2;
+	let transitions = Transitions::<4>::new(num_edges);
+
+	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -112,7 +115,15 @@ fn likelihood(data: &Data, length: usize) {
 		save_state_every: 5000,
 	};
 
-	run(config, &mut state, prior, &mut scheduler, likelihoods);
+	run(
+		config,
+		&mut state,
+		prior,
+		&mut scheduler,
+		likelihoods,
+		transitions,
+		model,
+	);
 }
 
 fn bench(c: &mut Criterion) {
