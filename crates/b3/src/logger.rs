@@ -1,15 +1,49 @@
 use anyhow::Result;
 use serde_json::{json, to_string, to_value, Value as Json};
 
-use std::{cell::RefCell, fs::File, io::Write, path::Path};
+use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
 
 use crate::state::StateRef;
 
+static STATE: Mutex<Option<LogState>> = Mutex::new(None);
+
+macro_rules! mut_state {
+	() => {
+		STATE.lock().unwrap().as_mut().unwrap()
+	};
+}
+
+struct LogState {
+	loggers: Vec<Logger>,
+
+	distributions: HashMap<String, f64>,
+}
+
+pub fn init(loggers: Vec<Logger>) {
+	let mut r = STATE.lock().unwrap();
+
+	*r = Some(LogState {
+		loggers,
+		distributions: HashMap::new(),
+	});
+}
+
+pub fn write(state: StateRef, index: usize) -> Result<()> {
+	for logger in &mut mut_state!().loggers {
+		logger.log(state, index)?;
+	}
+
+	Ok(())
+}
+
+pub fn log_distribution(name: &str, value: f64) {
+	mut_state!().distributions.insert(name.to_owned(), value);
+}
+
 pub struct Logger {
 	log_every: usize,
-	file: RefCell<Option<File>>,
+	dst: Box<dyn Write + Sync + Send>,
 
-	#[allow(unused)]
 	distributions: Vec<String>,
 	parameters: Vec<String>,
 }
@@ -21,17 +55,22 @@ impl Logger {
 		distributions: Vec<String>,
 		parameters: Vec<String>,
 	) -> Self {
-		let file = file.map(|path| File::create(path).unwrap()).into();
+		let dst = if let Some(path) = file {
+			Box::new(File::create(path).unwrap())
+				as Box<dyn Write + Sync + Send>
+		} else {
+			Box::new(std::io::stdout())
+		};
 
 		Logger {
 			log_every,
-			file,
+			dst,
 			distributions,
 			parameters,
 		}
 	}
 
-	pub(crate) fn log(&self, state: StateRef, index: usize) -> Result<()> {
+	fn log(&mut self, state: StateRef, index: usize) -> Result<()> {
 		if index % self.log_every != 0 {
 			return Ok(());
 		}
@@ -46,19 +85,20 @@ impl Logger {
 			})
 			.collect::<Result<Vec<Json>>>()?;
 
+		let mut distributions = HashMap::new();
+		for distribution in &self.distributions {
+			distributions.insert(
+				distribution.to_owned(),
+				mut_state!().distributions[distribution],
+			);
+		}
+
 		let out = to_string(&json![{
 			"parameters": parameters,
-			"distributions": "TODO",
+			"distributions": distributions,
 		}])? + "\n";
 
-		self.file.borrow_mut().as_mut().map_or_else(
-			|| {
-				print!("{}", out);
-			},
-			|file| {
-				file.write_all(out.as_bytes()).unwrap();
-			},
-		);
+		self.dst.write_all(out.as_bytes())?;
 
 		Ok(())
 	}

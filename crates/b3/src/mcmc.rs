@@ -2,9 +2,10 @@ use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256StarStar;
 
 use crate::{
+	logger,
 	operator::{scheduler::WeightedScheduler, Status},
 	probability::Probability,
-	Logger, State,
+	State,
 };
 
 pub struct Config {
@@ -12,8 +13,6 @@ pub struct Config {
 	pub length: usize,
 
 	pub save_state_every: usize,
-
-	pub loggers: Vec<Logger>,
 }
 
 pub fn run<const N: usize>(
@@ -57,9 +56,7 @@ pub fn run<const N: usize>(
 			state.reject();
 		}
 
-		for logger in &config.loggers {
-			logger.log(state.as_ref(), i).unwrap();
-		}
+		logger::write(state.as_ref(), i).unwrap();
 
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;

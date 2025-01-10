@@ -3,6 +3,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::{fs::File, hint::black_box};
 
 use b3::{
+	logger,
 	mcmc::{run, Config},
 	model::DnaModel,
 	operator::{
@@ -10,7 +11,7 @@ use b3::{
 		Slide, WideExchange,
 	},
 	probability::Compound,
-	Distribution, Logger, State, Tree,
+	Distribution, State, Tree,
 };
 use core::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
@@ -97,13 +98,13 @@ fn likelihood(data: &Data, length: usize) {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
-	let logger = Logger::new(1_000_000, None, vec![], vec![]);
+	let logger = logger::Logger::new(1_000_000, None, vec![], vec![]);
+	logger::init(vec![logger]);
 
 	let config = Config {
 		burnin: 0,
 		length,
 		save_state_every: 5000,
-		loggers: vec![logger],
 	};
 
 	run(config, &mut state, prior, &mut scheduler);

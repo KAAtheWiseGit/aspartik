@@ -1,6 +1,6 @@
 mod distribution;
 mod likelihood;
-mod logger;
+pub mod logger;
 pub mod mcmc;
 pub mod model;
 pub mod operator;
@@ -11,7 +11,6 @@ mod transitions;
 mod tree;
 
 pub use distribution::Distribution;
-pub use logger::Logger;
 pub use state::State;
 pub use transitions::Transitions;
 pub use tree::Tree;
