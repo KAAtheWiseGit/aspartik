@@ -2,6 +2,7 @@ use rand::{
 	distr::{Distribution, Uniform},
 	Rng,
 };
+use serde::{Deserialize, Serialize};
 
 use std::collections::{HashSet, VecDeque};
 
@@ -13,6 +14,7 @@ use shchurvec::ShchurVec;
 
 const ROOT: usize = usize::MAX;
 
+#[derive(Debug)]
 pub struct Tree {
 	children: ShchurVec<usize>,
 	parents: ShchurVec<usize>,
@@ -364,7 +366,7 @@ impl Tree {
 		(0..self.num_leaves()).map(Leaf)
 	}
 
-	pub fn serialize(&self) -> String {
+	pub fn into_newick(&self) -> String {
 		let mut tree = NewickTree::new();
 
 		use std::collections::HashMap;
@@ -393,5 +395,24 @@ impl Tree {
 		}
 
 		tree.serialize()
+	}
+}
+
+impl Serialize for Tree {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		serializer.serialize_str(&self.into_newick())
+	}
+}
+
+impl<'de> Deserialize<'de> for Tree {
+	fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		// Parse Newick tree from string
+		todo!()
 	}
 }

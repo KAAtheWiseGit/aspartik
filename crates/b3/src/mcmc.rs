@@ -100,7 +100,7 @@ pub fn run<const N: usize>(
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}",
-				state.get_tree().serialize()
+				state.get_tree().into_newick()
 			))
 			.unwrap();
 		}

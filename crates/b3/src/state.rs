@@ -1,16 +1,18 @@
 use anyhow::{anyhow, Result};
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
-use serde_json::{json, Value as Json};
+use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
 use crate::{parameter::Parameter, tree::Tree};
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct State {
 	/// Map of parameters by name.
 	pub(crate) params: HashMap<String, Parameter>,
 	/// Proposal parameters
+	#[serde(skip)]
 	pub(crate) proposal_params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	pub(crate) tree: Tree,
@@ -45,15 +47,6 @@ impl State {
 		self.proposal_params.clear();
 
 		self.tree.reject();
-	}
-
-	#[allow(unused)]
-	pub(crate) fn serialize(&self) -> Json {
-		json!({
-			"tree": self.tree.serialize(),
-			"parameters": self.params,
-			"rng": self.rng,
-		})
 	}
 
 	pub fn get_parameter<S: AsRef<str>>(
