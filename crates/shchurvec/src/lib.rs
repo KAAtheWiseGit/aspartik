@@ -71,6 +71,17 @@ impl<T> ShchurVec<T> {
 		}
 	}
 
+	/// Drops all of the active items.
+	unsafe fn drop_active(&mut self) {
+		for i in 0..self.len() {
+			// SAFETY: masks must always point to initialized
+			// values.
+			unsafe {
+				self.active_inner_mut(i).assume_init_drop();
+			}
+		}
+	}
+
 	/// Zero-out the edited status array.
 	fn clear_edited(&mut self) {
 		self.edited.iter_mut().for_each(|v| *v = false);
@@ -204,13 +215,7 @@ impl<T> Drop for ShchurVec<T> {
 		// Accept is used because it is faster than reject.
 		self.accept();
 
-		for i in 0..self.len() {
-			// SAFETY: masks must always point to initialized
-			// values.
-			unsafe {
-				self.active_inner_mut(i).assume_init_drop();
-			}
-		}
+		unsafe { self.drop_active() }
 	}
 }
 
@@ -364,7 +369,11 @@ impl<T> ShchurVec<T> {
 
 	/// Clears the vector, removing all values.
 	pub fn clear(&mut self) {
-		// TODO: drop leak
+		// Drop all of the overwritten items
+		self.accept();
+		// Drop the rest of the items
+		unsafe { self.drop_active() };
+
 		self.inner.clear();
 		self.edited.clear();
 		self.mask.clear();

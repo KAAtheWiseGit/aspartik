@@ -87,3 +87,10 @@ fn double_set() {
 	v.set(0, Leak::new());
 	assert_no_leak!(v);
 }
+
+#[test]
+fn clear() {
+	let mut v = shchurvec![Leak::new()];
+	v.clear();
+	assert_no_leak!(v);
+}
