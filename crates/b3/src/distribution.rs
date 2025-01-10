@@ -38,7 +38,7 @@ impl Distribution {
 		let center = (low + high) / 2.0;
 		match self {
 			Distribution::Uniform => {
-				let dist = Uniform::new(low, high);
+				let dist = Uniform::new(low, high).unwrap();
 
 				dist.sample(rng)
 			}
@@ -55,12 +55,10 @@ impl Distribution {
 				todo!()
 			}
 			Distribution::Laplace { location, scale } => {
-				let dist = Laplace::new(*location, *scale)
+				let _dist = Laplace::new(*location, *scale)
 					.unwrap();
 
 				// TODO: sample from the range
-				dist.sample(rng);
-
 				todo!()
 			}
 			_ => todo!(),
@@ -80,7 +78,7 @@ impl Distribution {
 			// Centering doesn't do anything for uniform
 			// distributions
 			Distribution::Uniform => {
-				let dist = Uniform::new(low, high);
+				let dist = Uniform::new(low, high).unwrap();
 
 				dist.sample(rng)
 			}

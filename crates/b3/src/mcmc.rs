@@ -1,5 +1,4 @@
-use rand::{Rng, SeedableRng};
-use rand_xoshiro::Xoshiro256StarStar;
+use rand::Rng;
 
 use crate::{
 	log,
@@ -21,14 +20,17 @@ pub fn run<const N: usize>(
 	prior: Box<dyn Probability>,
 	scheduler: &mut WeightedScheduler,
 ) {
-	let mut rng = Xoshiro256StarStar::seed_from_u64(4);
-
 	let mut file = std::fs::File::create("start.trees").unwrap();
 
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
-		let operator = scheduler.get_operator(&mut rng);
-		let proposal = operator.propose(state.as_ref(), &mut rng);
+		let operator = scheduler.get_operator(&mut state.rng);
+
+		// TODO: mutable state ref
+		use rand::SeedableRng;
+		use rand_pcg::Pcg64;
+		let proposal = operator
+			.propose(state.as_ref(), &mut Pcg64::seed_from_u64(4));
 
 		let hastings = match proposal.status {
 			Status::Accept => {
@@ -49,7 +51,7 @@ pub fn run<const N: usize>(
 
 		let ratio = new_likelihood - state.likelihood + hastings;
 
-		if ratio > rng.gen::<f64>().ln() {
+		if ratio > state.rng.random::<f64>().ln() {
 			state.likelihood = new_likelihood;
 			state.accept();
 		} else {

@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Result};
+use rand::SeedableRng;
+use rand_pcg::Pcg64;
 use serde_json::{json, Value as Json};
 
 use std::collections::HashMap;
@@ -32,6 +34,8 @@ pub struct State<const N: usize> {
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
+
+	pub(crate) rng: Pcg64,
 }
 
 /// A workaround because the `as_ref` method requires a full `state` borrow,
@@ -65,6 +69,7 @@ impl<const N: usize> State<N> {
 			transitions: Transitions::new(num_edges),
 			likelihoods,
 			likelihood: f64::NEG_INFINITY,
+			rng: Pcg64::seed_from_u64(4),
 		}
 	}
 
@@ -81,6 +86,10 @@ impl<const N: usize> State<N> {
 			proposal_params: &self.proposal_params,
 			tree: &self.tree,
 		}
+	}
+
+	pub fn as_mut(&mut self) -> StateRef {
+		todo!()
 	}
 
 	pub(crate) fn propose(&mut self, mut proposal: Proposal) {

@@ -1,5 +1,5 @@
 use rand::{
-	distributions::{Distribution, Uniform},
+	distr::{Distribution, Uniform},
 	Rng,
 };
 
@@ -331,7 +331,7 @@ impl Tree {
 	}
 
 	pub fn sample_node<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
-		let range = Uniform::from(0..self.num_nodes());
+		let range = Uniform::new(0, self.num_nodes()).unwrap();
 		let i = range.sample(rng);
 		Node(i)
 	}
@@ -340,13 +340,14 @@ impl Tree {
 		&self,
 		rng: &mut R,
 	) -> Internal {
-		let range = Uniform::from(self.num_leaves()..self.num_nodes());
+		let range = Uniform::new(self.num_leaves(), self.num_nodes())
+			.unwrap();
 		let i = range.sample(rng);
 		Internal(i)
 	}
 
 	pub fn sample_leaf<R: Rng + ?Sized>(&self, rng: &mut R) -> Leaf {
-		let range = Uniform::from(0..self.num_leaves());
+		let range = Uniform::new(0, self.num_leaves()).unwrap();
 		let i = range.sample(rng);
 		Leaf(i)
 	}

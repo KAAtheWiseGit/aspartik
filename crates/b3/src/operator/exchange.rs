@@ -51,7 +51,7 @@ impl Operator for NarrowExchange {
 			.map(|is_gp| is_gp as usize)
 			.sum();
 
-		let child = if rng.gen_bool(0.5) {
+		let child = if rng.random_bool(0.5) {
 			tree.children_of(parent).0
 		} else {
 			tree.children_of(parent).1

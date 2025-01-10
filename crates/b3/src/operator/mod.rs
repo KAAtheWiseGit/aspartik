@@ -1,7 +1,7 @@
 // Constructor operators return `Box<dyn Operator>`.
 #![allow(clippy::new_ret_no_self)]
 
-use rand_xoshiro::Xoshiro256StarStar;
+use rand_pcg::Pcg64;
 
 use std::collections::HashMap;
 
@@ -51,7 +51,7 @@ pub enum Status {
 
 type NodeWeight = f64;
 
-pub type Rng = Xoshiro256StarStar;
+pub type Rng = Pcg64;
 
 #[derive(Debug, Clone)]
 pub struct Proposal {
