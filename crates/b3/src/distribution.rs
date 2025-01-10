@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
-use crate::operator::Rng;
 use rand_distr::{Distribution as IDistribution, Normal, Triangular, Uniform};
+use statrs::distribution::Laplace;
+
+use crate::operator::Rng;
 
 pub enum Distribution {
 	Uniform,
@@ -18,7 +20,11 @@ pub enum Distribution {
 		scale: f64,
 	},
 
-	// TODO: Laplace, which isn't in `rand_distr`
+	Laplace {
+		location: f64,
+		scale: f64,
+	},
+
 	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
 	Bactrian,
 }
@@ -45,6 +51,15 @@ impl Distribution {
 			Distribution::Normal { mean, std_dev } => {
 				let _dist =
 					Normal::new(*mean, *std_dev).unwrap();
+
+				todo!()
+			}
+			Distribution::Laplace { location, scale } => {
+				let dist = Laplace::new(*location, *scale)
+					.unwrap();
+
+				// TODO: sample from the range
+				dist.sample(rng);
 
 				todo!()
 			}
