@@ -1,4 +1,4 @@
-use crate::state::StateRef;
+use crate::State;
 
 // modules:
 //
@@ -34,5 +34,5 @@ pub type LogProb = f64;
 pub trait Probability {
 	// Because we pass `State` here, this can be implemented for both
 	// parameter priors and for the tree likelihood.
-	fn probability(&self, state: StateRef) -> LogProb;
+	fn probability(&self, state: &State) -> LogProb;
 }

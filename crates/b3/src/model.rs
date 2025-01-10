@@ -1,11 +1,11 @@
 use core::substitution::{self, Substitution};
 
-use crate::state::StateRef;
+use crate::State;
 
 pub trait Model {
 	type Substitution;
 
-	fn get_matrix(&self, state: &StateRef) -> Self::Substitution;
+	fn get_matrix(&self, state: &State) -> Self::Substitution;
 }
 
 pub enum DnaModel {
@@ -29,7 +29,7 @@ pub enum DnaModel {
 impl Model for DnaModel {
 	type Substitution = Substitution<4>;
 
-	fn get_matrix(&self, state: &StateRef) -> Substitution<4> {
+	fn get_matrix(&self, state: &State) -> Substitution<4> {
 		match self {
 			DnaModel::JukesCantor => substitution::jukes_cantor(),
 			DnaModel::K80 { kappa } => {

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::{parameter::Parameter, tree::Tree};
 
-pub struct State<const N: usize> {
+pub struct State {
 	/// Map of parameters by name.
 	pub(crate) params: HashMap<String, Parameter>,
 	/// Proposal parameters
@@ -21,20 +21,7 @@ pub struct State<const N: usize> {
 	pub(crate) rng: Pcg64,
 }
 
-/// A workaround because the `as_ref` method requires a full `state` borrow,
-/// blocking partial mutable borrows.
-#[macro_export]
-macro_rules! make_ref {
-	($state:ident) => {
-		&StateRef {
-			params: &$state.params,
-			proposal_params: &$state.proposal_params,
-			tree: &$state.tree,
-		}
-	};
-}
-
-impl<const N: usize> State<N> {
+impl State {
 	pub fn new(tree: Tree) -> Self {
 		Self {
 			params: HashMap::new(),
@@ -43,18 +30,6 @@ impl<const N: usize> State<N> {
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),
 		}
-	}
-
-	pub fn as_ref(&self) -> StateRef {
-		StateRef {
-			params: &self.params,
-			proposal_params: &self.proposal_params,
-			tree: &self.tree,
-		}
-	}
-
-	pub fn as_mut(&mut self) -> StateRef {
-		todo!()
 	}
 
 	/// Accept the current proposal
@@ -80,16 +55,7 @@ impl<const N: usize> State<N> {
 			"rng": self.rng,
 		})
 	}
-}
 
-#[derive(Clone, Copy)]
-pub struct StateRef<'a> {
-	pub params: &'a HashMap<String, Parameter>,
-	pub proposal_params: &'a HashMap<String, Parameter>,
-	pub tree: &'a Tree,
-}
-
-impl StateRef<'_> {
 	pub fn get_parameter<S: AsRef<str>>(
 		&self,
 		name: S,
@@ -111,6 +77,6 @@ impl StateRef<'_> {
 	}
 
 	pub fn get_tree(&self) -> &Tree {
-		self.tree
+		&self.tree
 	}
 }

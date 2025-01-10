@@ -2,7 +2,7 @@ use core::substitution::Substitution;
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
-use crate::state::StateRef;
+use crate::State;
 
 pub struct Transitions<const N: usize> {
 	current: Substitution<N>,
@@ -34,7 +34,7 @@ impl<const N: usize> Transitions<N> {
 	pub fn update(
 		&mut self,
 		substitution: Substitution<N>,
-		state: &StateRef,
+		state: &State,
 	) -> bool {
 		let tree = state.get_tree();
 

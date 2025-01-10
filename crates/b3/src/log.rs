@@ -3,7 +3,7 @@ use serde_json::{json, to_string, to_value, Value as Json};
 
 use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
 
-use crate::state::StateRef;
+use crate::State;
 
 static STATE: Mutex<Option<LogState>> = Mutex::new(None);
 
@@ -28,7 +28,7 @@ pub fn init(loggers: Vec<Logger>) {
 	});
 }
 
-pub fn write(state: StateRef, index: usize) -> Result<()> {
+pub fn write(state: &State, index: usize) -> Result<()> {
 	for logger in &mut mut_state!().loggers {
 		logger.log(state, index)?;
 	}
@@ -70,7 +70,7 @@ impl Logger {
 		}
 	}
 
-	fn log(&mut self, state: StateRef, index: usize) -> Result<()> {
+	fn log(&mut self, state: &State, index: usize) -> Result<()> {
 		if index % self.log_every != 0 {
 			return Ok(());
 		}

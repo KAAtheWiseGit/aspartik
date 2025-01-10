@@ -2,12 +2,11 @@ use rand::Rng;
 
 use crate::{
 	likelihood::{Likelihood, Row},
-	log, make_ref,
+	log,
 	model::Model,
 	operator::Proposal,
 	operator::{scheduler::WeightedScheduler, Status},
 	probability::Probability,
-	state::StateRef,
 	State, Transitions,
 };
 use core::substitution::Substitution;
@@ -26,7 +25,7 @@ pub type DynModel<const N: usize> =
 
 pub fn run<const N: usize>(
 	config: Config,
-	state: &mut State<N>,
+	state: &mut State,
 	prior: Box<dyn Probability>,
 	scheduler: &mut WeightedScheduler,
 	mut likelihoods: Vec<DynLikelihood<N>>,
@@ -39,11 +38,7 @@ pub fn run<const N: usize>(
 	for i in 0..(config.burnin + config.length) {
 		let operator = scheduler.get_operator(&mut state.rng);
 
-		// TODO: mutable state ref
-		use rand::SeedableRng;
-		use rand_pcg::Pcg64;
-		let proposal = operator
-			.propose(state.as_ref(), &mut Pcg64::seed_from_u64(4));
+		let proposal = operator.propose(state);
 
 		let hastings = match proposal.status {
 			Status::Accept => {
@@ -77,8 +72,8 @@ pub fn run<const N: usize>(
 			&mut model,
 		);
 
-		let new_likelihood = likelihood(&likelihoods)
-			+ prior.probability(state.as_ref());
+		let new_likelihood =
+			likelihood(&likelihoods) + prior.probability(&state);
 
 		let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -99,13 +94,13 @@ pub fn run<const N: usize>(
 			}
 		}
 
-		log::write(state.as_ref(), i).unwrap();
+		log::write(state, i).unwrap();
 
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}",
-				state.as_ref().get_tree().serialize()
+				state.get_tree().serialize()
 			))
 			.unwrap();
 		}
@@ -113,7 +108,7 @@ pub fn run<const N: usize>(
 }
 
 fn propose<const N: usize>(
-	state: &mut State<N>,
+	state: &mut State,
 	mut proposal: Proposal,
 	likelihoods: &mut [DynLikelihood<N>],
 	transitions: &mut Transitions<N>,
@@ -124,9 +119,9 @@ fn propose<const N: usize>(
 	state.tree.propose(proposal);
 
 	// Update the substitution matrix
-	let substitution = model.get_matrix(make_ref!(state));
+	let substitution = model.get_matrix(&state);
 	// If the matrix has changed, `full` is true
-	let full = transitions.update(substitution, make_ref!(state));
+	let full = transitions.update(substitution, &state);
 
 	let nodes = if full {
 		// Full update, as matrices impact likelihoods
