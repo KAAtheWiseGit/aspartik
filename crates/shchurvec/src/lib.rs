@@ -381,8 +381,8 @@ impl<T> ShchurVec<T> {
 
 	/// Number of items in the `ShchurVec`.
 	///
-	/// See [top-level documentation] (TODO) for the distinction between
-	/// items and values.
+	/// See [`ShchurVec` documentation][ShchurVec] for the distinction
+	/// between items and values.
 	pub fn len(&self) -> usize {
 		self.mask.len()
 	}
