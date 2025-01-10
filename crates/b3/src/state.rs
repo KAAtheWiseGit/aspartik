@@ -149,6 +149,7 @@ impl<const N: usize> State<N> {
 		json!({
 			"tree": self.tree.serialize(),
 			"parameters": self.params,
+			"rng": self.rng,
 		})
 	}
 }
