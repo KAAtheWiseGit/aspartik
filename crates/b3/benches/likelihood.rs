@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::{fs::File, hint::black_box};
 
 use b3::{
-	logger,
+	log,
 	mcmc::{run, Config},
 	model::DnaModel,
 	operator::{
@@ -98,8 +98,8 @@ fn likelihood(data: &Data, length: usize) {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
-	let logger = logger::Logger::new(1_000_000, None, vec![], vec![]);
-	logger::init(vec![logger]);
+	let logger = log::Logger::new(1_000_000, None, vec![], vec![]);
+	log::init(vec![logger]);
 
 	let config = Config {
 		burnin: 0,
