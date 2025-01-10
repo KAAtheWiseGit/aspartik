@@ -19,15 +19,17 @@ pub struct Config {
 	pub save_state_every: usize,
 }
 
-type DynLikelihood<const N: usize> =
+pub type DynLikelihood<const N: usize> =
 	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
-type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitution<N>>>;
+pub type DynModel<const N: usize> =
+	Box<dyn Model<Substitution = Substitution<N>>>;
 
 pub fn run<const N: usize>(
 	config: Config,
 	state: &mut State<N>,
 	prior: Box<dyn Probability>,
 	scheduler: &mut WeightedScheduler,
+	mut likelihoods: Vec<DynLikelihood<N>>,
 ) {
 	let mut file = std::fs::File::create("start.trees").unwrap();
 
@@ -43,12 +45,12 @@ pub fn run<const N: usize>(
 
 		let hastings = match proposal.status {
 			Status::Accept => {
-				propose(state, proposal);
+				propose(state, proposal, &mut likelihoods);
 
 				state.accept();
 				state.transitions.accept();
 
-				for likelihood in &mut state.likelihoods {
+				for likelihood in &mut likelihoods {
 					likelihood.accept();
 				}
 				continue;
@@ -59,10 +61,10 @@ pub fn run<const N: usize>(
 			Status::Hastings(ratio) => ratio,
 		};
 
-		propose(state, proposal);
+		propose(state, proposal, &mut likelihoods);
 
-		let new_likelihood =
-			state.likelihood() + prior.probability(state.as_ref());
+		let new_likelihood = likelihood(&likelihoods)
+			+ prior.probability(state.as_ref());
 
 		let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -71,14 +73,14 @@ pub fn run<const N: usize>(
 			state.accept();
 			state.transitions.accept();
 
-			for likelihood in &mut state.likelihoods {
+			for likelihood in &mut likelihoods {
 				likelihood.accept();
 			}
 		} else {
 			state.reject();
 			state.transitions.reject();
 
-			for likelihood in &mut state.likelihoods {
+			for likelihood in &mut likelihoods {
 				likelihood.reject();
 			}
 		}
@@ -96,7 +98,11 @@ pub fn run<const N: usize>(
 	}
 }
 
-fn propose<const N: usize>(state: &mut State<N>, mut proposal: Proposal) {
+fn propose<const N: usize>(
+	state: &mut State<N>,
+	mut proposal: Proposal,
+	likelihoods: &mut [DynLikelihood<N>],
+) {
 	state.proposal_params = std::mem::take(&mut proposal.params);
 
 	state.tree.propose(proposal);
@@ -117,7 +123,14 @@ fn propose<const N: usize>(state: &mut State<N>, mut proposal: Proposal) {
 
 	let transitions = state.transitions.matrices(&edges);
 
-	for likelihood in &mut state.likelihoods {
+	for likelihood in likelihoods {
 		likelihood.propose(&nodes, &transitions, &children);
 	}
+}
+
+fn likelihood<const N: usize>(likelihoods: &[DynLikelihood<N>]) -> f64 {
+	likelihoods
+		.iter()
+		.map(|likelihood| likelihood.likelihood())
+		.sum()
 }

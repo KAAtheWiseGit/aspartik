@@ -3,8 +3,9 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::{fs::File, hint::black_box};
 
 use b3::{
+	likelihood::CpuLikelihood,
 	log,
-	mcmc::{run, Config},
+	mcmc::{run, Config, DynLikelihood},
 	model::DnaModel,
 	operator::{
 		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
@@ -83,7 +84,11 @@ fn likelihood(data: &Data, length: usize) {
 	let (seqs, weights, children) = data;
 	let tree = Tree::new(weights, children);
 	let model = Box::new(DnaModel::JukesCantor);
-	let mut state = State::new(tree, to_rows(seqs), model);
+
+	let likelihood = Box::new(CpuLikelihood::new(to_rows(seqs)));
+	let likelihoods: Vec<DynLikelihood<4>> = vec![likelihood];
+
+	let mut state = State::new(tree, model);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -107,7 +112,7 @@ fn likelihood(data: &Data, length: usize) {
 		save_state_every: 5000,
 	};
 
-	run(config, &mut state, prior, &mut scheduler);
+	run(config, &mut state, prior, &mut scheduler, likelihoods);
 }
 
 fn bench(c: &mut Criterion) {

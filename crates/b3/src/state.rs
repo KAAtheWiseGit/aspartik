@@ -6,9 +6,8 @@ use serde_json::{json, Value as Json};
 use std::collections::HashMap;
 
 use crate::{
-	likelihood::{CpuLikelihood, Likelihood, Row},
+	likelihood::{Likelihood, Row},
 	model::Model,
-	operator::Proposal,
 	parameter::Parameter,
 	tree::Tree,
 	Transitions,
@@ -30,8 +29,6 @@ pub struct State<const N: usize> {
 	pub(crate) model: DynModel<N>,
 	pub(crate) transitions: Transitions<N>,
 
-	pub(crate) likelihoods: Vec<DynLikelihood<N>>,
-
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
 
@@ -52,15 +49,9 @@ macro_rules! make_ref {
 }
 
 impl<const N: usize> State<N> {
-	pub fn new(
-		tree: Tree,
-		sites: Vec<Vec<Row<N>>>,
-		model: DynModel<N>,
-	) -> Self {
-		let num_edges = (&sites[0].len() - 1) * 2;
-
-		let likelihood = Box::new(CpuLikelihood::new(sites));
-		let likelihoods: Vec<DynLikelihood<N>> = vec![likelihood];
+	pub fn new(tree: Tree, model: DynModel<N>) -> Self {
+		// let num_edges = (&sites[0].len() - 1) * 2;
+		let num_edges = 0;
 
 		Self {
 			params: HashMap::new(),
@@ -68,17 +59,9 @@ impl<const N: usize> State<N> {
 			tree,
 			model,
 			transitions: Transitions::new(num_edges),
-			likelihoods,
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),
 		}
-	}
-
-	pub(crate) fn likelihood(&self) -> f64 {
-		self.likelihoods
-			.iter()
-			.map(|likelihood| likelihood.likelihood())
-			.sum()
 	}
 
 	pub fn as_ref(&self) -> StateRef {

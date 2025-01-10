@@ -1,5 +1,5 @@
 mod distribution;
-mod likelihood;
+pub mod likelihood;
 pub mod log;
 pub mod mcmc;
 pub mod model;
