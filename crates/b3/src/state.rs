@@ -21,16 +21,16 @@ type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitution<N>>>;
 
 pub struct State<const N: usize> {
 	/// Map of parameters by name.
-	params: HashMap<String, Parameter>,
+	pub(crate) params: HashMap<String, Parameter>,
 	/// Proposal parameters
-	proposal_params: HashMap<String, Parameter>,
+	pub(crate) proposal_params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
-	tree: Tree,
+	pub(crate) tree: Tree,
 
-	model: DynModel<N>,
-	transitions: Transitions<N>,
+	pub(crate) model: DynModel<N>,
+	pub(crate) transitions: Transitions<N>,
 
-	likelihoods: Vec<DynLikelihood<N>>,
+	pub(crate) likelihoods: Vec<DynLikelihood<N>>,
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
@@ -40,6 +40,7 @@ pub struct State<const N: usize> {
 
 /// A workaround because the `as_ref` method requires a full `state` borrow,
 /// blocking partial mutable borrows.
+#[macro_export]
 macro_rules! make_ref {
 	($state:ident) => {
 		&StateRef {
@@ -92,33 +93,6 @@ impl<const N: usize> State<N> {
 		todo!()
 	}
 
-	pub(crate) fn propose(&mut self, mut proposal: Proposal) {
-		self.proposal_params = std::mem::take(&mut proposal.params);
-
-		self.tree.propose(proposal);
-
-		// Update the substitution matrix
-		let substitution = self.model.get_matrix(make_ref!(self));
-		// If the matrix has changed, `full` is true
-		let full =
-			self.transitions.update(substitution, make_ref!(self));
-
-		let nodes = if full {
-			// Full update, as matrices impact likelihoods
-			self.tree.full_update()
-		} else {
-			self.tree.nodes_to_update()
-		};
-
-		let (nodes, edges, children) = self.tree.to_lists(&nodes);
-
-		let transitions = self.transitions.matrices(&edges);
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.propose(&nodes, &transitions, &children);
-		}
-	}
-
 	/// Accept the current proposal
 	pub(crate) fn accept(&mut self) {
 		for (name, param) in std::mem::take(&mut self.proposal_params) {
@@ -126,22 +100,12 @@ impl<const N: usize> State<N> {
 		}
 
 		self.tree.accept();
-		self.transitions.accept();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.accept();
-		}
 	}
 
 	pub(crate) fn reject(&mut self) {
 		self.proposal_params.clear();
 
 		self.tree.reject();
-		self.transitions.reject();
-
-		for likelihood in &mut self.likelihoods {
-			likelihood.reject();
-		}
 	}
 
 	#[allow(unused)]
@@ -156,9 +120,9 @@ impl<const N: usize> State<N> {
 
 #[derive(Clone, Copy)]
 pub struct StateRef<'a> {
-	params: &'a HashMap<String, Parameter>,
-	proposal_params: &'a HashMap<String, Parameter>,
-	tree: &'a Tree,
+	pub params: &'a HashMap<String, Parameter>,
+	pub proposal_params: &'a HashMap<String, Parameter>,
+	pub tree: &'a Tree,
 }
 
 impl StateRef<'_> {

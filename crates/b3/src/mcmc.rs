@@ -1,11 +1,16 @@
 use rand::Rng;
 
 use crate::{
-	log,
+	likelihood::{Likelihood, Row},
+	log, make_ref,
+	model::Model,
+	operator::Proposal,
 	operator::{scheduler::WeightedScheduler, Status},
 	probability::Probability,
+	state::StateRef,
 	State,
 };
+use core::substitution::Substitution;
 
 pub struct Config {
 	pub burnin: usize,
@@ -13,6 +18,10 @@ pub struct Config {
 
 	pub save_state_every: usize,
 }
+
+type DynLikelihood<const N: usize> =
+	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
+type DynModel<const N: usize> = Box<dyn Model<Substitution = Substitution<N>>>;
 
 pub fn run<const N: usize>(
 	config: Config,
@@ -34,8 +43,14 @@ pub fn run<const N: usize>(
 
 		let hastings = match proposal.status {
 			Status::Accept => {
-				state.propose(proposal);
+				propose(state, proposal);
+
 				state.accept();
+				state.transitions.accept();
+
+				for likelihood in &mut state.likelihoods {
+					likelihood.accept();
+				}
 				continue;
 			}
 			Status::Reject => {
@@ -44,7 +59,7 @@ pub fn run<const N: usize>(
 			Status::Hastings(ratio) => ratio,
 		};
 
-		state.propose(proposal);
+		propose(state, proposal);
 
 		let new_likelihood =
 			state.likelihood() + prior.probability(state.as_ref());
@@ -54,8 +69,18 @@ pub fn run<const N: usize>(
 		if ratio > state.rng.random::<f64>().ln() {
 			state.likelihood = new_likelihood;
 			state.accept();
+			state.transitions.accept();
+
+			for likelihood in &mut state.likelihoods {
+				likelihood.accept();
+			}
 		} else {
 			state.reject();
+			state.transitions.reject();
+
+			for likelihood in &mut state.likelihoods {
+				likelihood.reject();
+			}
 		}
 
 		log::write(state.as_ref(), i).unwrap();
@@ -68,5 +93,31 @@ pub fn run<const N: usize>(
 			))
 			.unwrap();
 		}
+	}
+}
+
+fn propose<const N: usize>(state: &mut State<N>, mut proposal: Proposal) {
+	state.proposal_params = std::mem::take(&mut proposal.params);
+
+	state.tree.propose(proposal);
+
+	// Update the substitution matrix
+	let substitution = state.model.get_matrix(make_ref!(state));
+	// If the matrix has changed, `full` is true
+	let full = state.transitions.update(substitution, make_ref!(state));
+
+	let nodes = if full {
+		// Full update, as matrices impact likelihoods
+		state.tree.full_update()
+	} else {
+		state.tree.nodes_to_update()
+	};
+
+	let (nodes, edges, children) = state.tree.to_lists(&nodes);
+
+	let transitions = state.transitions.matrices(&edges);
+
+	for likelihood in &mut state.likelihoods {
+		likelihood.propose(&nodes, &transitions, &children);
 	}
 }
