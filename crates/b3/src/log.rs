@@ -16,7 +16,7 @@ macro_rules! mut_state {
 struct LogState {
 	loggers: Vec<Logger>,
 
-	distributions: HashMap<String, f64>,
+	probabilities: HashMap<String, f64>,
 }
 
 pub fn init(loggers: Vec<Logger>) {
@@ -24,7 +24,7 @@ pub fn init(loggers: Vec<Logger>) {
 
 	*r = Some(LogState {
 		loggers,
-		distributions: HashMap::new(),
+		probabilities: HashMap::new(),
 	});
 }
 
@@ -37,14 +37,14 @@ pub fn write(state: StateRef, index: usize) -> Result<()> {
 }
 
 pub fn log_distribution(name: &str, value: f64) {
-	mut_state!().distributions.insert(name.to_owned(), value);
+	mut_state!().probabilities.insert(name.to_owned(), value);
 }
 
 pub struct Logger {
 	log_every: usize,
 	dst: Box<dyn Write + Sync + Send>,
 
-	distributions: Vec<String>,
+	probabilities: Vec<String>,
 	parameters: Vec<String>,
 }
 
@@ -52,7 +52,7 @@ impl Logger {
 	pub fn new(
 		log_every: usize,
 		file: Option<&Path>,
-		distributions: Vec<String>,
+		probabilities: Vec<String>,
 		parameters: Vec<String>,
 	) -> Self {
 		let dst = if let Some(path) = file {
@@ -65,7 +65,7 @@ impl Logger {
 		Logger {
 			log_every,
 			dst,
-			distributions,
+			probabilities,
 			parameters,
 		}
 	}
@@ -86,10 +86,10 @@ impl Logger {
 			.collect::<Result<Vec<Json>>>()?;
 
 		let mut distributions = HashMap::new();
-		for distribution in &self.distributions {
+		for distribution in &self.probabilities {
 			distributions.insert(
 				distribution.to_owned(),
-				mut_state!().distributions[distribution],
+				mut_state!().probabilities[distribution],
 			);
 		}
 
