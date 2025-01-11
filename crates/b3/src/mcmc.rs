@@ -23,6 +23,7 @@ pub type DynModel<const N: usize> =
 	Box<dyn Model<Substitution = Substitution<N>>>;
 
 // TODO: common `accept` function, verify the tree
+// TODO: interrupt handler, saving the state
 pub fn run<const N: usize>(
 	config: Config,
 	state: &mut State,
@@ -32,6 +33,7 @@ pub fn run<const N: usize>(
 	mut transitions: Transitions<N>,
 	mut model: DynModel<N>,
 ) {
+	// TODO: output configuration (maybe another logger type)
 	let mut file = std::fs::File::create("start.trees").unwrap();
 
 	// TODO: burnin
@@ -67,7 +69,7 @@ pub fn run<const N: usize>(
 		propose(state, &mut likelihoods, &mut transitions, &mut model);
 
 		let new_likelihood =
-			likelihood(&likelihoods) + prior.probability(&state);
+			likelihood(&likelihoods) + prior.probability(state);
 
 		let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -109,9 +111,9 @@ fn propose<const N: usize>(
 	model: &mut DynModel<N>,
 ) {
 	// Update the substitution matrix
-	let substitution = model.get_matrix(&state);
+	let substitution = model.get_matrix(state);
 	// If the matrix has changed, `full` is true
-	let full = transitions.update(substitution, &state);
+	let full = transitions.update(substitution, state);
 
 	let nodes = if full {
 		// Full update, as matrices impact likelihoods
