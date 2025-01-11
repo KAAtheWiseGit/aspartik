@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::{HashSet, VecDeque};
 
-use crate::operator::Proposal;
 use io::newick::{
 	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
 };
@@ -59,13 +58,6 @@ impl Tree {
 		out.set_all_parents();
 
 		out
-	}
-
-	pub fn propose(&mut self, proposal: Proposal) {
-		self.update_edges(&proposal.edges);
-		self.update_weights(&proposal.weights);
-
-		self.verify();
 	}
 
 	pub fn accept(&mut self) {
@@ -163,12 +155,6 @@ impl Tree {
 		deq.into()
 	}
 
-	fn update_edges(&mut self, edges: &[(usize, Node)]) {
-		for (edge, new_child) in edges.iter().copied() {
-			self.update_edge(edge, new_child);
-		}
-	}
-
 	/// Set the child of `edge` to `node`.
 	///
 	/// Doesn't do any validation.
@@ -184,12 +170,6 @@ impl Tree {
 		// be updated.  The operator must handle the old node
 		// separately.
 		self.updated_nodes.push(new_child);
-	}
-
-	fn update_weights(&mut self, weights: &[(Node, f64)]) {
-		for (node, weight) in weights.iter().copied() {
-			self.update_weight(node, weight);
-		}
 	}
 
 	/// Set the weight of `node` to `weight`.
@@ -216,6 +196,17 @@ impl Tree {
 		self.parents.set(node.0, ROOT);
 	}
 
+	pub fn update_replacement(
+		&mut self,
+		parent: Internal,
+		child: Node,
+		replacement: Node,
+	) {
+		assert!(self.parent_of(child).is_some_and(|p| p == parent));
+		let edge = self.edge_index(child);
+		self.update_edge(edge, replacement);
+	}
+
 	fn set_all_parents(&mut self) {
 		let num_leaves = self.num_leaves();
 
@@ -231,7 +222,7 @@ impl Tree {
 		self.parents.accept();
 	}
 
-	fn verify(&self) {
+	pub fn verify(&self) {
 		for (i, parent) in self.parents.iter().enumerate() {
 			assert!(
 				*parent >= self.num_leaves(),

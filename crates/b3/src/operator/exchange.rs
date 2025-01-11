@@ -17,10 +17,10 @@ impl NarrowExchange {
 impl Operator for NarrowExchange {
 	fn propose(&self, state: &mut State) -> Proposal {
 		let rng = &mut state.rng;
-		let tree = &state.tree;
+		let tree = &mut state.tree;
 
 		if tree.num_internals() < 2 {
-			return Proposal::reject();
+			return Proposal::Reject;
 		}
 
 		// An internal node which has at least one internal node child.
@@ -42,7 +42,7 @@ impl Operator for NarrowExchange {
 
 		// If the lower child isn't internal, abort.
 		let Some(parent) = tree.as_internal(parent) else {
-			return Proposal::reject();
+			return Proposal::Reject;
 		};
 
 		// TODO: proper Hastings ratio
@@ -58,9 +58,10 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		Proposal::hastings(0.0)
-			.with_replacement(tree, grandparent, uncle, child)
-			.with_replacement(tree, parent, child, uncle)
+		tree.update_replacement(grandparent, uncle, child);
+		tree.update_replacement(parent, child, uncle);
+
+		Proposal::Hastings(0.0)
 	}
 }
 
@@ -80,7 +81,7 @@ impl WideExchange {
 impl Operator for WideExchange {
 	fn propose(&self, state: &mut State) -> Proposal {
 		let rng = &mut state.rng;
-		let tree = &state.tree;
+		let tree = &mut state.tree;
 
 		let i = tree.sample_node(rng);
 		let j = loop {
@@ -91,21 +92,22 @@ impl Operator for WideExchange {
 		};
 
 		let Some(i_parent) = tree.parent_of(i) else {
-			return Proposal::reject();
+			return Proposal::Reject;
 		};
 		let Some(j_parent) = tree.parent_of(j) else {
-			return Proposal::reject();
+			return Proposal::Reject;
 		};
 
 		if j != i_parent.into()
 			&& tree.weight_of(j) < tree.weight_of(i_parent)
 			&& tree.weight_of(i) < tree.weight_of(j_parent)
 		{
-			Proposal::hastings(0.0)
-				.with_replacement(tree, i_parent, i, j)
-				.with_replacement(tree, j_parent, j, i)
+			tree.update_replacement(i_parent, i, j);
+			tree.update_replacement(j_parent, j, i);
+
+			Proposal::Hastings(0.0)
 		} else {
-			Proposal::reject()
+			Proposal::Reject
 		}
 	}
 }

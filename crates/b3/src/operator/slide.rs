@@ -14,11 +14,11 @@ impl Slide {
 impl Operator for Slide {
 	fn propose(&self, state: &mut State) -> Proposal {
 		let rng = &mut state.rng;
-		let tree = &state.tree;
+		let tree = &mut state.tree;
 
 		let node = tree.sample_internal(rng);
 		let Some(parent) = tree.parent_of(node) else {
-			return Proposal::reject();
+			return Proposal::Reject;
 		};
 		let (left, right) = tree.children_of(node);
 
@@ -31,7 +31,7 @@ impl Operator for Slide {
 			.distribution
 			.gen_range_from(low, high, weight, rng);
 
-		Proposal::hastings(0.0)
-			.with_weights(vec![(node.into(), new_weight)])
+		tree.update_weight(node.into(), new_weight);
+		Proposal::Hastings(0.0)
 	}
 }

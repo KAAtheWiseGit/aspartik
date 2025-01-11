@@ -3,13 +3,7 @@
 
 use rand_pcg::Pcg64;
 
-use std::collections::HashMap;
-
-use crate::{
-	parameter::Parameter,
-	tree::{Internal, Node, Tree},
-	State,
-};
+use crate::State;
 
 // Operators:
 // - [ ] Parameter operators
@@ -42,75 +36,13 @@ pub use exchange::{NarrowExchange, WideExchange};
 pub use scale::Scale;
 pub use slide::Slide;
 
-#[derive(Debug, Clone, Copy)]
-pub enum Status {
-	Accept,
-	Reject,
-	Hastings(f64),
-}
-
-type NodeWeight = f64;
-
 pub type Rng = Pcg64;
 
 #[derive(Debug, Clone)]
-pub struct Proposal {
-	pub status: Status,
-	/// A hash map of parameters updated by the operator.
-	pub params: HashMap<String, Parameter>,
-	/// Update the weight of tree nodes on the left to values on the right.
-	pub weights: Vec<(Node, NodeWeight)>,
-	/// TODO
-	pub edges: Vec<(usize, Node)>,
-}
-
-impl Proposal {
-	pub fn reject() -> Self {
-		Self {
-			status: Status::Reject,
-			params: HashMap::new(),
-			weights: vec![],
-			edges: vec![],
-		}
-	}
-
-	pub fn accept() -> Self {
-		Self {
-			status: Status::Reject,
-			..Proposal::reject()
-		}
-	}
-
-	pub fn hastings(ratio: f64) -> Self {
-		Self {
-			status: Status::Hastings(ratio),
-			..Proposal::reject()
-		}
-	}
-
-	pub fn with_weights(mut self, weights: Vec<(Node, f64)>) -> Self {
-		self.weights = weights;
-		self
-	}
-
-	pub fn with_edges(mut self, edges: Vec<(usize, Node)>) -> Self {
-		self.edges = edges;
-		self
-	}
-
-	pub fn with_replacement(
-		mut self,
-		tree: &Tree,
-		parent: Internal,
-		child: Node,
-		replacement: Node,
-	) -> Self {
-		assert!(tree.parent_of(child).is_some_and(|p| p == parent));
-		let edge = tree.edge_index(child);
-		self.edges.push((edge, replacement));
-
-		self
-	}
+pub enum Proposal {
+	Accept,
+	Reject,
+	Hastings(f64),
 }
 
 pub trait Operator {

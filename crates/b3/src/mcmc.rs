@@ -4,8 +4,7 @@ use crate::{
 	likelihood::{Likelihood, Row},
 	log,
 	model::Model,
-	operator::Proposal,
-	operator::{scheduler::WeightedScheduler, Status},
+	operator::{scheduler::WeightedScheduler, Proposal},
 	probability::Probability,
 	State, Transitions,
 };
@@ -23,6 +22,7 @@ pub type DynLikelihood<const N: usize> =
 pub type DynModel<const N: usize> =
 	Box<dyn Model<Substitution = Substitution<N>>>;
 
+// TODO: common `accept` function, verify the tree
 pub fn run<const N: usize>(
 	config: Config,
 	state: &mut State,
@@ -40,16 +40,16 @@ pub fn run<const N: usize>(
 
 		let proposal = operator.propose(state);
 
-		let hastings = match proposal.status {
-			Status::Accept => {
+		let hastings = match proposal {
+			Proposal::Accept => {
 				propose(
 					state,
-					proposal,
 					&mut likelihoods,
 					&mut transitions,
 					&mut model,
 				);
 
+				state.tree.verify();
 				state.accept();
 				transitions.accept();
 
@@ -58,19 +58,13 @@ pub fn run<const N: usize>(
 				}
 				continue;
 			}
-			Status::Reject => {
+			Proposal::Reject => {
 				continue;
 			}
-			Status::Hastings(ratio) => ratio,
+			Proposal::Hastings(ratio) => ratio,
 		};
 
-		propose(
-			state,
-			proposal,
-			&mut likelihoods,
-			&mut transitions,
-			&mut model,
-		);
+		propose(state, &mut likelihoods, &mut transitions, &mut model);
 
 		let new_likelihood =
 			likelihood(&likelihoods) + prior.probability(&state);
@@ -79,6 +73,7 @@ pub fn run<const N: usize>(
 
 		if ratio > state.rng.random::<f64>().ln() {
 			state.likelihood = new_likelihood;
+			state.tree.verify();
 			state.accept();
 			transitions.accept();
 
@@ -109,15 +104,10 @@ pub fn run<const N: usize>(
 
 fn propose<const N: usize>(
 	state: &mut State,
-	mut proposal: Proposal,
 	likelihoods: &mut [DynLikelihood<N>],
 	transitions: &mut Transitions<N>,
 	model: &mut DynModel<N>,
 ) {
-	state.proposal_params = std::mem::take(&mut proposal.params);
-
-	state.tree.propose(proposal);
-
 	// Update the substitution matrix
 	let substitution = model.get_matrix(&state);
 	// If the matrix has changed, `full` is true

@@ -23,7 +23,7 @@ impl Scale {
 impl Operator for Scale {
 	fn propose(&self, state: &mut State) -> Proposal {
 		let rng = &mut state.rng;
-		let tree = &state.tree;
+		let tree = &mut state.tree;
 
 		let scale = self.distribution.gen_range(
 			self.factor,
@@ -31,14 +31,12 @@ impl Operator for Scale {
 			rng,
 		);
 
-		// TODO: ratio
-		let mut out = Proposal::hastings(0.0);
-
 		for node in tree.nodes() {
 			let new_weight = tree.weight_of(node) * scale;
-			out.weights.push((node, new_weight));
+			tree.update_weight(node, new_weight);
 		}
 
-		out
+		// TODO: ratio
+		Proposal::Hastings(0.0)
 	}
 }
