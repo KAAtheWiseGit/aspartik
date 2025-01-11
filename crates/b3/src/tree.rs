@@ -165,35 +165,55 @@ impl Tree {
 
 	fn update_edges(&mut self, edges: &[(usize, Node)]) {
 		for (edge, new_child) in edges.iter().copied() {
-			let (_, parent) = self.edge_nodes(edge);
-
-			self.children.set(edge, new_child.0);
-			self.parents.set(new_child.0, parent.0);
-
-			self.updated_edges.push(edge);
-
-			// `parent` is now the parent of `new_child`, so it'll
-			// be updated.  The operator must handle the old node
-			// separately.
-			self.updated_nodes.push(new_child);
+			self.update_edge(edge, new_child);
 		}
+	}
+
+	/// Set the child of `edge` to `node`.
+	///
+	/// Doesn't do any validation.
+	pub fn update_edge(&mut self, edge: usize, new_child: Node) {
+		let (_, parent) = self.edge_nodes(edge);
+
+		self.children.set(edge, new_child.0);
+		self.parents.set(new_child.0, parent.0);
+
+		self.updated_edges.push(edge);
+
+		// `parent` is now the parent of `new_child`, so it'll
+		// be updated.  The operator must handle the old node
+		// separately.
+		self.updated_nodes.push(new_child);
 	}
 
 	fn update_weights(&mut self, weights: &[(Node, f64)]) {
 		for (node, weight) in weights.iter().copied() {
-			self.weights.set(node.0, weight);
-
-			self.updated_nodes.push(node);
-
-			if self.parent_of(node).is_some() {
-				self.updated_edges.push(self.edge_index(node));
-			}
-			if let Some(node) = self.as_internal(node) {
-				let (left, right) = self.children_of(node);
-				self.updated_edges.push(self.edge_index(left));
-				self.updated_edges.push(self.edge_index(right));
-			}
+			self.update_weight(node, weight);
 		}
+	}
+
+	/// Set the weight of `node` to `weight`.
+	///
+	/// Takes care of book-keeping the parent and child edge updates.
+	pub fn update_weight(&mut self, node: Node, weight: f64) {
+		self.weights.set(node.0, weight);
+		self.updated_nodes.push(node);
+
+		if self.parent_of(node).is_some() {
+			self.updated_edges.push(self.edge_index(node));
+		}
+		if let Some(node) = self.as_internal(node) {
+			let (left, right) = self.children_of(node);
+			self.updated_edges.push(self.edge_index(left));
+			self.updated_edges.push(self.edge_index(right));
+		}
+	}
+
+	/// Make `node` the root of the tree.
+	///
+	/// The old root must be updated in a separate `update_edge` call.
+	pub fn update_root(&mut self, node: Node) {
+		self.parents.set(node.0, ROOT);
 	}
 
 	fn set_all_parents(&mut self) {
