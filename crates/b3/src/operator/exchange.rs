@@ -62,8 +62,8 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		tree.update_replacement(grandparent, uncle.into(), child);
-		tree.update_replacement(parent, child, uncle.into());
+		tree.update_replacement(uncle.into(), child);
+		tree.update_replacement(child, uncle.into());
 
 		let after = is_grandparent(tree, parent) as usize
 			+ is_grandparent(tree, uncle) as usize;
@@ -116,8 +116,8 @@ impl Operator for WideExchange {
 			&& tree.weight_of(j) < tree.weight_of(i_parent)
 			&& tree.weight_of(i) < tree.weight_of(j_parent)
 		{
-			tree.update_replacement(i_parent, i, j);
-			tree.update_replacement(j_parent, j, i);
+			tree.update_replacement(i, j);
+			tree.update_replacement(j, i);
 
 			Proposal::Hastings(0.0)
 		} else {

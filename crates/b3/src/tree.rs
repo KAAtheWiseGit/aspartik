@@ -196,13 +196,8 @@ impl Tree {
 		self.parents.set(node.0, ROOT);
 	}
 
-	pub fn update_replacement(
-		&mut self,
-		parent: Internal,
-		child: Node,
-		replacement: Node,
-	) {
-		assert!(self.parent_of(child).is_some_and(|p| p == parent));
+	/// Replaces `child` with `replacement` in respect to `child`'s parent.
+	pub fn update_replacement(&mut self, child: Node, replacement: Node) {
 		let edge = self.edge_index(child);
 		self.update_edge(edge, replacement);
 	}
