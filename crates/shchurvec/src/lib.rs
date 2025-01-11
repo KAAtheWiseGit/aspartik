@@ -1,9 +1,55 @@
+//! # ShchurVec
+//!
+//! ShchurVec is an epoch-versioned [`Vec`]-like structure with epoch
+//! versioning.  It's designed for branchless value access and memory locality
+//! between the data versions.
+//!
+//! The API mostly mirrors that of [`Vec`].  New vectors can be created using
+//! the [`shchurvec!`] macro, which has the same syntax as [`vec!`].  Value
+//! access can be done via indexing.  Due to implementation details `ShchurVec`
+//! doesn't implement [`IndexMut`][std::ops::IndexMut], so value updates have to
+//! be done with [`set`][ShchurVec::set].
+//!
+//! The core feature, versioning, can be used via two methods.
+//!
+//! - [`accept`][ShchurVec::accept] confirms all of the edits done since the
+//!   last epoch and drops the overwritten items.
+//!
+//! - [`reject`][ShchurVec::reject] rolls back all of the elements to the values
+//!   they had at the start of the last epoch.
+//!
+//! Where an epoch is the time of creation of the vector or the last call to
+//! `accept` or `reject`.  For the precise terminology (i.e. the difference
+//! between elements and items) see the [`ShchurVec`] type documentation.
+//!
+//!
+//! ## Example
+//!
+//! ```
+//! use shchurvec::{shchurvec, ShchurVec};
+//!
+//! let mut v = shchurvec![1, 2, 3];
+//! assert_eq!(v, [1, 2, 3]);
+//!
+//! v.set(0, 10);
+//! v.set(2, 30);
+//! assert_eq!(v, [10, 2, 30]);
+//!
+//! v.accept();
+//! assert_eq!(v, [10, 2, 30]);
+//!
+//! v.set(1, 20);
+//! assert_eq!(v, [10, 20, 30]);
+//!
+//! v.reject();
+//! assert_eq!(v, [10, 2, 30]);
+//! ```
+
 mod eq;
 
 use std::{mem::MaybeUninit, ops::Index};
 
-/// Epoch-versioned `Vec`-like storage.  See crate-level documentation for usage
-/// examples.
+/// Epoch-versioned `Vec`-like storage.
 ///
 /// `ShchurVec` is made up of *elements*.  Each element is addressable by its
 /// index and is made out of two *items*.  The first item is the original value
@@ -15,7 +61,7 @@ use std::{mem::MaybeUninit, ops::Index};
 #[derive(Debug)]
 pub struct ShchurVec<T> {
 	/// The underlying storage.  It's twice as long as the number of items
-	/// `ShchurVec` can hold at a time.  Each element consits of two items
+	/// `ShchurVec` can hold at a time.  Each element consist of two items
 	/// in `inner`, only one of which is active, determined by the `mask` at
 	/// the index.
 	inner: Vec<MaybeUninit<T>>,
