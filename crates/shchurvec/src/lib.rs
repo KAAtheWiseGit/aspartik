@@ -45,6 +45,7 @@
 //! assert_eq!(v, [10, 2, 30]);
 //! ```
 
+mod debug;
 mod eq;
 
 use std::{mem::MaybeUninit, ops::Index};
@@ -58,7 +59,6 @@ use std::{mem::MaybeUninit, ops::Index};
 /// second item will become the primary one and the old one will be erased.  And
 /// on [`reject`][ShchurVec::reject] the second item will be erased, with the
 /// element falling back to the original one.
-#[derive(Debug)]
 pub struct ShchurVec<T> {
 	/// The underlying storage.  It's twice as long as the number of items
 	/// `ShchurVec` can hold at a time.  Each element consist of two items
