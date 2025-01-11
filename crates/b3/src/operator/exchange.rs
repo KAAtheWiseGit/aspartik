@@ -44,13 +44,17 @@ impl Operator for NarrowExchange {
 		let Some(parent) = tree.as_internal(parent) else {
 			return Proposal::Reject;
 		};
+		let Some(uncle) = tree.as_internal(uncle) else {
+			return Proposal::Reject;
+		};
 
-		// TODO: proper Hastings ratio
-		let _num_grandparents_before: usize = tree
+		let num_grandparents_before: usize = tree
 			.internals()
 			.map(|node| is_grandparent(tree, node))
 			.map(|is_gp| is_gp as usize)
 			.sum();
+		let before = is_grandparent(tree, parent) as usize
+			+ is_grandparent(tree, uncle) as usize;
 
 		let child = if rng.random_bool(0.5) {
 			tree.children_of(parent).0
@@ -58,10 +62,20 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		tree.update_replacement(grandparent, uncle, child);
-		tree.update_replacement(parent, child, uncle);
+		tree.update_replacement(grandparent, uncle.into(), child);
+		tree.update_replacement(parent, child, uncle.into());
 
-		Proposal::Hastings(0.0)
+		let after = is_grandparent(tree, parent) as usize
+			+ is_grandparent(tree, uncle) as usize;
+
+		let num_grandparents_after =
+			num_grandparents_before - before + after;
+
+		Proposal::Hastings(
+			(num_grandparents_before as f64
+				/ num_grandparents_after as f64)
+				.ln(),
+		)
 	}
 }
 
