@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use crate::operator::{Operator, Proposal};
 use crate::{distribution::Distribution, State};
 
@@ -21,7 +23,7 @@ impl Scale {
 }
 
 impl Operator for Scale {
-	fn propose(&self, state: &mut State) -> Proposal {
+	fn propose(&self, state: &mut State) -> Result<Proposal> {
 		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
@@ -37,6 +39,6 @@ impl Operator for Scale {
 		}
 
 		// TODO: ratio
-		Proposal::Hastings(0.0)
+		Ok(Proposal::Hastings(0.0))
 	}
 }

@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use rand::distr::{Distribution as _, Uniform};
 
 use crate::operator::{Operator, Proposal};
@@ -27,7 +28,7 @@ impl Scale {
 }
 
 impl Operator for Scale {
-	fn propose(&self, state: &mut State) -> Proposal {
+	fn propose(&self, state: &mut State) -> Result<Proposal> {
 		let scale = self.distribution.gen_range(
 			self.factor,
 			1.0 / self.factor,
@@ -35,17 +36,18 @@ impl Operator for Scale {
 		);
 
 		// TODO: ugliness
-		let len = state.param(&self.parameter).unwrap().len();
+		let len = state.param(&self.parameter)?.len();
 		let index =
 			Uniform::new(0, len).unwrap().sample(&mut state.rng);
 
 		let param = state
-			.mut_param(&self.parameter)
-			.unwrap()
+			.mut_param(&self.parameter)?
 			.as_mut_real()
-			.unwrap();
+			.ok_or_else(|| {
+				anyhow!("ParamScale can't edit a non-real parameter '{}'", &self.parameter)
+			})?;
 		param[index] *= scale;
 
-		Proposal::Reject
+		Ok(Proposal::Reject)
 	}
 }

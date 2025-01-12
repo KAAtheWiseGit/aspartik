@@ -40,9 +40,7 @@ pub fn run<const N: usize>(
 	for i in 0..(config.burnin + config.length) {
 		let operator = scheduler.get_operator(&mut state.rng);
 
-		let proposal = operator.propose(state);
-
-		let hastings = match proposal {
+		let hastings = match operator.propose(state)? {
 			Proposal::Accept => {
 				propose(
 					state,

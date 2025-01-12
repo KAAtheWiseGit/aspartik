@@ -1,6 +1,7 @@
 // Constructor operators return `Box<dyn Operator>`.
 #![allow(clippy::new_ret_no_self)]
 
+use anyhow::Result;
 use rand_pcg::Pcg64;
 
 use crate::State;
@@ -49,5 +50,5 @@ pub enum Proposal {
 }
 
 pub trait Operator {
-	fn propose(&self, state: &mut State) -> Proposal;
+	fn propose(&self, state: &mut State) -> Result<Proposal>;
 }

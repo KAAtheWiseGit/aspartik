@@ -1,3 +1,4 @@
+use anyhow::Result;
 use rand::Rng;
 
 use crate::operator::{Operator, Proposal};
@@ -15,12 +16,12 @@ impl NarrowExchange {
 }
 
 impl Operator for NarrowExchange {
-	fn propose(&self, state: &mut State) -> Proposal {
+	fn propose(&self, state: &mut State) -> Result<Proposal> {
 		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
 		if tree.num_internals() < 2 {
-			return Proposal::Reject;
+			return Ok(Proposal::Reject);
 		}
 
 		// An internal node which has at least one internal node child.
@@ -42,10 +43,10 @@ impl Operator for NarrowExchange {
 
 		// If the lower child isn't internal, abort.
 		let Some(parent) = tree.as_internal(parent) else {
-			return Proposal::Reject;
+			return Ok(Proposal::Reject);
 		};
 		let Some(uncle) = tree.as_internal(uncle) else {
-			return Proposal::Reject;
+			return Ok(Proposal::Reject);
 		};
 
 		let num_grandparents_before: usize = tree
@@ -70,12 +71,11 @@ impl Operator for NarrowExchange {
 
 		let num_grandparents_after =
 			num_grandparents_before - before + after;
+		let ratio = (num_grandparents_before as f64
+			/ num_grandparents_after as f64)
+			.ln();
 
-		Proposal::Hastings(
-			(num_grandparents_before as f64
-				/ num_grandparents_after as f64)
-				.ln(),
-		)
+		Ok(Proposal::Hastings(ratio))
 	}
 }
 
@@ -93,7 +93,7 @@ impl WideExchange {
 }
 
 impl Operator for WideExchange {
-	fn propose(&self, state: &mut State) -> Proposal {
+	fn propose(&self, state: &mut State) -> Result<Proposal> {
 		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
@@ -106,10 +106,10 @@ impl Operator for WideExchange {
 		};
 
 		let Some(i_parent) = tree.parent_of(i) else {
-			return Proposal::Reject;
+			return Ok(Proposal::Reject);
 		};
 		let Some(j_parent) = tree.parent_of(j) else {
-			return Proposal::Reject;
+			return Ok(Proposal::Reject);
 		};
 
 		if j != i_parent.into()
@@ -119,9 +119,9 @@ impl Operator for WideExchange {
 			tree.update_replacement(i, j);
 			tree.update_replacement(j, i);
 
-			Proposal::Hastings(0.0)
+			Ok(Proposal::Hastings(0.0))
 		} else {
-			Proposal::Reject
+			Ok(Proposal::Reject)
 		}
 	}
 }
