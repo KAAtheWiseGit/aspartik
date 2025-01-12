@@ -22,7 +22,6 @@ pub type DynLikelihood<const N: usize> =
 pub type DynModel<const N: usize> =
 	Box<dyn Model<Substitution = Substitution<N>>>;
 
-// TODO: common `accept` function, verify the tree
 // TODO: interrupt handler, saving the state
 pub fn run<const N: usize>(
 	config: Config,
@@ -51,13 +50,12 @@ pub fn run<const N: usize>(
 					&mut model,
 				);
 
-				state.tree.verify();
-				state.accept();
-				transitions.accept();
+				accept(
+					state,
+					&mut likelihoods,
+					&mut transitions,
+				);
 
-				for likelihood in &mut likelihoods {
-					likelihood.accept();
-				}
 				continue;
 			}
 			Proposal::Reject => {
@@ -75,20 +73,10 @@ pub fn run<const N: usize>(
 
 		if ratio > state.rng.random::<f64>().ln() {
 			state.likelihood = new_likelihood;
-			state.tree.verify();
-			state.accept();
-			transitions.accept();
 
-			for likelihood in &mut likelihoods {
-				likelihood.accept();
-			}
+			accept(state, &mut likelihoods, &mut transitions);
 		} else {
-			state.reject();
-			transitions.reject();
-
-			for likelihood in &mut likelihoods {
-				likelihood.reject();
-			}
+			reject(state, &mut likelihoods, &mut transitions);
 		}
 
 		log::write(state, i).unwrap();
@@ -128,6 +116,33 @@ fn propose<const N: usize>(
 
 	for likelihood in likelihoods {
 		likelihood.propose(&nodes, &transitions, &children);
+	}
+}
+
+fn accept<const N: usize>(
+	state: &mut State,
+	likelihoods: &mut [DynLikelihood<N>],
+	transitions: &mut Transitions<N>,
+) {
+	state.tree.verify();
+	state.accept();
+	transitions.accept();
+
+	for likelihood in likelihoods {
+		likelihood.accept();
+	}
+}
+
+fn reject<const N: usize>(
+	state: &mut State,
+	likelihoods: &mut [DynLikelihood<N>],
+	transitions: &mut Transitions<N>,
+) {
+	state.reject();
+	transitions.reject();
+
+	for likelihood in likelihoods {
+		likelihood.reject();
 	}
 }
 
