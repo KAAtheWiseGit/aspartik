@@ -16,20 +16,16 @@ pub type BooleanParam = Param<bool>;
 impl<T: Copy + PartialOrd> Param<T> {
 	/// Returns `false` if any value inside the parameter is out of bounds.
 	pub fn is_valid(&self) -> bool {
-		self.values
-			.iter()
-			.map(|val| {
-				let lower =
-					self.min.map(|min| min <= *val)
-						.unwrap_or(true);
-				let upper =
-					self.max.map(|max| *val <= max)
-						.unwrap_or(true);
+		self.values.iter().all(|val| {
+			let lower =
+				self.min.map(|min| min <= *val).unwrap_or(true);
+			let upper =
+				self.max.map(|max| *val <= max).unwrap_or(true);
 
-				upper && lower
-			})
-			// all items are true
-			.all(|x| x)
+			// Both the upper and the lower bounds are either
+			// satisfied or not present
+			lower && upper
+		})
 	}
 
 	/// Get the first value of the parameter.
