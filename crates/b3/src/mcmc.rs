@@ -1,3 +1,4 @@
+use anyhow::Result;
 use rand::Rng;
 
 use crate::{
@@ -31,9 +32,9 @@ pub fn run<const N: usize>(
 	mut likelihoods: Vec<DynLikelihood<N>>,
 	mut transitions: Transitions<N>,
 	mut model: DynModel<N>,
-) {
+) -> Result<()> {
 	// TODO: output configuration (maybe another logger type)
-	let mut file = std::fs::File::create("start.trees").unwrap();
+	let mut file = std::fs::File::create("start.trees")?;
 
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
@@ -79,17 +80,18 @@ pub fn run<const N: usize>(
 			reject(state, &mut likelihoods, &mut transitions);
 		}
 
-		log::write(state, i).unwrap();
+		log::write(state, i)?;
 
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}",
 				state.get_tree().into_newick()
-			))
-			.unwrap();
+			))?;
 		}
 	}
+
+	Ok(())
 }
 
 fn propose<const N: usize>(

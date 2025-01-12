@@ -124,7 +124,8 @@ fn likelihood(data: &Data, length: usize) {
 		likelihoods,
 		transitions,
 		model,
-	);
+	)
+	.unwrap();
 }
 
 fn bench(c: &mut Criterion) {
