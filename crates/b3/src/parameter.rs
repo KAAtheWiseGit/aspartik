@@ -34,6 +34,10 @@ impl<T: Copy + PartialOrd> Param<T> {
 			.first()
 			.expect("Parameters must have at least one dimension")
 	}
+
+	pub fn len(&self) -> usize {
+		self.values.len()
+	}
 }
 
 impl<T: Copy + PartialOrd> Index<usize> for Param<T> {
@@ -65,6 +69,14 @@ impl Parameter {
 			Parameter::Real(p) => p.is_valid(),
 			Parameter::Integer(p) => p.is_valid(),
 			Parameter::Boolean(p) => p.is_valid(),
+		}
+	}
+
+	pub fn len(&self) -> usize {
+		match self {
+			Parameter::Real(p) => p.len(),
+			Parameter::Integer(p) => p.len(),
+			Parameter::Boolean(p) => p.len(),
 		}
 	}
 
