@@ -79,7 +79,7 @@ impl Logger {
 			.parameters
 			.iter()
 			.map(|parameter| -> Result<Json> {
-				let param = state.get_parameter(parameter)?;
+				let param = state.param(parameter)?;
 
 				Ok(to_value(param)?)
 			})

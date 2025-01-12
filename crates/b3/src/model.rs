@@ -34,7 +34,7 @@ impl Model for DnaModel {
 			DnaModel::JukesCantor => substitution::jukes_cantor(),
 			DnaModel::K80 { kappa } => {
 				let kappa = state
-					.get_parameter(kappa)
+					.param(kappa)
 					.unwrap()
 					.as_real()
 					.unwrap()
@@ -44,7 +44,7 @@ impl Model for DnaModel {
 			}
 			DnaModel::F81 { probabilities } => {
 				let probabilities = state
-					.get_parameter(probabilities)
+					.param(probabilities)
 					.unwrap()
 					.as_real()
 					.unwrap();
@@ -61,14 +61,14 @@ impl Model for DnaModel {
 				probabilities,
 			} => {
 				let kappa = state
-					.get_parameter(kappa)
+					.param(kappa)
 					.unwrap()
 					.as_real()
 					.unwrap()
 					.first();
 
 				let probabilities = state
-					.get_parameter(probabilities)
+					.param(probabilities)
 					.unwrap()
 					.as_real()
 					.unwrap();
@@ -86,13 +86,13 @@ impl Model for DnaModel {
 				probabilities,
 			} => {
 				let exchanges = state
-					.get_parameter(exchanges)
+					.param(exchanges)
 					.unwrap()
 					.as_real()
 					.unwrap();
 
 				let probabilities = state
-					.get_parameter(probabilities)
+					.param(probabilities)
 					.unwrap()
 					.as_real()
 					.unwrap();

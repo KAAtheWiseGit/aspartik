@@ -9,11 +9,12 @@ use crate::{parameter::Parameter, tree::Tree};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct State {
-	/// Map of parameters by name.
-	pub(crate) params: HashMap<String, Parameter>,
 	/// Proposal parameters
+	#[serde(rename = "parameters")]
+	old_params: HashMap<String, Parameter>,
+	/// Current set of parameters by name.
 	#[serde(skip)]
-	pub(crate) proposal_params: HashMap<String, Parameter>,
+	params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	pub(crate) tree: Tree,
 
@@ -26,8 +27,8 @@ pub struct State {
 impl State {
 	pub fn new(tree: Tree) -> Self {
 		Self {
+			old_params: HashMap::new(),
 			params: HashMap::new(),
-			proposal_params: HashMap::new(),
 			tree,
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),
@@ -36,36 +37,37 @@ impl State {
 
 	/// Accept the current proposal
 	pub(crate) fn accept(&mut self) {
-		for (name, param) in std::mem::take(&mut self.proposal_params) {
-			self.params.insert(name, param);
-		}
+		self.old_params = self.params.clone();
 
 		self.tree.accept();
 	}
 
 	pub(crate) fn reject(&mut self) {
-		self.proposal_params.clear();
+		self.params = self.old_params.clone();
 
 		self.tree.reject();
 	}
 
-	pub fn get_parameter<S: AsRef<str>>(
-		&self,
-		name: S,
-	) -> Result<&Parameter> {
+	pub fn param<S: AsRef<str>>(&self, name: S) -> Result<&Parameter> {
 		let name = name.as_ref();
-
-		if let Some(param) = self.proposal_params.get(name) {
-			return Ok(param);
-		}
 
 		self.params.get(name).ok_or_else(|| {
 			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
 		})
 	}
 
+	pub fn mut_param<S: AsRef<str>>(
+		&mut self,
+		name: S,
+	) -> Result<&mut Parameter> {
+		let name = name.as_ref();
+
+		self.params.get_mut(name).ok_or_else(|| {
+			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
+		})
+	}
+
 	pub fn has_parameter<S: AsRef<str>>(&self, name: S) -> bool {
-		// Proposal can't have parameters not already in state.
 		self.params.contains_key(name.as_ref())
 	}
 
