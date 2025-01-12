@@ -100,4 +100,25 @@ impl Parameter {
 			_ => None,
 		}
 	}
+
+	pub fn as_mut_real(&mut self) -> Option<&mut RealParam> {
+		match self {
+			Parameter::Real(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn as_mut_integer(&mut self) -> Option<&mut IntegerParam> {
+		match self {
+			Parameter::Integer(p) => Some(p),
+			_ => None,
+		}
+	}
+
+	pub fn as_mut_boolean(&mut self) -> Option<&mut BooleanParam> {
+		match self {
+			Parameter::Boolean(p) => Some(p),
+			_ => None,
+		}
+	}
 }

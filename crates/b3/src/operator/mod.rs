@@ -7,6 +7,7 @@ use crate::State;
 
 // Operators:
 // - [ ] Parameter operators
+//   - [/] Scaling with a distribution.
 //   - [ ] "Bit flips" for boolean parameters
 //   - [ ] Uniform selection in parameter bounds
 //   - [ ] Swap operator for exchanging dimension values
@@ -27,12 +28,14 @@ use crate::State;
 //   - [ ] Bactrian versions for all distribution dependent operators from the
 //     above
 mod exchange;
+mod param;
 mod scale;
 mod slide;
 
 pub mod scheduler;
 
 pub use exchange::{NarrowExchange, WideExchange};
+pub use param::Scale as ParamScale;
 pub use scale::Scale;
 pub use slide::Slide;
 

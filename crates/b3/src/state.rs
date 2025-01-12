@@ -14,7 +14,7 @@ pub struct State {
 	old_params: HashMap<String, Parameter>,
 	/// Current set of parameters by name.
 	#[serde(skip)]
-	params: HashMap<String, Parameter>,
+	pub(crate) params: HashMap<String, Parameter>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	pub(crate) tree: Tree,
 
