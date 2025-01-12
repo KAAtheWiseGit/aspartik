@@ -38,7 +38,7 @@ impl Operator for Scale {
 			tree.update_weight(node, new_weight);
 		}
 
-		// TODO: ratio
-		Ok(Proposal::Hastings(0.0))
+		let ratio = scale.ln() * (tree.num_internals() - 2) as f64;
+		Ok(Proposal::Hastings(ratio))
 	}
 }
