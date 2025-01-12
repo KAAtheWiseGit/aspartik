@@ -8,8 +8,8 @@ use b3::{
 	mcmc::{run, Config, DynLikelihood},
 	model::DnaModel,
 	operator::{
-		scheduler::WeightedScheduler, NarrowExchange, Operator, Scale,
-		Slide, WideExchange,
+		scheduler::WeightedScheduler, Operator, TreeNarrowExchange,
+		TreeScale, TreeSlide, TreeWideExchange,
 	},
 	probability::Compound,
 	Distribution, State, Transitions, Tree,
@@ -95,11 +95,12 @@ fn likelihood(data: &Data, length: usize) {
 	let prior = Box::new(Compound::new([]));
 
 	// Local
-	let narrow_exchange = NarrowExchange::new();
-	let wide_exchange = WideExchange::new();
-	let slide: Box<dyn Operator> = Slide::new(Distribution::Uniform);
+	let narrow_exchange = TreeNarrowExchange::new();
+	let wide_exchange = TreeWideExchange::new();
+	let slide: Box<dyn Operator> = TreeSlide::new(Distribution::Uniform);
 	// Global
-	let scale: Box<dyn Operator> = Scale::new(0.75, Distribution::Uniform);
+	let scale: Box<dyn Operator> =
+		TreeScale::new(0.75, Distribution::Uniform);
 
 	let mut scheduler = WeightedScheduler::new(
 		[narrow_exchange, wide_exchange, slide, scale],

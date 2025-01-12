@@ -27,17 +27,17 @@ use crate::State;
 //   - [ ] Wilson-Balding branch swapping move
 //   - [ ] Bactrian versions for all distribution dependent operators from the
 //     above
-mod exchange;
 mod param;
-mod scale;
-mod slide;
+mod tree;
 
 pub mod scheduler;
 
-pub use exchange::{NarrowExchange, WideExchange};
 pub use param::Scale as ParamScale;
-pub use scale::Scale;
-pub use slide::Slide;
+pub use tree::Scale as TreeScale;
+pub use tree::Slide as TreeSlide;
+pub use tree::{
+	NarrowExchange as TreeNarrowExchange, WideExchange as TreeWideExchange,
+};
 
 pub type Rng = Pcg64;
 

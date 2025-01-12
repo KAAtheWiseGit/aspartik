@@ -14,9 +14,8 @@ impl Uniform {
 impl Probability for Uniform {
 	// can be cached, but I doubt that's needed
 	fn probability(&self, state: &State) -> f64 {
-		let Ok(Some(param)) = state
-			.param(&self.parameter)
-			.map(|p| p.as_real())
+		let Ok(Some(param)) =
+			state.param(&self.parameter).map(|p| p.as_real())
 		else {
 			return 0.0;
 		};

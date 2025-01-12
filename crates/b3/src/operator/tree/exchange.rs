@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use super::{Operator, Proposal};
+use crate::operator::{Operator, Proposal};
 use crate::{
 	tree::{Internal, Tree},
 	State,

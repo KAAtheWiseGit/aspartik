@@ -10,9 +10,8 @@ pub struct Poisson {
 
 impl Probability for Poisson {
 	fn probability(&self, state: &State) -> f64 {
-		let Ok(Some(param)) = state
-			.param(&self.parameter)
-			.map(|p| p.as_integer())
+		let Ok(Some(param)) =
+			state.param(&self.parameter).map(|p| p.as_integer())
 		else {
 			return f64::NEG_INFINITY;
 		};

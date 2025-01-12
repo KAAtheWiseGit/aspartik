@@ -1,4 +1,4 @@
-use super::{Operator, Proposal};
+use crate::operator::{Operator, Proposal};
 use crate::{distribution::Distribution, State};
 
 pub struct Scale {
