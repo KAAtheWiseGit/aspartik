@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod bases;
 pub mod seq;
 pub mod substitution;
