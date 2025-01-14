@@ -1,7 +1,7 @@
 [workspace]
 members = [
 	"crates/b3",
-	"crates/core",
+	"crates/base",
 	"crates/io",
 	"crates/linalg",
 	"crates/shchurvec",

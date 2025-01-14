@@ -1,4 +1,4 @@
-use core::substitution::{self, Substitution};
+use base::substitution::{self, Substitution};
 
 use crate::State;
 

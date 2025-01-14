@@ -14,7 +14,7 @@ use b3::{
 	probability::Compound,
 	Distribution, State, Transitions, Tree,
 };
-use core::{seq::DnaSeq, DnaNucleoBase};
+use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 

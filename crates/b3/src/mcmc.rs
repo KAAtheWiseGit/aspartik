@@ -9,7 +9,7 @@ use crate::{
 	probability::Probability,
 	State, Transitions,
 };
-use core::substitution::Substitution;
+use base::substitution::Substitution;
 
 pub struct Config {
 	pub burnin: usize,

@@ -49,7 +49,7 @@ name = "b3"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core",
+ "base",
  "criterion",
  "crossbeam-channel",
  "io",
@@ -62,6 +62,16 @@ dependencies = [
  "serde_json",
  "shchurvec",
  "statrs",
+]
+
+[[package]]
+name = "base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "linalg",
+ "petgraph",
+ "thiserror",
 ]
 
 [[package]]
@@ -155,16 +165,6 @@ name = "clap_lex"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
-
-[[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "linalg",
- "petgraph",
- "thiserror",
-]
 
 [[package]]
 name = "criterion"
@@ -333,7 +333,7 @@ name = "io"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core",
+ "base",
  "nom",
  "petgraph",
 ]
