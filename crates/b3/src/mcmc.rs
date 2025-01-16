@@ -38,47 +38,15 @@ pub fn run<const N: usize>(
 
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
-		let operator = scheduler.get_operator(&mut state.rng);
-
-		let hastings = match operator.propose(state)? {
-			Proposal::Accept => {
-				propose(
-					state,
-					&mut likelihoods,
-					&mut transitions,
-					&mut model,
-				);
-
-				accept(
-					state,
-					&mut likelihoods,
-					&mut transitions,
-				);
-
-				continue;
-			}
-			Proposal::Reject => {
-				continue;
-			}
-			Proposal::Hastings(ratio) => ratio,
-		};
-
-		propose(state, &mut likelihoods, &mut transitions, &mut model);
-
-		let new_likelihood =
-			likelihood(&likelihoods) + prior.probability(state);
-
-		let ratio = new_likelihood - state.likelihood + hastings;
-
-		if ratio > state.rng.random::<f64>().ln() {
-			state.likelihood = new_likelihood;
-
-			accept(state, &mut likelihoods, &mut transitions);
-		} else {
-			reject(state, &mut likelihoods, &mut transitions);
-		}
-
-		log::write(state, i)?;
+		step(
+			i,
+			state,
+			prior.as_ref(),
+			scheduler,
+			&mut likelihoods,
+			&mut transitions,
+			&mut model,
+		)?;
 
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
@@ -88,6 +56,50 @@ pub fn run<const N: usize>(
 			))?;
 		}
 	}
+
+	Ok(())
+}
+
+fn step<const N: usize>(
+	i: usize,
+	state: &mut State,
+	prior: &dyn Probability,
+	scheduler: &mut WeightedScheduler,
+	likelihoods: &mut [DynLikelihood<N>],
+	transitions: &mut Transitions<N>,
+	model: &mut DynModel<N>,
+) -> Result<()> {
+	let operator = scheduler.get_operator(&mut state.rng);
+
+	let hastings = match operator.propose(state)? {
+		Proposal::Accept => {
+			propose(state, likelihoods, transitions, model);
+
+			accept(state, likelihoods, transitions);
+
+			return Ok(());
+		}
+		Proposal::Reject => {
+			return Ok(());
+		}
+		Proposal::Hastings(ratio) => ratio,
+	};
+
+	propose(state, likelihoods, transitions, model);
+
+	let new_likelihood = likelihood(likelihoods) + prior.probability(state);
+
+	let ratio = new_likelihood - state.likelihood + hastings;
+
+	if ratio > state.rng.random::<f64>().ln() {
+		state.likelihood = new_likelihood;
+
+		accept(state, likelihoods, transitions);
+	} else {
+		reject(state, likelihoods, transitions);
+	}
+
+	log::write(state, i)?;
 
 	Ok(())
 }
