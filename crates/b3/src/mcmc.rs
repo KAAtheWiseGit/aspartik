@@ -83,7 +83,7 @@ pub fn run<const N: usize>(
 		if i % config.save_state_every == 0 && i > config.burnin {
 			use std::io::Write;
 			file.write_fmt(format_args!(
-				"{}",
+				"{}\n",
 				state.get_tree().into_newick()
 			))?;
 		}
