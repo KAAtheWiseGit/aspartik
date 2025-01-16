@@ -1,7 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use std::{fs::File, hint::black_box};
-
 use b3::{
 	likelihood::CpuLikelihood,
 	log,
@@ -12,93 +10,20 @@ use b3::{
 		TreeScale, TreeSlide, TreeWideExchange,
 	},
 	probability::Compound,
-	Distribution, State, Transitions, Tree,
+	util, Distribution, State, Transitions,
 };
-use base::{seq::DnaSeq, DnaNucleoBase};
-use io::fasta::FastaReader;
-use linalg::Vector;
 
-type Data = (Vec<DnaSeq>, Vec<String>, Vec<f64>, Vec<usize>);
-
-fn data(num_leaves_pow: usize) -> Data {
-	let num_leaves = 2_usize.pow(num_leaves_pow as u32);
-
-	let fasta: FastaReader<DnaNucleoBase, _> =
-		FastaReader::new(File::open("data/test.fasta").unwrap());
-
-	let mut seqs: Vec<DnaSeq> = vec![];
-	let mut names = vec![];
-	for record in fasta.take(num_leaves) {
-		let record = record.unwrap();
-
-		names.push(record.description().to_owned());
-		seqs.push(record.into());
-	}
-
-	let weights = (0..(num_leaves * 2 - 1))
-		.map(|e| e as f64 * 0.005)
-		.collect();
-
-	let mut children = vec![];
-	let mut prev = 0;
-	for level in 0..num_leaves_pow {
-		let size =
-			2_usize.pow(num_leaves_pow as u32 - 1 - level as u32);
-
-		for i in 0..size {
-			let left = prev + 2 * i;
-			let right = prev + 2 * i + 1;
-			children.push(left);
-			children.push(right);
-		}
-
-		prev += size * 2;
-	}
-
-	(seqs, names, weights, children)
-}
-
-fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
-	let width = seqs[0].len();
-	let height = seqs.len();
-
-	let mut out = vec![vec![Vector::default(); height]; width];
-
-	// TODO: find a place for this
-	fn to_row(base: &DnaNucleoBase) -> Vector<f64, 4> {
-		match base {
-			DnaNucleoBase::Adenine => [1.0, 0.0, 0.0, 0.0],
-			DnaNucleoBase::Cytosine => [0.0, 1.0, 0.0, 0.0],
-			DnaNucleoBase::Guanine => [0.0, 0.0, 1.0, 0.0],
-			DnaNucleoBase::Thymine => [0.0, 0.0, 0.0, 1.0],
-
-			_ => [0.25, 0.25, 0.25, 0.25],
-		}
-		.into()
-	}
-
-	#[allow(clippy::needless_range_loop)]
-	for i in 0..width {
-		for j in 0..height {
-			out[i][j] = to_row(&seqs[j][i])
-		}
-	}
-
-	out
-}
-
-fn likelihood(data: &Data, length: usize) {
-	let (seqs, names, weights, children) = data;
-	let tree = Tree::new(weights, children);
+fn likelihood(length: usize) {
+	let (seqs, tree) = util::random_tree("data/512.fasta".as_ref());
 	let model = Box::new(DnaModel::JukesCantor);
 
-	let likelihood = Box::new(CpuLikelihood::new(to_rows(seqs)));
+	let likelihood = Box::new(CpuLikelihood::new(util::dna_to_rows(&seqs)));
 	let likelihoods: Vec<DynLikelihood<4>> = vec![likelihood];
 
 	let num_edges = (seqs.len() - 1) * 2;
 	let transitions = Transitions::<4>::new(num_edges);
 
-	let mut state = State::new(names.clone(), tree);
+	let mut state = State::new(tree);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
@@ -136,11 +61,7 @@ fn likelihood(data: &Data, length: usize) {
 }
 
 fn bench(c: &mut Criterion) {
-	let data = black_box(data(9));
-
-	c.bench_function("likelihood", |b| {
-		b.iter(|| likelihood(&data, 10_001))
-	});
+	c.bench_function("likelihood", |b| b.iter(|| likelihood(10_001)));
 }
 
 criterion_group!(

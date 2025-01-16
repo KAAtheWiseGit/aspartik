@@ -15,6 +15,9 @@ const ROOT: usize = usize::MAX;
 
 #[derive(Debug)]
 pub struct Tree {
+	#[allow(dead_code)]
+	names: Vec<String>,
+
 	children: ShchurVec<usize>,
 	parents: ShchurVec<usize>,
 	weights: ShchurVec<f64>,
@@ -45,8 +48,14 @@ pub struct Internal(usize);
 pub struct Leaf(usize);
 
 impl Tree {
-	pub fn new(weights: &[f64], children: &[usize]) -> Self {
+	pub fn new(
+		names: Vec<String>,
+		weights: &[f64],
+		children: &[usize],
+	) -> Self {
 		let mut out = Self {
+			names,
+
 			children: children.into(),
 			parents: ShchurVec::repeat(ROOT, weights.len()),
 			weights: weights.into(),

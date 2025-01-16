@@ -16,8 +16,6 @@ pub struct State {
 	#[serde(skip)]
 	params: HashMap<String, Parameter>,
 
-	/// Name of each sequence
-	names: Vec<String>,
 	/// The phylogenetic tree, which also contains the genetic data.
 	pub(crate) tree: Tree,
 
@@ -28,11 +26,10 @@ pub struct State {
 }
 
 impl State {
-	pub fn new(names: Vec<String>, tree: Tree) -> Self {
+	pub fn new(tree: Tree) -> Self {
 		Self {
 			old_params: HashMap::new(),
 			params: HashMap::new(),
-			names,
 			tree,
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),
