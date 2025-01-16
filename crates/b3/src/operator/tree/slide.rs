@@ -25,9 +25,9 @@ impl Operator for Slide {
 		let (left, right) = tree.children_of(node);
 
 		let weight = tree.weight_of(node);
-		let high = tree.weight_of(parent);
+		let low = tree.weight_of(parent);
 		// maximum of two child weights
-		let low = tree.weight_of(left).max(tree.weight_of(right));
+		let high = tree.weight_of(left).max(tree.weight_of(right));
 
 		let new_weight = self
 			.distribution

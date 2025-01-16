@@ -72,7 +72,9 @@ impl Distribution {
 		center: f64,
 		rng: &mut Rng,
 	) -> f64 {
-		assert!(low < center && center < high);
+		assert!(
+			low < center && center < high, "The center value {center} is not in range {low}-{high}"
+		);
 
 		match self {
 			// Centering doesn't do anything for uniform
