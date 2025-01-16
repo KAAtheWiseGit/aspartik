@@ -18,15 +18,22 @@ use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 
-type Data = (Vec<DnaSeq>, Vec<f64>, Vec<usize>);
+type Data = (Vec<DnaSeq>, Vec<String>, Vec<f64>, Vec<usize>);
 
 fn data(num_leaves_pow: usize) -> Data {
 	let num_leaves = 2_usize.pow(num_leaves_pow as u32);
 
 	let fasta: FastaReader<DnaNucleoBase, _> =
 		FastaReader::new(File::open("data/test.fasta").unwrap());
-	let seqs: Vec<DnaSeq> =
-		fasta.take(num_leaves).map(|s| s.unwrap().into()).collect();
+
+	let mut seqs: Vec<DnaSeq> = vec![];
+	let mut names = vec![];
+	for record in fasta.take(num_leaves) {
+		let record = record.unwrap();
+
+		names.push(record.description().to_owned());
+		seqs.push(record.into());
+	}
 
 	let weights = (0..(num_leaves * 2 - 1))
 		.map(|e| e as f64 * 0.005)
@@ -48,7 +55,7 @@ fn data(num_leaves_pow: usize) -> Data {
 		prev += size * 2;
 	}
 
-	(seqs, weights, children)
+	(seqs, names, weights, children)
 }
 
 fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
@@ -81,7 +88,7 @@ fn to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
 }
 
 fn likelihood(data: &Data, length: usize) {
-	let (seqs, weights, children) = data;
+	let (seqs, names, weights, children) = data;
 	let tree = Tree::new(weights, children);
 	let model = Box::new(DnaModel::JukesCantor);
 
@@ -91,7 +98,7 @@ fn likelihood(data: &Data, length: usize) {
 	let num_edges = (seqs.len() - 1) * 2;
 	let transitions = Transitions::<4>::new(num_edges);
 
-	let mut state = State::new(tree);
+	let mut state = State::new(names.clone(), tree);
 	let prior = Box::new(Compound::new([]));
 
 	// Local
