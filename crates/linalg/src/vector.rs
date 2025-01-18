@@ -13,6 +13,17 @@ pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
 }
 
+#[cfg(feature = "bytemuck")]
+mod bytemuck {
+	use super::Vector;
+	use bytemuck::{Pod, Zeroable};
+
+	unsafe impl<T, const N: usize> Zeroable for Vector<T, N> where T: Copy + Zeroable
+	{}
+
+	unsafe impl<T, const N: usize> Pod for Vector<T, N> where T: Copy + Pod {}
+}
+
 // `From` conversions
 impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 	fn from(value: [T; N]) -> Self {
