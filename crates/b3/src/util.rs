@@ -7,7 +7,7 @@ use base::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 
-pub fn random_tree(data: &Path) -> (Vec<DnaSeq>, Tree) {
+pub fn make_tree(data: &Path) -> (Vec<DnaSeq>, Tree) {
 	let fasta: FastaReader<DnaNucleoBase, _> =
 		FastaReader::new(File::open(data).unwrap());
 
@@ -20,30 +20,35 @@ pub fn random_tree(data: &Path) -> (Vec<DnaSeq>, Tree) {
 		})
 		.unzip();
 
-	// A very primitive comb-like tree
+	// A very primitive mostly balanced tree
 	let num_leaves = seqs.len();
 	let num_internals = num_leaves - 1;
+
+	use std::collections::VecDeque;
+	let mut dangling: VecDeque<usize> = (0..num_leaves).collect();
+
 	let mut children = vec![];
 	for i in 0..num_internals {
-		// current node id is num_leaves + i
+		children.push(dangling.pop_front().unwrap());
+		children.push(dangling.pop_front().unwrap());
 
-		// leaf child
-		children.push(i);
+		dangling.push_back(i + num_leaves);
+	}
 
-		// the next internal or the second child for the last internal
-		if i + 1 < num_internals {
-			children.push(num_leaves + i + 1);
-		} else {
-			children.push(i + 1);
+	let mut weights = vec![0.0; num_leaves + num_internals];
+	let mut nodes = VecDeque::from([num_internals - 1]);
+	while let Some(node) = nodes.pop_back() {
+		let left = children[node * 2];
+		let right = children[node * 2 + 1];
+		weights[left] = weights[node + num_leaves] + 0.01;
+		weights[right] = weights[node + num_leaves] + 0.01;
+
+		if left >= num_leaves {
+			nodes.push_back(left - num_leaves);
 		}
-	}
-
-	let mut weights = vec![];
-	for _ in 0..num_leaves {
-		weights.push(num_internals as f64 * 0.01);
-	}
-	for i in 0..num_internals {
-		weights.push(i as f64 * 0.01);
+		if right >= num_leaves {
+			nodes.push_back(right - num_leaves);
+		}
 	}
 
 	let tree = Tree::new(names, &weights, &children);
