@@ -14,7 +14,7 @@ use b3::{
 };
 
 fn likelihood(length: usize) {
-	let (seqs, tree) = util::make_tree("data/100.fasta".as_ref());
+	let (seqs, tree) = util::make_tree("data/512.fasta".as_ref());
 	let model = Box::new(DnaModel::JukesCantor);
 
 	let likelihood = Box::new(CpuLikelihood::new(util::dna_to_rows(&seqs)));
