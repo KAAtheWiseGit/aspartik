@@ -40,8 +40,8 @@ pub fn make_tree(data: &Path) -> (Vec<DnaSeq>, Tree) {
 	while let Some(node) = nodes.pop_back() {
 		let left = children[node * 2];
 		let right = children[node * 2 + 1];
-		weights[left] = weights[node + num_leaves] + 0.01;
-		weights[right] = weights[node + num_leaves] + 0.01;
+		weights[left] = weights[node + num_leaves] + 1.0;
+		weights[right] = weights[node + num_leaves] + 1.0;
 
 		if left >= num_leaves {
 			nodes.push_back(left - num_leaves);

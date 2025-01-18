@@ -1,7 +1,9 @@
 mod cpu;
+mod gpu;
 // mod thread;
 
 pub use cpu::CpuLikelihood;
+pub use gpu::GpuLikelihood;
 // #[allow(unused)] // TODO: use dynamically in `State`
 // pub use thread::ThreadedLikelihood;
 

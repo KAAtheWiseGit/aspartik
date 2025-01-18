@@ -23,6 +23,7 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 [workspace.dependencies]
 ahash = "0.8.11"
 anyhow = "1.0.93"
+bytemuck = "1.21.0"
 criterion = "0.5"
 crossbeam-channel = "0.5.13"
 nom = "8.0.0-alpha2"
@@ -36,6 +37,8 @@ serde = "1.0.214"
 serde_json = "1.0.132"
 statrs = "0.18.0"
 thiserror = "1.0.67"
+vulkano = "0.34.1"
+vulkano-shaders = "0.34.0"
 
 [profile.bench]
 debug = true

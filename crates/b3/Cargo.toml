@@ -9,7 +9,7 @@ authors.workspace = true
 [dependencies]
 base = { path = "../base" }
 io = { path = "../io" }
-linalg = { path = "../linalg" }
+linalg = { path = "../linalg", features = ["bytemuck"] }
 shchurvec = { path = "../shchurvec" }
 
 anyhow = { workspace = true }
@@ -21,6 +21,8 @@ rayon = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 statrs = { workspace = true }
+vulkano = { workspace = true }
+vulkano-shaders = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
