@@ -29,7 +29,7 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 					* probability[children[i * 2]];
 				let right = substitutions[i * 2 + 1]
 					* probability[children[i * 2 + 1]];
-				probability.set(i, left * right);
+				probability.set(nodes[i], left * right);
 			}
 		}
 	}
