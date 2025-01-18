@@ -41,6 +41,10 @@ pub struct GpuLikelihood<const N: usize> {
 	// - number of nodes
 	device: Arc<Device>,
 	queue: Arc<Queue>,
+
+	/// Unlike in the CPU likelihood, this field is essential.  It tracks
+	/// which nodes were updated in the on-GPU buffer.  As such, it acts as
+	/// the `edited` field in `ShchurVec`.
 	updated_nodes: Vec<usize>,
 
 	num_nodes: usize,
@@ -73,8 +77,9 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 	}
 
 	fn accept(&mut self) {
-		// clear `updated_nodes`
-		todo!()
+		// `propose` changes the state to how it should be after the
+		// update, so this is all what's needed to accept.
+		self.updated_nodes.clear();
 	}
 
 	fn reject(&mut self) {
