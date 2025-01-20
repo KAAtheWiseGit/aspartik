@@ -20,6 +20,7 @@ impl Operator for Slide {
 
 		let node = tree.sample_internal(rng);
 		let Some(parent) = tree.parent_of(node) else {
+			// If the node is root, abort the proposal
 			return Ok(Proposal::Reject);
 		};
 		let (left, right) = tree.children_of(node);
@@ -27,7 +28,7 @@ impl Operator for Slide {
 		let weight = tree.weight_of(node);
 		let low = tree.weight_of(parent);
 		// maximum of two child weights
-		let high = tree.weight_of(left).max(tree.weight_of(right));
+		let high = tree.weight_of(left).min(tree.weight_of(right));
 
 		let new_weight = self
 			.distribution
