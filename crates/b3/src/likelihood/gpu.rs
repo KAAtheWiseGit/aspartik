@@ -47,6 +47,7 @@ pub struct GpuLikelihood<const N: usize> {
 	descriptor_set_allocator: StandardDescriptorSetAllocator,
 	command_buffer_allocator: StandardCommandBufferAllocator,
 	propose_pipeline: Arc<ComputePipeline>,
+	descriptor_set_0: Arc<PersistentDescriptorSet>,
 
 	probabilities: Subbuffer<[Vector<f64, N>]>,
 	masks: Subbuffer<[u32]>,
@@ -55,8 +56,6 @@ pub struct GpuLikelihood<const N: usize> {
 	/// which nodes were updated in the on-GPU buffer.  As such, it acts as
 	/// the `edited` field in `ShchurVec`.
 	updated_nodes: Vec<usize>,
-
-	propose_shader: EntryPoint,
 
 	num_leaves: usize,
 	num_sites: usize,
@@ -79,42 +78,8 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		substitutions: &[Self::Substitution],
 		children: &[usize],
 	) {
-		let num_rows_buffer = Buffer::from_data(
-			self.memory_allocator.clone(),
-			BufferCreateInfo {
-				usage: BufferUsage::STORAGE_BUFFER,
-				..Default::default()
-			},
-			AllocationCreateInfo {
-				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-				..Default::default()
-			},
-			(self.num_leaves * 2 - 1) as u32,
-		).unwrap();
-
 		let pipeline_layout = self.propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
-
-		let descriptor_set_layout_0 =
-			descriptor_set_layouts.get(0).unwrap();
-		let descriptor_set_0 = PersistentDescriptorSet::new(
-			&self.descriptor_set_allocator,
-			descriptor_set_layout_0.clone(),
-			[
-				WriteDescriptorSet::buffer(0, num_rows_buffer),
-				WriteDescriptorSet::buffer(
-					1,
-					self.probabilities.clone(),
-				),
-				WriteDescriptorSet::buffer(
-					2,
-					self.masks.clone(),
-				),
-			],
-			[],
-		)
-		.unwrap();
 
 		let nodes_buffer = Buffer::from_iter(
 			self.memory_allocator.clone(),
@@ -191,7 +156,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 				PipelineBindPoint::Compute,
 				self.propose_pipeline.layout().clone(),
 				0u32,
-				descriptor_set_0,
+				self.descriptor_set_0.clone(),
 			)
 			.unwrap()
 			.bind_descriptor_sets(
@@ -319,6 +284,20 @@ impl<const N: usize> GpuLikelihood<N> {
 			StandardMemoryAllocator::new_default(device.clone()),
 		);
 
+		let num_rows_buffer = Buffer::from_data(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			(num_leaves * 2 - 1) as u32,
+		).unwrap();
+
 		let probabilities_buffer = Buffer::from_iter(
 			memory_allocator.clone(),
 			BufferCreateInfo {
@@ -383,6 +362,28 @@ impl<const N: usize> GpuLikelihood<N> {
 		)
 		.unwrap();
 
+		let pipeline_layout = propose_pipeline.layout();
+		let descriptor_set_layouts = pipeline_layout.set_layouts();
+		let descriptor_set_layout_0 =
+			descriptor_set_layouts.get(0).unwrap();
+		let descriptor_set_0 = PersistentDescriptorSet::new(
+			&descriptor_set_allocator,
+			descriptor_set_layout_0.clone(),
+			[
+				WriteDescriptorSet::buffer(0, num_rows_buffer),
+				WriteDescriptorSet::buffer(
+					1,
+					probabilities_buffer.clone(),
+				),
+				WriteDescriptorSet::buffer(
+					2,
+					masks_buffer.clone(),
+				),
+			],
+			[],
+		)
+		.unwrap();
+
 		GpuLikelihood {
 			device,
 			queue,
@@ -390,11 +391,10 @@ impl<const N: usize> GpuLikelihood<N> {
 			descriptor_set_allocator,
 			command_buffer_allocator,
 			propose_pipeline,
+			descriptor_set_0,
 
 			probabilities: probabilities_buffer,
 			masks: masks_buffer,
-
-			propose_shader,
 
 			updated_nodes: Vec::new(),
 
