@@ -28,6 +28,10 @@ void main() {
 	uint idx = gl_GlobalInvocationID.x;
 	uint offset = idx * num_rows;
 
+	if (offset >= masks.length()) {
+		return;
+	}
+
 	for (uint i = 0; i < nodes.length(); i++) {
 		// the masks start at offset
 		// the probabilities start at offset * 2

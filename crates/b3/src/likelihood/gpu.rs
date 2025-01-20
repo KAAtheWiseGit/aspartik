@@ -152,7 +152,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
 				..Default::default()
 			},
-			nodes.to_vec().clone(),
+			nodes.iter().map(|v| *v as u32),
 		).unwrap();
 		let substitutions_buffer = Buffer::from_iter(
 			memory_allocator.clone(),
