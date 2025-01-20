@@ -48,6 +48,7 @@ pub struct GpuLikelihood<const N: usize> {
 	command_buffer_allocator: StandardCommandBufferAllocator,
 	propose_pipeline: Arc<ComputePipeline>,
 	reject_pipeline: Arc<ComputePipeline>,
+	likelihood_pipeline: Arc<ComputePipeline>,
 	descriptor_set_0: Arc<PersistentDescriptorSet>,
 
 	probabilities: Subbuffer<[Vector<f64, N>]>,
@@ -66,6 +67,13 @@ mod propose {
 	vulkano_shaders::shader! {
 		ty: "compute",
 		path: "src/likelihood/propose.glsl",
+	}
+}
+
+mod likelihood {
+	vulkano_shaders::shader! {
+		ty: "compute",
+		path: "src/likelihood/likelihood.glsl",
 	}
 }
 
@@ -189,24 +197,94 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 	}
 
 	fn likelihood(&self, root: usize) -> f64 {
-		let mut out = 0.0;
+		let root_buffer = Buffer::from_data(
+			self.memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			root as u32,
+		).unwrap();
+		let sums_buffer = Buffer::from_iter(
+			self.memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			(0..self.num_sites).map(|_| 0.0f64),
+		).unwrap();
 
-		let probabilities = self.probabilities.read().unwrap();
-		let mask = self.masks.read().unwrap();
-		let num_rows = self.num_leaves * 2 - 1;
+		let pipeline_layout = self.likelihood_pipeline.layout();
+		let descriptor_set_layouts = pipeline_layout.set_layouts();
+		let descriptor_set_layout_1 =
+			descriptor_set_layouts.get(1).unwrap();
+		let descriptor_set_1 = PersistentDescriptorSet::new(
+			&self.descriptor_set_allocator,
+			descriptor_set_layout_1.clone(),
+			[
+				WriteDescriptorSet::buffer(0, root_buffer),
+				WriteDescriptorSet::buffer(
+					1,
+					sums_buffer.clone(),
+				),
+			],
+			[],
+		)
+		.unwrap();
 
-		for i in 0..self.num_sites {
-			let offset = i * num_rows;
+		let mut command_buffer_builder =
+			AutoCommandBufferBuilder::primary(
+				&self.command_buffer_allocator,
+				self.queue.queue_family_index(),
+				CommandBufferUsage::OneTimeSubmit,
+			)
+			.unwrap();
 
-			let mask = mask[offset + root] as usize;
+		let num_groups = (self.num_sites + 63) / 64;
+		let work_group_counts = [num_groups as u32, 1, 1];
 
-			let probability_i = offset * 2 + root * 2 + mask;
-			let probability = probabilities[probability_i];
+		command_buffer_builder
+			.bind_pipeline_compute(self.likelihood_pipeline.clone())
+			.unwrap()
+			.bind_descriptor_sets(
+				PipelineBindPoint::Compute,
+				self.likelihood_pipeline.layout().clone(),
+				0u32,
+				self.descriptor_set_0.clone(),
+			)
+			.unwrap()
+			.bind_descriptor_sets(
+				PipelineBindPoint::Compute,
+				self.likelihood_pipeline.layout().clone(),
+				1u32,
+				descriptor_set_1,
+			)
+			.unwrap()
+			.dispatch(work_group_counts)
+			.unwrap();
 
-			out += probability.sum().ln();
-		}
+		let command_buffer = command_buffer_builder.build().unwrap();
 
-		out
+		let future = sync::now(self.device.clone())
+			.then_execute(self.queue.clone(), command_buffer)
+			.unwrap()
+			.then_signal_fence_and_flush()
+			.unwrap();
+
+		future.wait(None).unwrap();
+
+		let out = sums_buffer.read().unwrap();
+		out.iter().map(|v| v.ln()).sum()
 	}
 
 	fn accept(&mut self) {
@@ -485,6 +563,29 @@ impl<const N: usize> GpuLikelihood<N> {
 		)
 		.unwrap();
 
+		let likelihood_shader = likelihood::load(device.clone())
+			.unwrap()
+			.entry_point("main")
+			.unwrap();
+		let stage = PipelineShaderStageCreateInfo::new(
+			likelihood_shader.clone(),
+		);
+		let layout = PipelineLayout::new(
+			device.clone(),
+			PipelineDescriptorSetLayoutCreateInfo::from_stages([
+				&stage,
+			])
+			.into_pipeline_layout_create_info(device.clone())
+			.unwrap(),
+		)
+		.unwrap();
+		let likelihood_pipeline = ComputePipeline::new(
+			device.clone(),
+			None,
+			ComputePipelineCreateInfo::stage_layout(stage, layout),
+		)
+		.unwrap();
+
 		GpuLikelihood {
 			device,
 			queue,
@@ -493,6 +594,7 @@ impl<const N: usize> GpuLikelihood<N> {
 			command_buffer_allocator,
 			propose_pipeline,
 			reject_pipeline,
+			likelihood_pipeline,
 			descriptor_set_0,
 
 			probabilities: probabilities_buffer,
