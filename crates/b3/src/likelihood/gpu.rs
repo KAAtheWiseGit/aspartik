@@ -25,6 +25,7 @@ use vulkano::{
 		Pipeline, PipelineBindPoint, PipelineLayout,
 		PipelineShaderStageCreateInfo,
 	},
+	shader::EntryPoint,
 	sync::{self, GpuFuture},
 	VulkanLibrary,
 };
@@ -51,8 +52,17 @@ pub struct GpuLikelihood<const N: usize> {
 	/// the `edited` field in `ShchurVec`.
 	updated_nodes: Vec<usize>,
 
+	propose_shader: EntryPoint,
+
 	num_leaves: usize,
 	num_sites: usize,
+}
+
+mod propose {
+	vulkano_shaders::shader! {
+		ty: "compute",
+		path: "src/likelihood/propose.glsl",
+	}
 }
 
 impl<const N: usize> Likelihood for GpuLikelihood<N> {
@@ -65,17 +75,9 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		substitutions: &[Self::Substitution],
 		children: &[usize],
 	) {
-		mod cs {
-			vulkano_shaders::shader! {
-				ty: "compute",
-				path: "src/likelihood/propose.glsl",
-			}
-		}
-
-		let shader = cs::load(self.device.clone()).unwrap();
-
-		let cs = shader.entry_point("main").unwrap();
-		let stage = PipelineShaderStageCreateInfo::new(cs);
+		let stage = PipelineShaderStageCreateInfo::new(
+			self.propose_shader.clone(),
+		);
 		let layout = PipelineLayout::new(
 			self.device.clone(),
 			PipelineDescriptorSetLayoutCreateInfo::from_stages([
@@ -243,32 +245,22 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 			.unwrap();
 
 		future.wait(None).unwrap();
-
-		// let content = self.probabilities.clone();
-		// let content = content.read().unwrap();
-		// for el in content.iter() {
-		// 	println!("{}", el);
-		// }
 	}
 
 	fn likelihood(&self, root: usize) -> f64 {
 		let mut out = 0.0;
 
+		let probabilities = self.probabilities.read().unwrap();
+		let mask = self.masks.read().unwrap();
 		let num_rows = self.num_leaves * 2 - 1;
+
 		for i in 0..self.num_sites {
 			let offset = i * num_rows;
 
-			let mask_i = (offset + root) as u64;
-			let mask = self.masks.clone().index(mask_i);
-			let mask = mask.read().unwrap().clone();
+			let mask = mask[offset + root] as usize;
 
-			let probability_i =
-				offset * 2 + root * 2 + mask as usize;
-			let probability = self
-				.probabilities
-				.clone()
-				.index(probability_i as u64);
-			let probability = probability.read().unwrap().clone();
+			let probability_i = offset * 2 + root * 2 + mask;
+			let probability = probabilities[probability_i];
 
 			out += probability.sum().ln();
 		}
@@ -285,7 +277,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 	fn reject(&mut self) {
 		// load `updated_nodes` into a buffer and switch all of the
 		// pointers in the device probabilities buffer
-		todo!("reject")
+		// todo!("reject")
 	}
 }
 
@@ -387,12 +379,19 @@ impl<const N: usize> GpuLikelihood<N> {
 			masks.clone(),
 		).unwrap();
 
+		let propose_shader = propose::load(device.clone())
+			.unwrap()
+			.entry_point("main")
+			.unwrap();
+
 		GpuLikelihood {
 			device,
 			queue,
 
 			probabilities: probabilities_buffer,
 			masks: masks_buffer,
+
+			propose_shader,
 
 			updated_nodes: Vec::new(),
 
