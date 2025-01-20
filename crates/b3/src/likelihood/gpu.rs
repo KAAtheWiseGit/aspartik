@@ -46,6 +46,7 @@ pub struct GpuLikelihood<const N: usize> {
 	memory_allocator: Arc<StandardMemoryAllocator>,
 	descriptor_set_allocator: StandardDescriptorSetAllocator,
 	command_buffer_allocator: StandardCommandBufferAllocator,
+	propose_pipeline: Arc<ComputePipeline>,
 
 	probabilities: Subbuffer<[Vector<f64, N>]>,
 	masks: Subbuffer<[u32]>,
@@ -78,26 +79,6 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		substitutions: &[Self::Substitution],
 		children: &[usize],
 	) {
-		let stage = PipelineShaderStageCreateInfo::new(
-			self.propose_shader.clone(),
-		);
-		let layout = PipelineLayout::new(
-			self.device.clone(),
-			PipelineDescriptorSetLayoutCreateInfo::from_stages([
-				&stage,
-			])
-			.into_pipeline_layout_create_info(self.device.clone())
-			.unwrap(),
-		)
-		.unwrap();
-
-		let compute_pipeline = ComputePipeline::new(
-			self.device.clone(),
-			None,
-			ComputePipelineCreateInfo::stage_layout(stage, layout),
-		)
-		.unwrap();
-
 		let num_rows_buffer = Buffer::from_data(
 			self.memory_allocator.clone(),
 			BufferCreateInfo {
@@ -112,7 +93,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 			(self.num_leaves * 2 - 1) as u32,
 		).unwrap();
 
-		let pipeline_layout = compute_pipeline.layout();
+		let pipeline_layout = self.propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
 
 		let descriptor_set_layout_0 =
@@ -204,18 +185,18 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		let work_group_counts = [num_groups as u32, 1, 1];
 
 		command_buffer_builder
-			.bind_pipeline_compute(compute_pipeline.clone())
+			.bind_pipeline_compute(self.propose_pipeline.clone())
 			.unwrap()
 			.bind_descriptor_sets(
 				PipelineBindPoint::Compute,
-				compute_pipeline.layout().clone(),
+				self.propose_pipeline.layout().clone(),
 				0u32,
 				descriptor_set_0,
 			)
 			.unwrap()
 			.bind_descriptor_sets(
 				PipelineBindPoint::Compute,
-				compute_pipeline.layout().clone(),
+				self.propose_pipeline.layout().clone(),
 				1u32,
 				descriptor_set_1,
 			)
@@ -382,12 +363,33 @@ impl<const N: usize> GpuLikelihood<N> {
 			.entry_point("main")
 			.unwrap();
 
+		let stage = PipelineShaderStageCreateInfo::new(
+			propose_shader.clone(),
+		);
+		let layout = PipelineLayout::new(
+			device.clone(),
+			PipelineDescriptorSetLayoutCreateInfo::from_stages([
+				&stage,
+			])
+			.into_pipeline_layout_create_info(device.clone())
+			.unwrap(),
+		)
+		.unwrap();
+
+		let propose_pipeline = ComputePipeline::new(
+			device.clone(),
+			None,
+			ComputePipelineCreateInfo::stage_layout(stage, layout),
+		)
+		.unwrap();
+
 		GpuLikelihood {
 			device,
 			queue,
 			memory_allocator,
 			descriptor_set_allocator,
 			command_buffer_allocator,
+			propose_pipeline,
 
 			probabilities: probabilities_buffer,
 			masks: masks_buffer,
