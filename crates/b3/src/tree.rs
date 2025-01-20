@@ -36,7 +36,7 @@ impl From<Internal> for Node {
 }
 
 impl Internal {
-	pub fn to_index(&self) -> usize {
+	pub fn to_index(self) -> usize {
 		self.0
 	}
 }
