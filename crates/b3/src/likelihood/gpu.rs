@@ -65,15 +65,6 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		substitutions: &[Self::Substitution],
 		children: &[usize],
 	) {
-		// load the buffers:
-		// - nodes (uint (convert to u32))
-		// - substitutions (dmat4x4)
-		// - children (uint (convert to u32))
-		// - length of all of the above
-		//
-		// update the values with width of 32.  (TODO: what to do with
-		// out of bounds?)
-
 		mod cs {
 			vulkano_shaders::shader! {
 				ty: "compute",
@@ -174,7 +165,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
 				..Default::default()
 			},
-			substitutions.to_vec().clone(),
+			substitutions.iter().copied(),
 		).unwrap();
 		let children_buffer = Buffer::from_iter(
 			memory_allocator.clone(),
@@ -187,7 +178,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
 				..Default::default()
 			},
-			children.to_vec().clone(),
+			children.iter().map(|v| *v as u32),
 		).unwrap();
 
 		let descriptor_set_layout_1 =
@@ -256,7 +247,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		let content = self.probabilities.clone();
 		let content = content.read().unwrap();
 		for el in content.iter() {
-			println!("{:.02}", el);
+			println!("{}", el);
 		}
 	}
 
