@@ -113,7 +113,8 @@ impl Likelihood for GpuLikelihood {
 					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
 				..Default::default()
 			},
-			substitutions.iter().copied(),
+			// Shader matrices are column-major
+			substitutions.iter().map(|v| v.transpose()),
 		).unwrap();
 		let children_buffer = Buffer::from_iter(
 			self.memory_allocator.clone(),
