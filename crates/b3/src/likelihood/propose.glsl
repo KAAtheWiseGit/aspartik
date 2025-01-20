@@ -2,39 +2,49 @@
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
+// TODO: restrict
+
 layout(set = 0, binding = 0) buffer Probabilities {
+	uint num_rows;
 	dvec4 probabilities[];
-	bool mask[];
-	uint length;
-} probabilities;
+};
 
-layout(set = 0, binding = 0) buffer Input {
+layout(set = 0, binding = 1) buffer Masks {
+	uint masks[];
+};
+
+layout(set = 0, binding = 2) readonly buffer Nodes {
 	uint nodes[];
+};
+layout(set = 0, binding = 3) readonly buffer Children {
 	uint children[];
+};
+layout(set = 0, binding = 4) readonly buffer Substitutions {
 	dmat4x4 substitutions[];
-
-	uint length;
-} input;
+};
 
 void main() {
 	uint idx = gl_GlobalInvocationID.x;
-	uint base = idx * (probabilities.length * 2);
+	uint base = idx * num_rows;
 
-	for (uint i = 0; i < input.length; i++) {
-		uint left_index = children[i * 2] * 2 +
-			int(probabilities.mask[children[i * 2]]);
-		uint right_index = children[i * 2 + 1] * 2 +
-			int(probabilities.mask[children[i * 2 + 1]]);
+	for (uint i = 0; i < nodes.length(); i++) {
+		uint left_child = children[i * 2];
+		uint right_child = children[i * 2 + 1];
 
-		dvec4 left = input.substitutions[i * 2] *
-			probabilities.probabilities[left_index];
-		dvec4 right = input.substitutions[i * 2 + 1] *
-			probabilities.probabilities[right_index];
+		uint left_index = left_child * 2 +
+			masks[base + left_child];
+		uint right_index = right_child * 2 +
+			masks[base + right_child];
+
+		dvec4 left = substitutions[i * 2] *
+			probabilities[base * 2 + left_index];
+		dvec4 right = substitutions[i * 2 + 1] *
+			probabilities[base * 2 + right_index];
 
 		// flip the mask
-		probabilities.mask[nodes[i]] = !probabilities.mask[nodes[i]];
-		uint parent_index = nodes[i] + int(probabilities.mask[nodes[i]]);
+		masks[base + nodes[i]] = 1 - masks[base + nodes[i]];
+		uint parent_index = nodes[i] + masks[base + nodes[i]];
 		// write the new value
-		probabilities[parent_index] = left * right;
+		probabilities[base * 2 + parent_index] = left * right;
 	}
 }
