@@ -71,7 +71,10 @@ impl<const N: usize> Transitions<N> {
 				.diag
 				.map_diagonal(|v| (v * distance).exp());
 
-			let transition = self.p * diag * self.inv_p;
+			// TODO: check the `linalg` implementation of
+			// eigenvector calculation.  I think I might've mixed up
+			// left and right.
+			let transition = self.inv_p * diag * self.p;
 
 			self.transitions.set(*edge, transition);
 		}

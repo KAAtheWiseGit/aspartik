@@ -327,7 +327,7 @@ impl Tree {
 	}
 
 	pub fn edge_distance(&self, edge: usize) -> f64 {
-		let (parent, child) = self.edge_nodes(edge);
+		let (child, parent) = self.edge_nodes(edge);
 
 		self.weight_of(child) - self.weight_of(parent)
 	}
