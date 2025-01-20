@@ -251,7 +251,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		}
 	}
 
-	fn likelihood(&self) -> f64 {
+	fn likelihood(&self, root: usize) -> f64 {
 		// load the Likelihood buffer and ln and sum it
 		todo!("likelihood")
 	}

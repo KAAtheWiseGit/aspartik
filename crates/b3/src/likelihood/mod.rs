@@ -20,7 +20,7 @@ pub trait Likelihood {
 		children: &[usize],
 	);
 
-	fn likelihood(&self) -> f64;
+	fn likelihood(&self, root: usize) -> f64;
 
 	fn accept(&mut self);
 

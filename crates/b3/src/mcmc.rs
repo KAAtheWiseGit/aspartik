@@ -87,7 +87,9 @@ fn step<const N: usize>(
 
 	propose(state, likelihoods, transitions, model);
 
-	let new_likelihood = likelihood(likelihoods) + prior.probability(state);
+	let root = state.tree.root().to_index();
+	let new_likelihood =
+		likelihood(likelihoods, root) + prior.probability(state);
 
 	let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -158,9 +160,12 @@ fn reject<const N: usize>(
 	}
 }
 
-fn likelihood<const N: usize>(likelihoods: &[DynLikelihood<N>]) -> f64 {
+fn likelihood<const N: usize>(
+	likelihoods: &[DynLikelihood<N>],
+	root: usize,
+) -> f64 {
 	likelihoods
 		.iter()
-		.map(|likelihood| likelihood.likelihood())
+		.map(|likelihood| likelihood.likelihood(root))
 		.sum()
 }
