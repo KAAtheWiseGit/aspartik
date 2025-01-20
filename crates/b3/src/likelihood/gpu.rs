@@ -32,7 +32,7 @@ use std::sync::Arc;
 use super::{Likelihood, Row};
 use base::substitution::Substitution;
 
-pub struct GpuLikelihood<const N: usize> {
+pub struct GpuLikelihood {
 	// TODO: bench and see if allocators and such should be preserved here
 	// buffers:
 	// - one array for final likelihoods
@@ -76,9 +76,9 @@ mod reject {
 	}
 }
 
-impl<const N: usize> Likelihood for GpuLikelihood<N> {
-	type Row = Row<N>;
-	type Substitution = Substitution<N>;
+impl Likelihood for GpuLikelihood {
+	type Row = Row<4>;
+	type Substitution = Substitution<4>;
 
 	fn propose(
 		&mut self,
@@ -362,8 +362,8 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 	}
 }
 
-impl<const N: usize> GpuLikelihood<N> {
-	pub fn new(sites: Vec<Vec<Row<N>>>) -> Self {
+impl GpuLikelihood {
+	pub fn new(sites: Vec<Vec<Row<4>>>) -> Self {
 		let num_sites = sites.len();
 		let num_leaves = sites[0].len();
 
