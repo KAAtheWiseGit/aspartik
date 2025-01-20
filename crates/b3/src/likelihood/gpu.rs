@@ -1,7 +1,5 @@
-#![allow(unused)]
-
 use vulkano::{
-	buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
+	buffer::{Buffer, BufferCreateInfo, BufferUsage},
 	command_buffer::{
 		allocator::StandardCommandBufferAllocator,
 		allocator::StandardCommandBufferAllocatorCreateInfo,
@@ -25,7 +23,6 @@ use vulkano::{
 		Pipeline, PipelineBindPoint, PipelineLayout,
 		PipelineShaderStageCreateInfo,
 	},
-	shader::EntryPoint,
 	sync::{self, GpuFuture},
 	VulkanLibrary,
 };
@@ -34,7 +31,6 @@ use std::sync::Arc;
 
 use super::{Likelihood, Row};
 use base::substitution::Substitution;
-use linalg::Vector;
 
 pub struct GpuLikelihood<const N: usize> {
 	// TODO: bench and see if allocators and such should be preserved here
@@ -51,15 +47,11 @@ pub struct GpuLikelihood<const N: usize> {
 	likelihood_pipeline: Arc<ComputePipeline>,
 	descriptor_set_0: Arc<PersistentDescriptorSet>,
 
-	probabilities: Subbuffer<[Vector<f64, N>]>,
-	masks: Subbuffer<[u32]>,
-
 	/// Unlike in the CPU likelihood, this field is essential.  It tracks
 	/// which nodes were updated in the on-GPU buffer.  As such, it acts as
 	/// the `edited` field in `ShchurVec`.
 	updated_nodes: Vec<usize>,
 
-	num_leaves: usize,
 	num_sites: usize,
 }
 
@@ -371,7 +363,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 }
 
 impl<const N: usize> GpuLikelihood<N> {
-	pub fn new(mut sites: Vec<Vec<Row<N>>>) -> Self {
+	pub fn new(sites: Vec<Vec<Row<N>>>) -> Self {
 		let num_sites = sites.len();
 		let num_leaves = sites[0].len();
 
@@ -413,7 +405,7 @@ impl<const N: usize> GpuLikelihood<N> {
 			.position(|(_, queue_family_properties)| {
 				queue_family_properties
 					.queue_flags
-					.contains(QueueFlags::GRAPHICS)
+					.contains(QueueFlags::COMPUTE)
 			})
 			.unwrap() as u32;
 
@@ -520,8 +512,8 @@ impl<const N: usize> GpuLikelihood<N> {
 
 		let pipeline_layout = propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
-		let descriptor_set_layout_0 =
-			descriptor_set_layouts.get(0).unwrap();
+		#[allow(clippy::get_first)]
+		let descriptor_set_layout_0 = descriptor_set_layouts.get(0).unwrap();
 		let descriptor_set_0 = PersistentDescriptorSet::new(
 			&descriptor_set_allocator,
 			descriptor_set_layout_0.clone(),
@@ -597,12 +589,8 @@ impl<const N: usize> GpuLikelihood<N> {
 			likelihood_pipeline,
 			descriptor_set_0,
 
-			probabilities: probabilities_buffer,
-			masks: masks_buffer,
-
 			updated_nodes: Vec::new(),
 
-			num_leaves,
 			num_sites,
 		}
 	}
