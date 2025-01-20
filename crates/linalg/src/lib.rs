@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+#[cfg(feature = "bytemuck")]
+mod bytemuck;
 mod lapack;
 mod math;
 mod row_matrix;
