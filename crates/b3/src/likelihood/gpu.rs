@@ -1,7 +1,7 @@
-#![allow(dead_code)]
+#![allow(unused)]
 
 use vulkano::{
-	buffer::{Buffer, BufferCreateInfo, BufferUsage},
+	buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
 	command_buffer::{
 		allocator::StandardCommandBufferAllocator,
 		allocator::StandardCommandBufferAllocatorCreateInfo,
@@ -33,6 +33,7 @@ use std::sync::Arc;
 
 use super::{Likelihood, Row};
 use base::substitution::Substitution;
+use linalg::Vector;
 
 pub struct GpuLikelihood<const N: usize> {
 	// TODO: bench and see if allocators and such should be preserved here
@@ -42,12 +43,15 @@ pub struct GpuLikelihood<const N: usize> {
 	device: Arc<Device>,
 	queue: Arc<Queue>,
 
+	probabilities: Subbuffer<[Vector<f64, N>]>,
+	masks: Subbuffer<[u32]>,
+
 	/// Unlike in the CPU likelihood, this field is essential.  It tracks
 	/// which nodes were updated in the on-GPU buffer.  As such, it acts as
 	/// the `edited` field in `ShchurVec`.
 	updated_nodes: Vec<usize>,
 
-	num_nodes: usize,
+	num_leaves: usize,
 	num_sites: usize,
 }
 
@@ -69,11 +73,196 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		//
 		// update the values with width of 32.  (TODO: what to do with
 		// out of bounds?)
+
+		mod cs {
+			vulkano_shaders::shader! {
+				ty: "compute",
+				path: "src/likelihood/propose.glsl",
+			}
+		}
+
+		let shader = cs::load(self.device.clone()).unwrap();
+
+		let cs = shader.entry_point("main").unwrap();
+		let stage = PipelineShaderStageCreateInfo::new(cs);
+		let layout = PipelineLayout::new(
+			self.device.clone(),
+			PipelineDescriptorSetLayoutCreateInfo::from_stages([
+				&stage,
+			])
+			.into_pipeline_layout_create_info(self.device.clone())
+			.unwrap(),
+		)
+		.unwrap();
+
+		let compute_pipeline = ComputePipeline::new(
+			self.device.clone(),
+			None,
+			ComputePipelineCreateInfo::stage_layout(stage, layout),
+		)
+		.unwrap();
+
+		let memory_allocator =
+			Arc::new(StandardMemoryAllocator::new_default(
+				self.device.clone(),
+			));
+
+		let descriptor_set_allocator =
+			StandardDescriptorSetAllocator::new(
+				self.device.clone(),
+				Default::default(),
+			);
+
+		let num_rows_buffer = Buffer::from_data(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			(self.num_leaves * 2 - 1) as u32,
+		).unwrap();
+
+		let pipeline_layout = compute_pipeline.layout();
+		let descriptor_set_layouts = pipeline_layout.set_layouts();
+
+		let descriptor_set_layout_0 =
+			descriptor_set_layouts.get(0).unwrap();
+		let descriptor_set_0 = PersistentDescriptorSet::new(
+			&descriptor_set_allocator,
+			descriptor_set_layout_0.clone(),
+			[
+				WriteDescriptorSet::buffer(0, num_rows_buffer),
+				WriteDescriptorSet::buffer(
+					1,
+					self.probabilities.clone(),
+				),
+				WriteDescriptorSet::buffer(
+					2,
+					self.masks.clone(),
+				),
+			],
+			[],
+		)
+		.unwrap();
+
+		let nodes_buffer = Buffer::from_iter(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			nodes.to_vec().clone(),
+		).unwrap();
+		let substitutions_buffer = Buffer::from_iter(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			substitutions.to_vec().clone(),
+		).unwrap();
+		let children_buffer = Buffer::from_iter(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			children.to_vec().clone(),
+		).unwrap();
+
+		let descriptor_set_layout_1 =
+			descriptor_set_layouts.get(1).unwrap();
+		let descriptor_set_1 = PersistentDescriptorSet::new(
+			&descriptor_set_allocator,
+			descriptor_set_layout_1.clone(),
+			[
+				WriteDescriptorSet::buffer(0, nodes_buffer),
+				WriteDescriptorSet::buffer(
+					1,
+					substitutions_buffer,
+				),
+				WriteDescriptorSet::buffer(2, children_buffer),
+			],
+			[],
+		)
+		.unwrap();
+
+		let cmd_buf_allocator = StandardCommandBufferAllocator::new(
+			self.device.clone(),
+			StandardCommandBufferAllocatorCreateInfo::default(),
+		);
+
+		let mut command_buffer_builder =
+			AutoCommandBufferBuilder::primary(
+				&cmd_buf_allocator,
+				self.queue.queue_family_index(),
+				CommandBufferUsage::OneTimeSubmit,
+			)
+			.unwrap();
+
+		let num_groups = (self.num_sites + 63) / 64;
+		let work_group_counts = [num_groups as u32, 1, 1];
+
+		command_buffer_builder
+			.bind_pipeline_compute(compute_pipeline.clone())
+			.unwrap()
+			.bind_descriptor_sets(
+				PipelineBindPoint::Compute,
+				compute_pipeline.layout().clone(),
+				0u32,
+				descriptor_set_0,
+			)
+			.unwrap()
+			.bind_descriptor_sets(
+				PipelineBindPoint::Compute,
+				compute_pipeline.layout().clone(),
+				1u32,
+				descriptor_set_1,
+			)
+			.unwrap()
+			.dispatch(work_group_counts)
+			.unwrap();
+
+		let command_buffer = command_buffer_builder.build().unwrap();
+
+		let future = sync::now(self.device.clone())
+			.then_execute(self.queue.clone(), command_buffer)
+			.unwrap()
+			.then_signal_fence_and_flush()
+			.unwrap();
+
+		future.wait(None).unwrap();
+
+		let content = self.probabilities.clone();
+		let content = content.read().unwrap();
+		for el in content.iter() {
+			println!("{:.02}", el);
+		}
 	}
 
 	fn likelihood(&self) -> f64 {
 		// load the Likelihood buffer and ln and sum it
-		todo!()
+		todo!("likelihood")
 	}
 
 	fn accept(&mut self) {
@@ -85,26 +274,32 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 	fn reject(&mut self) {
 		// load `updated_nodes` into a buffer and switch all of the
 		// pointers in the device probabilities buffer
-		todo!()
+		todo!("reject")
 	}
 }
 
 impl<const N: usize> GpuLikelihood<N> {
 	pub fn new(mut sites: Vec<Vec<Row<N>>>) -> Self {
 		let num_sites = sites.len();
-		let num_nodes = sites[0].len();
+		let num_leaves = sites[0].len();
 
-		// TODO: ShchurVec-like double length structure (+ pointers).
-		// The update status is not needed, as it resides in
-		// `updated_nodes`
-		let num_internas = num_nodes - 1;
+		let num_internals = num_leaves - 1;
+		// A ShchurVec-like structure
 		let mut probabilities = vec![];
-		for column in &mut sites {
-			probabilities.append(column);
-			probabilities.append(&mut vec![
-				Row::<N>::default();
-				num_internas
-			]);
+		// The mask for probabilities.  32-bit integer in the smallest
+		// int type on the GPU.
+		let mut masks: Vec<u32> = vec![];
+		for column in sites {
+			for row in column {
+				masks.push(0);
+				probabilities.push(row);
+				probabilities.push(Row::default());
+			}
+			for _ in 0..num_internals {
+				masks.push(0);
+				probabilities.push(Row::default());
+				probabilities.push(Row::default());
+			}
 		}
 
 		let library = VulkanLibrary::new().unwrap();
@@ -153,7 +348,7 @@ impl<const N: usize> GpuLikelihood<N> {
 			StandardMemoryAllocator::new_default(device.clone()),
 		);
 
-		let data_buffer = Buffer::from_iter(
+		let probabilities_buffer = Buffer::from_iter(
 			memory_allocator.clone(),
 			BufferCreateInfo {
 				usage: BufferUsage::STORAGE_BUFFER,
@@ -167,114 +362,30 @@ impl<const N: usize> GpuLikelihood<N> {
 			probabilities.clone(),
 		).unwrap();
 
-		mod cs {
-			vulkano_shaders::shader! {
-				ty: "compute",
-				src: "
-					#version 460
-
-					layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-
-					layout(set = 0, binding = 0) buffer Data {
-						dvec4 probabilities[];
-					} buf;
-
-					void main() {
-						uint idx = gl_GlobalInvocationID.x;
-						buf.probabilities[idx] *= 2.0;
-					}
-				"
-			}
-		}
-
-		let shader = cs::load(device.clone()).unwrap();
-
-		let cs = shader.entry_point("main").unwrap();
-		let stage = PipelineShaderStageCreateInfo::new(cs);
-		let layout = PipelineLayout::new(
-			device.clone(),
-			PipelineDescriptorSetLayoutCreateInfo::from_stages([
-				&stage,
-			])
-			.into_pipeline_layout_create_info(device.clone())
-			.unwrap(),
-		)
-		.unwrap();
-
-		let compute_pipeline = ComputePipeline::new(
-			device.clone(),
-			None,
-			ComputePipelineCreateInfo::stage_layout(stage, layout),
-		)
-		.unwrap();
-
-		let descriptor_set_allocator =
-			StandardDescriptorSetAllocator::new(
-				device.clone(),
-				Default::default(),
-			);
-
-		let pipeline_layout = compute_pipeline.layout();
-		let descriptor_set_layouts = pipeline_layout.set_layouts();
-		let descriptor_set_layout_index = 0;
-		let descriptor_set_layout = descriptor_set_layouts
-			.get(descriptor_set_layout_index)
-			.unwrap();
-
-		let descriptor_set = PersistentDescriptorSet::new(
-			&descriptor_set_allocator,
-			descriptor_set_layout.clone(),
-			[WriteDescriptorSet::buffer(0, data_buffer.clone())], // 0 is the binding
-			[],
-		)
-		.unwrap();
-
-		let command_buffer_allocator = StandardCommandBufferAllocator::new(device.clone(), StandardCommandBufferAllocatorCreateInfo::default());
-
-		let mut command_buffer_builder =
-			AutoCommandBufferBuilder::primary(
-				&command_buffer_allocator,
-				queue.queue_family_index(),
-				CommandBufferUsage::OneTimeSubmit,
-			)
-			.unwrap();
-
-		let num_groups = (probabilities.len() + 63) / 64;
-		let work_group_counts = [num_groups as u32, 1, 1];
-
-		command_buffer_builder
-			.bind_pipeline_compute(compute_pipeline.clone())
-			.unwrap()
-			.bind_descriptor_sets(
-				PipelineBindPoint::Compute,
-				compute_pipeline.layout().clone(),
-				descriptor_set_layout_index as u32,
-				descriptor_set,
-			)
-			.unwrap()
-			.dispatch(work_group_counts)
-			.unwrap();
-
-		let command_buffer = command_buffer_builder.build().unwrap();
-
-		let future = sync::now(device.clone())
-			.then_execute(queue.clone(), command_buffer)
-			.unwrap()
-			.then_signal_fence_and_flush()
-			.unwrap();
-
-		future.wait(None).unwrap();
-
-		let content = data_buffer.read().unwrap();
-		for (modified, old) in content.iter().zip(probabilities) {
-			assert_eq!(*modified, old * 2.0);
-		}
+		let masks_buffer = Buffer::from_iter(
+			memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			masks.clone(),
+		).unwrap();
 
 		GpuLikelihood {
 			device,
 			queue,
+
+			probabilities: probabilities_buffer,
+			masks: masks_buffer,
+
 			updated_nodes: Vec::new(),
-			num_nodes,
+
+			num_leaves,
 			num_sites,
 		}
 	}

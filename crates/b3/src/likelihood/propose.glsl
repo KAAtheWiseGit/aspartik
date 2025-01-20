@@ -4,22 +4,23 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // TODO: restrict
 
-layout(set = 0, binding = 0) buffer Probabilities {
+layout(set = 0, binding = 0) buffer Length {
 	uint num_rows;
+};
+layout(set = 0, binding = 1) buffer Probabilities {
 	dvec4 probabilities[];
 };
-
-layout(set = 0, binding = 1) buffer Masks {
+layout(set = 0, binding = 2) buffer Masks {
 	uint masks[];
 };
 
-layout(set = 0, binding = 2) readonly buffer Nodes {
+layout(set = 1, binding = 0) readonly buffer Nodes {
 	uint nodes[];
 };
-layout(set = 0, binding = 3) readonly buffer Children {
+layout(set = 1, binding = 1) readonly buffer Children {
 	uint children[];
 };
-layout(set = 0, binding = 4) readonly buffer Substitutions {
+layout(set = 1, binding = 2) readonly buffer Substitutions {
 	dmat4x4 substitutions[];
 };
 
