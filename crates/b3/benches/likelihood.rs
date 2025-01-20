@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use b3::{
-	likelihood::GpuLikelihood,
+	likelihood::{CpuLikelihood, GpuLikelihood},
 	log,
 	mcmc::{run, Config, DynLikelihood},
 	model::DnaModel,
@@ -13,11 +13,18 @@ use b3::{
 	util, Distribution, State, Transitions,
 };
 
-fn likelihood(length: usize) {
+fn likelihood(length: usize, gpu: bool) {
 	let (seqs, tree) = util::make_tree("data/100.fasta".as_ref());
 	let model = Box::new(DnaModel::JukesCantor);
 
-	let likelihood = Box::new(GpuLikelihood::new(util::dna_to_rows(&seqs)));
+	let likelihood: DynLikelihood<4>;
+	if gpu {
+		likelihood =
+			Box::new(GpuLikelihood::new(util::dna_to_rows(&seqs)));
+	} else {
+		likelihood =
+			Box::new(CpuLikelihood::new(util::dna_to_rows(&seqs)));
+	};
 	let likelihoods: Vec<DynLikelihood<4>> = vec![likelihood];
 
 	let num_edges = (seqs.len() - 1) * 2;
@@ -61,7 +68,8 @@ fn likelihood(length: usize) {
 }
 
 fn bench(c: &mut Criterion) {
-	c.bench_function("likelihood", |b| b.iter(|| likelihood(10_001)));
+	c.bench_function("cpu", |b| b.iter(|| likelihood(10_001, false)));
+	c.bench_function("gpu", |b| b.iter(|| likelihood(10_001, true)));
 }
 
 criterion_group!(
