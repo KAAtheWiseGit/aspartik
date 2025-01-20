@@ -1,13 +1,13 @@
 use num_traits::{Float, Num, NumAssign};
 
 use std::{
-	fmt::{self, Display},
+	fmt::{self, Debug, Display},
 	ops::{
 		Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign,
 	},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Clone, Copy, PartialEq, Hash)]
 #[repr(C)]
 pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
@@ -34,6 +34,23 @@ impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
 impl<T: Copy, const N: usize> Vector<T, N> {
 	fn from_element(value: T) -> Self {
 		[value; N].into()
+	}
+}
+
+impl<T: Copy + Debug, const N: usize> Debug for Vector<T, N> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("[")?;
+
+		for i in 0..N {
+			self[i].fmt(f)?;
+			if i != N - 1 {
+				f.write_str(", ")?;
+			}
+		}
+
+		f.write_str("]")?;
+
+		Ok(())
 	}
 }
 

@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+mod lapack;
 mod math;
 mod row_matrix;
 mod vector;
-mod lapack;
 
 pub use row_matrix::RowMatrix;
 pub use vector::Vector;
