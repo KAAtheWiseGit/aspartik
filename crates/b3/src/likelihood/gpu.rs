@@ -244,16 +244,36 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 
 		future.wait(None).unwrap();
 
-		let content = self.probabilities.clone();
-		let content = content.read().unwrap();
-		for el in content.iter() {
-			println!("{}", el);
-		}
+		// let content = self.probabilities.clone();
+		// let content = content.read().unwrap();
+		// for el in content.iter() {
+		// 	println!("{}", el);
+		// }
 	}
 
 	fn likelihood(&self, root: usize) -> f64 {
-		// load the Likelihood buffer and ln and sum it
-		todo!("likelihood")
+		let mut out = 0.0;
+
+		let num_rows = self.num_leaves * 2 - 1;
+		for i in 0..self.num_sites {
+			let offset = i * num_rows;
+
+			let mask_i = (offset + root) as u64;
+			let mask = self.masks.clone().index(mask_i);
+			let mask = mask.read().unwrap().clone();
+
+			let probability_i =
+				offset * 2 + root * 2 + mask as usize;
+			let probability = self
+				.probabilities
+				.clone()
+				.index(probability_i as u64);
+			let probability = probability.read().unwrap().clone();
+
+			out += probability.sum().ln();
+		}
+
+		out
 	}
 
 	fn accept(&mut self) {
