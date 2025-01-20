@@ -43,6 +43,7 @@ pub struct GpuLikelihood<const N: usize> {
 	// - number of nodes
 	device: Arc<Device>,
 	queue: Arc<Queue>,
+	memory_allocator: Arc<StandardMemoryAllocator>,
 
 	probabilities: Subbuffer<[Vector<f64, N>]>,
 	masks: Subbuffer<[u32]>,
@@ -95,11 +96,6 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		)
 		.unwrap();
 
-		let memory_allocator =
-			Arc::new(StandardMemoryAllocator::new_default(
-				self.device.clone(),
-			));
-
 		let descriptor_set_allocator =
 			StandardDescriptorSetAllocator::new(
 				self.device.clone(),
@@ -107,7 +103,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 			);
 
 		let num_rows_buffer = Buffer::from_data(
-			memory_allocator.clone(),
+			self.memory_allocator.clone(),
 			BufferCreateInfo {
 				usage: BufferUsage::STORAGE_BUFFER,
 				..Default::default()
@@ -144,7 +140,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		.unwrap();
 
 		let nodes_buffer = Buffer::from_iter(
-			memory_allocator.clone(),
+			self.memory_allocator.clone(),
 			BufferCreateInfo {
 				usage: BufferUsage::STORAGE_BUFFER,
 				..Default::default()
@@ -157,7 +153,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 			nodes.iter().map(|v| *v as u32),
 		).unwrap();
 		let substitutions_buffer = Buffer::from_iter(
-			memory_allocator.clone(),
+			self.memory_allocator.clone(),
 			BufferCreateInfo {
 				usage: BufferUsage::STORAGE_BUFFER,
 				..Default::default()
@@ -170,7 +166,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 			substitutions.iter().copied(),
 		).unwrap();
 		let children_buffer = Buffer::from_iter(
-			memory_allocator.clone(),
+			self.memory_allocator.clone(),
 			BufferCreateInfo {
 				usage: BufferUsage::STORAGE_BUFFER,
 				..Default::default()
@@ -387,6 +383,7 @@ impl<const N: usize> GpuLikelihood<N> {
 		GpuLikelihood {
 			device,
 			queue,
+			memory_allocator,
 
 			probabilities: probabilities_buffer,
 			masks: masks_buffer,
