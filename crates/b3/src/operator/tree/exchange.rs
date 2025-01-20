@@ -35,11 +35,17 @@ impl Operator for NarrowExchange {
 		let (left, right) = tree.children_of(grandparent);
 
 		let (parent, uncle) =
-			if tree.weight_of(left) < tree.weight_of(right) {
+			if tree.weight_of(left) > tree.weight_of(right) {
 				(right, left)
 			} else {
 				(left, right)
 			};
+
+		if tree.weight_of(parent) == tree.weight_of(uncle) {
+			return Ok(Proposal::Reject);
+		}
+		// Uncle must be lower than the parent
+		assert!(tree.weight_of(uncle) > tree.weight_of(parent));
 
 		// If the lower child isn't internal, abort.
 		let Some(parent) = tree.as_internal(parent) else {
@@ -63,8 +69,7 @@ impl Operator for NarrowExchange {
 			tree.children_of(parent).1
 		};
 
-		tree.update_replacement(uncle.into(), child);
-		tree.update_replacement(child, uncle.into());
+		tree.swap_parents(uncle.into(), child);
 
 		let after = is_grandparent(tree, parent) as usize
 			+ is_grandparent(tree, uncle) as usize;
@@ -116,8 +121,7 @@ impl Operator for WideExchange {
 			&& tree.weight_of(j) < tree.weight_of(i_parent)
 			&& tree.weight_of(i) < tree.weight_of(j_parent)
 		{
-			tree.update_replacement(i, j);
-			tree.update_replacement(j, i);
+			tree.swap_parents(i, j);
 
 			Ok(Proposal::Hastings(0.0))
 		} else {

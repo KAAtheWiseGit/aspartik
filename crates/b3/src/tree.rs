@@ -211,6 +211,23 @@ impl Tree {
 		self.update_edge(edge, replacement);
 	}
 
+	/// Swaps the parents of nodes `a` and `b`.
+	///
+	/// The parent of `a` becomes the parent of `b` and visa versa.  If `a`
+	/// and `b` share the same parent, they switch polarity (left <->
+	/// right).
+	// TODO: invariants (a can't be a parent of b)
+	pub fn swap_parents(&mut self, a: Node, b: Node) {
+		assert!(self.parent_of(a).is_some(), "a must not be root");
+		assert!(self.parent_of(b).is_some(), "b must not be root");
+
+		let edge_a = self.edge_index(a);
+		let edge_b = self.edge_index(b);
+
+		self.update_edge(edge_a, b);
+		self.update_edge(edge_b, a);
+	}
+
 	fn set_all_parents(&mut self) {
 		let num_leaves = self.num_leaves();
 
@@ -256,6 +273,15 @@ impl Tree {
 				self.weight_of(right),
 			);
 		}
+
+		use std::collections::HashSet;
+		let mut children = HashSet::new();
+		for node in self.internals() {
+			let (left, right) = self.children_of(node);
+			children.insert(left);
+			children.insert(right);
+		}
+		assert_eq!(children.len(), self.num_nodes() - 1);
 	}
 
 	pub fn num_nodes(&self) -> usize {
