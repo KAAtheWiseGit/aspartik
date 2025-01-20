@@ -44,6 +44,8 @@ pub struct GpuLikelihood<const N: usize> {
 	device: Arc<Device>,
 	queue: Arc<Queue>,
 	memory_allocator: Arc<StandardMemoryAllocator>,
+	descriptor_set_allocator: StandardDescriptorSetAllocator,
+	command_buffer_allocator: StandardCommandBufferAllocator,
 
 	probabilities: Subbuffer<[Vector<f64, N>]>,
 	masks: Subbuffer<[u32]>,
@@ -96,12 +98,6 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		)
 		.unwrap();
 
-		let descriptor_set_allocator =
-			StandardDescriptorSetAllocator::new(
-				self.device.clone(),
-				Default::default(),
-			);
-
 		let num_rows_buffer = Buffer::from_data(
 			self.memory_allocator.clone(),
 			BufferCreateInfo {
@@ -122,7 +118,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		let descriptor_set_layout_0 =
 			descriptor_set_layouts.get(0).unwrap();
 		let descriptor_set_0 = PersistentDescriptorSet::new(
-			&descriptor_set_allocator,
+			&self.descriptor_set_allocator,
 			descriptor_set_layout_0.clone(),
 			[
 				WriteDescriptorSet::buffer(0, num_rows_buffer),
@@ -182,7 +178,7 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		let descriptor_set_layout_1 =
 			descriptor_set_layouts.get(1).unwrap();
 		let descriptor_set_1 = PersistentDescriptorSet::new(
-			&descriptor_set_allocator,
+			&self.descriptor_set_allocator,
 			descriptor_set_layout_1.clone(),
 			[
 				WriteDescriptorSet::buffer(0, nodes_buffer),
@@ -196,14 +192,9 @@ impl<const N: usize> Likelihood for GpuLikelihood<N> {
 		)
 		.unwrap();
 
-		let cmd_buf_allocator = StandardCommandBufferAllocator::new(
-			self.device.clone(),
-			StandardCommandBufferAllocatorCreateInfo::default(),
-		);
-
 		let mut command_buffer_builder =
 			AutoCommandBufferBuilder::primary(
-				&cmd_buf_allocator,
+				&self.command_buffer_allocator,
 				self.queue.queue_family_index(),
 				CommandBufferUsage::OneTimeSubmit,
 			)
@@ -375,6 +366,17 @@ impl<const N: usize> GpuLikelihood<N> {
 			masks.clone(),
 		).unwrap();
 
+		let descriptor_set_allocator =
+			StandardDescriptorSetAllocator::new(
+				device.clone(),
+				Default::default(),
+			);
+
+		let command_buffer_allocator = StandardCommandBufferAllocator::new(
+			device.clone(),
+			StandardCommandBufferAllocatorCreateInfo::default(),
+		);
+
 		let propose_shader = propose::load(device.clone())
 			.unwrap()
 			.entry_point("main")
@@ -384,6 +386,8 @@ impl<const N: usize> GpuLikelihood<N> {
 			device,
 			queue,
 			memory_allocator,
+			descriptor_set_allocator,
+			command_buffer_allocator,
 
 			probabilities: probabilities_buffer,
 			masks: masks_buffer,
