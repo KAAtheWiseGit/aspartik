@@ -316,6 +316,21 @@ impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
 
 		subslice.map(|v| v.truncate()).into()
 	}
+
+	pub fn transpose(&self) -> RowMatrix<T, M, N>
+	where
+		T: Default,
+	{
+		let mut out = RowMatrix::default();
+
+		for i in 0..N {
+			for j in 0..M {
+				out[j][i] = self[i][j];
+			}
+		}
+
+		out
+	}
 }
 
 // Numeric methods.
