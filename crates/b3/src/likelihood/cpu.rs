@@ -35,10 +35,7 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 	}
 
 	fn likelihood(&self, root: usize) -> f64 {
-		self.probabilities
-			.iter()
-			.map(|p| p[root].sum().ln())
-			.sum()
+		self.probabilities.iter().map(|p| p[root].sum().ln()).sum()
 	}
 
 	fn accept(&mut self) {

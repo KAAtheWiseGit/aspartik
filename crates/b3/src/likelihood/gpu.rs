@@ -412,7 +412,6 @@ impl GpuLikelihood {
 		let (device, mut queues) = Device::new(
 			physical_device,
 			DeviceCreateInfo {
-				// here we pass the desired queue family to use by index
 				queue_create_infos: vec![QueueCreateInfo {
 					queue_family_index,
 					..Default::default()
@@ -485,30 +484,38 @@ impl GpuLikelihood {
 			StandardCommandBufferAllocatorCreateInfo::default(),
 		);
 
-		let propose_shader = propose::load(device.clone())
+		#[rustfmt::skip]
+		macro_rules! make_pipeline {
+			($mod:ident) => {{
+
+		let shader = $mod::load(device.clone())
 			.unwrap()
 			.entry_point("main")
 			.unwrap();
-
 		let stage = PipelineShaderStageCreateInfo::new(
-			propose_shader.clone(),
+			shader.clone(),
 		);
 		let layout = PipelineLayout::new(
 			device.clone(),
-			PipelineDescriptorSetLayoutCreateInfo::from_stages([
-				&stage,
-			])
+			PipelineDescriptorSetLayoutCreateInfo::from_stages([&stage])
 			.into_pipeline_layout_create_info(device.clone())
 			.unwrap(),
 		)
 		.unwrap();
 
-		let propose_pipeline = ComputePipeline::new(
+		ComputePipeline::new(
 			device.clone(),
 			None,
 			ComputePipelineCreateInfo::stage_layout(stage, layout),
 		)
-		.unwrap();
+		.unwrap()
+
+			}};
+		}
+
+		let reject_pipeline = make_pipeline!(reject);
+		let likelihood_pipeline = make_pipeline!(likelihood);
+		let propose_pipeline = make_pipeline!(propose);
 
 		let pipeline_layout = propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
@@ -521,60 +528,11 @@ impl GpuLikelihood {
 				WriteDescriptorSet::buffer(0, num_rows_buffer),
 				WriteDescriptorSet::buffer(
 					1,
-					probabilities_buffer.clone(),
+					probabilities_buffer,
 				),
-				WriteDescriptorSet::buffer(
-					2,
-					masks_buffer.clone(),
-				),
+				WriteDescriptorSet::buffer(2, masks_buffer),
 			],
 			[],
-		)
-		.unwrap();
-
-		let reject_shader = reject::load(device.clone())
-			.unwrap()
-			.entry_point("main")
-			.unwrap();
-		let stage = PipelineShaderStageCreateInfo::new(
-			reject_shader.clone(),
-		);
-		let layout = PipelineLayout::new(
-			device.clone(),
-			PipelineDescriptorSetLayoutCreateInfo::from_stages([
-				&stage,
-			])
-			.into_pipeline_layout_create_info(device.clone())
-			.unwrap(),
-		)
-		.unwrap();
-		let reject_pipeline = ComputePipeline::new(
-			device.clone(),
-			None,
-			ComputePipelineCreateInfo::stage_layout(stage, layout),
-		)
-		.unwrap();
-
-		let likelihood_shader = likelihood::load(device.clone())
-			.unwrap()
-			.entry_point("main")
-			.unwrap();
-		let stage = PipelineShaderStageCreateInfo::new(
-			likelihood_shader.clone(),
-		);
-		let layout = PipelineLayout::new(
-			device.clone(),
-			PipelineDescriptorSetLayoutCreateInfo::from_stages([
-				&stage,
-			])
-			.into_pipeline_layout_create_info(device.clone())
-			.unwrap(),
-		)
-		.unwrap();
-		let likelihood_pipeline = ComputePipeline::new(
-			device.clone(),
-			None,
-			ComputePipelineCreateInfo::stage_layout(stage, layout),
 		)
 		.unwrap();
 
