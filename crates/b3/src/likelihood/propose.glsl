@@ -21,6 +21,9 @@ layout(set = 1, binding = 1) restrict readonly buffer Substitutions {
 layout(set = 1, binding = 2) restrict readonly buffer Children {
 	uint children[];
 };
+layout(set = 1, binding = 3) restrict writeonly buffer Likelihoods {
+	double likelihoods[];
+};
 
 void main() {
 	uint idx = gl_GlobalInvocationID.x;
@@ -54,4 +57,10 @@ void main() {
 			masks[offset + nodes[i]];
 		probabilities[parent_index] = left * right;
 	}
+
+	uint root = nodes[nodes.length() - 1];
+	uint mask = masks[offset + root];
+	dvec4 probability = probabilities[offset * 2 + root * 2 + mask];
+	double sum = probability.x + probability.y + probability.z + probability.w;
+	likelihoods[idx] = sum;
 }

@@ -61,13 +61,6 @@ mod propose {
 	}
 }
 
-mod likelihood {
-	vulkano_shaders::shader! {
-		ty: "compute",
-		path: "src/likelihood/likelihood.glsl",
-	}
-}
-
 mod reject {
 	vulkano_shaders::shader! {
 		ty: "compute",
@@ -128,6 +121,19 @@ impl Likelihood for GpuLikelihood {
 			},
 			children.iter().map(|v| *v as u32),
 		).unwrap();
+		let likelihoods_buffer = Buffer::from_iter(
+			self.memory_allocator.clone(),
+			BufferCreateInfo {
+				usage: BufferUsage::STORAGE_BUFFER,
+				..Default::default()
+			},
+			AllocationCreateInfo {
+				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+				..Default::default()
+			},
+			(0..self.num_sites).map(|_| 0.0f64),
+		).unwrap();
 
 		let descriptor_set_layout_1 =
 			descriptor_set_layouts.get(1).unwrap();
@@ -141,6 +147,10 @@ impl Likelihood for GpuLikelihood {
 					substitutions_buffer,
 				),
 				WriteDescriptorSet::buffer(2, children_buffer),
+				WriteDescriptorSet::buffer(
+					3,
+					likelihoods_buffer.clone(),
+				),
 			],
 			[],
 		)
@@ -187,7 +197,8 @@ impl Likelihood for GpuLikelihood {
 
 		future.wait(None).unwrap();
 
-		todo!()
+		let output = likelihoods_buffer.read().unwrap();
+		output.iter().map(|v| v.ln()).sum()
 	}
 
 	fn accept(&mut self) {
