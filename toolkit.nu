@@ -5,6 +5,7 @@ def target_dir [] {
 export def flame [
 	package: string
 	bench: string
+	name?: string
 ] {
 	let dst = target_dir | path join "flamegraph/likelihood.svg"
 	mkdir ($dst | path dirname)
@@ -16,6 +17,8 @@ export def flame [
 			--output $dst
 			--palette rust
 			--skip-after "criterion::bencher::Bencher<M>::iter"
+			--
+			$name
 	)
 
 	rm --permanent --force **/perf.data*
