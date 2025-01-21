@@ -44,7 +44,6 @@ pub struct GpuLikelihood {
 	command_buffer_allocator: StandardCommandBufferAllocator,
 	propose_pipeline: Arc<ComputePipeline>,
 	reject_pipeline: Arc<ComputePipeline>,
-	likelihood_pipeline: Arc<ComputePipeline>,
 	descriptor_set_0: Arc<PersistentDescriptorSet>,
 
 	/// Unlike in the CPU likelihood, this field is essential.  It tracks
@@ -85,7 +84,7 @@ impl Likelihood for GpuLikelihood {
 		nodes: &[usize],
 		substitutions: &[Self::Substitution],
 		children: &[usize],
-	) {
+	) -> f64 {
 		let pipeline_layout = self.propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
 
@@ -187,97 +186,8 @@ impl Likelihood for GpuLikelihood {
 			.unwrap();
 
 		future.wait(None).unwrap();
-	}
 
-	fn likelihood(&self, root: usize) -> f64 {
-		let root_buffer = Buffer::from_data(
-			self.memory_allocator.clone(),
-			BufferCreateInfo {
-				usage: BufferUsage::STORAGE_BUFFER,
-				..Default::default()
-			},
-			AllocationCreateInfo {
-				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-				..Default::default()
-			},
-			root as u32,
-		).unwrap();
-		let sums_buffer = Buffer::from_iter(
-			self.memory_allocator.clone(),
-			BufferCreateInfo {
-				usage: BufferUsage::STORAGE_BUFFER,
-				..Default::default()
-			},
-			AllocationCreateInfo {
-				memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-					| MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-				..Default::default()
-			},
-			(0..self.num_sites).map(|_| 0.0f64),
-		).unwrap();
-
-		let pipeline_layout = self.likelihood_pipeline.layout();
-		let descriptor_set_layouts = pipeline_layout.set_layouts();
-		let descriptor_set_layout_1 =
-			descriptor_set_layouts.get(1).unwrap();
-		let descriptor_set_1 = PersistentDescriptorSet::new(
-			&self.descriptor_set_allocator,
-			descriptor_set_layout_1.clone(),
-			[
-				WriteDescriptorSet::buffer(0, root_buffer),
-				WriteDescriptorSet::buffer(
-					1,
-					sums_buffer.clone(),
-				),
-			],
-			[],
-		)
-		.unwrap();
-
-		let mut command_buffer_builder =
-			AutoCommandBufferBuilder::primary(
-				&self.command_buffer_allocator,
-				self.queue.queue_family_index(),
-				CommandBufferUsage::OneTimeSubmit,
-			)
-			.unwrap();
-
-		let num_groups = (self.num_sites + 63) / 64;
-		let work_group_counts = [num_groups as u32, 1, 1];
-
-		command_buffer_builder
-			.bind_pipeline_compute(self.likelihood_pipeline.clone())
-			.unwrap()
-			.bind_descriptor_sets(
-				PipelineBindPoint::Compute,
-				self.likelihood_pipeline.layout().clone(),
-				0u32,
-				self.descriptor_set_0.clone(),
-			)
-			.unwrap()
-			.bind_descriptor_sets(
-				PipelineBindPoint::Compute,
-				self.likelihood_pipeline.layout().clone(),
-				1u32,
-				descriptor_set_1,
-			)
-			.unwrap()
-			.dispatch(work_group_counts)
-			.unwrap();
-
-		let command_buffer = command_buffer_builder.build().unwrap();
-
-		let future = sync::now(self.device.clone())
-			.then_execute(self.queue.clone(), command_buffer)
-			.unwrap()
-			.then_signal_fence_and_flush()
-			.unwrap();
-
-		future.wait(None).unwrap();
-
-		let out = sums_buffer.read().unwrap();
-		out.iter().map(|v| v.ln()).sum()
+		todo!()
 	}
 
 	fn accept(&mut self) {
@@ -515,7 +425,6 @@ impl GpuLikelihood {
 		}
 
 		let reject_pipeline = make_pipeline!(reject);
-		let likelihood_pipeline = make_pipeline!(likelihood);
 		let propose_pipeline = make_pipeline!(propose);
 
 		let pipeline_layout = propose_pipeline.layout();
@@ -545,7 +454,6 @@ impl GpuLikelihood {
 			command_buffer_allocator,
 			propose_pipeline,
 			reject_pipeline,
-			likelihood_pipeline,
 			descriptor_set_0,
 
 			updated_nodes: Vec::new(),

@@ -35,12 +35,6 @@ impl From<Internal> for Node {
 	}
 }
 
-impl Internal {
-	pub fn to_index(self) -> usize {
-		self.0
-	}
-}
-
 impl From<Leaf> for Node {
 	fn from(leaf: Leaf) -> Node {
 		Node(leaf.0)

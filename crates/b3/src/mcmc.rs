@@ -85,11 +85,9 @@ fn step<const N: usize>(
 		Proposal::Hastings(ratio) => ratio,
 	};
 
-	propose(state, likelihoods, transitions, model);
+	let tree_likelihood = propose(state, likelihoods, transitions, model);
 
-	let root = state.tree.root().to_index();
-	let new_likelihood =
-		likelihood(likelihoods, root) + prior.probability(state);
+	let new_likelihood = tree_likelihood + prior.probability(state);
 
 	let ratio = new_likelihood - state.likelihood + hastings;
 
@@ -111,7 +109,7 @@ fn propose<const N: usize>(
 	likelihoods: &mut [DynLikelihood<N>],
 	transitions: &mut Transitions<N>,
 	model: &mut DynModel<N>,
-) {
+) -> f64 {
 	// Update the substitution matrix
 	let substitution = model.get_matrix(state);
 	// If the matrix has changed, `full` is true
@@ -128,9 +126,12 @@ fn propose<const N: usize>(
 
 	let transitions = transitions.matrices(&edges);
 
-	for likelihood in likelihoods {
-		likelihood.propose(&nodes, &transitions, &children);
-	}
+	likelihoods
+		.iter_mut()
+		.map(|likelihood| {
+			likelihood.propose(&nodes, &transitions, &children)
+		})
+		.sum()
 }
 
 fn accept<const N: usize>(
@@ -158,14 +159,4 @@ fn reject<const N: usize>(
 	for likelihood in likelihoods {
 		likelihood.reject();
 	}
-}
-
-fn likelihood<const N: usize>(
-	likelihoods: &[DynLikelihood<N>],
-	root: usize,
-) -> f64 {
-	likelihoods
-		.iter()
-		.map(|likelihood| likelihood.likelihood(root))
-		.sum()
 }

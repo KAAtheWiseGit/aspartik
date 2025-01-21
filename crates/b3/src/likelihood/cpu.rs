@@ -17,7 +17,7 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 		nodes: &[usize],
 		substitutions: &[Self::Substitution],
 		children: &[usize],
-	) {
+	) -> f64 {
 		assert_eq!(nodes.len() * 2, substitutions.len());
 		assert_eq!(nodes.len() * 2, children.len());
 
@@ -32,9 +32,8 @@ impl<const N: usize> Likelihood for CpuLikelihood<N> {
 				probability.set(nodes[i], left * right);
 			}
 		}
-	}
 
-	fn likelihood(&self, root: usize) -> f64 {
+		let root = *nodes.last().unwrap();
 		self.probabilities.iter().map(|p| p[root].sum().ln()).sum()
 	}
 

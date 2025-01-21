@@ -18,9 +18,7 @@ pub trait Likelihood {
 		nodes: &[usize],
 		substitutions: &[Self::Substitution],
 		children: &[usize],
-	);
-
-	fn likelihood(&self, root: usize) -> f64;
+	) -> f64;
 
 	fn accept(&mut self);
 
