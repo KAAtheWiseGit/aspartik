@@ -34,7 +34,7 @@ pub fn run<const N: usize>(
 	mut model: DynModel<N>,
 ) -> Result<()> {
 	// TODO: output configuration (maybe another logger type)
-	let mut file = std::fs::File::create("start.trees")?;
+	let mut file = std::fs::File::create("b3.trees")?;
 
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
@@ -70,6 +70,11 @@ fn step<const N: usize>(
 	model: &mut DynModel<N>,
 ) -> Result<()> {
 	let operator = scheduler.get_operator(&mut state.rng);
+
+	// TODO: proper logging
+	if i % 2_000 == 0 {
+		println!("{:>8}: {:>8.0}", i, state.likelihood);
+	}
 
 	let hastings = match operator.propose(state)? {
 		Proposal::Accept => {
