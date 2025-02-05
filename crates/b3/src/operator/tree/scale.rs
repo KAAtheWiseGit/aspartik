@@ -27,7 +27,7 @@ impl Operator for Scale {
 		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
-		let scale = self.distribution.gen_range(
+		let scale = self.distribution.random_range(
 			self.factor,
 			1.0 / self.factor,
 			rng,

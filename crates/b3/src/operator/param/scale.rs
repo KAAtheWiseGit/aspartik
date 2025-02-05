@@ -29,7 +29,7 @@ impl Scale {
 
 impl Operator for Scale {
 	fn propose(&self, state: &mut State) -> Result<Proposal> {
-		let scale = self.distribution.gen_range(
+		let scale = self.distribution.random_range(
 			self.factor,
 			1.0 / self.factor,
 			&mut state.rng,

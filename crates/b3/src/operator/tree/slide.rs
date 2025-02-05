@@ -32,7 +32,7 @@ impl Operator for Slide {
 
 		let new_weight = self
 			.distribution
-			.gen_range_from(low, high, weight, rng);
+			.random_range_with(low, high, weight, rng);
 
 		tree.update_weight(node.into(), new_weight);
 		Ok(Proposal::Hastings(0.0))
