@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use rand_distr::{Distribution as _, Exp, Gamma, Normal, Triangular, Uniform};
+use rand_distr::{
+	Beta, ChiSquared, Distribution as _, Exp, Gamma, LogNormal, Normal,
+	StudentT, Triangular, Uniform,
+};
 use statrs::distribution::Laplace;
 
 use crate::operator::Rng;
@@ -9,6 +12,11 @@ pub enum Distribution {
 	Uniform,
 
 	Triangular,
+
+	Beta {
+		alpha: f64,
+		beta: f64,
+	},
 
 	Normal {
 		mean: f64,
@@ -24,9 +32,22 @@ pub enum Distribution {
 		scale: f64,
 	},
 
+	ChiSquared {
+		df: f64,
+	},
+
+	StudentT {
+		df: f64,
+	},
+
 	Laplace {
 		location: f64,
 		scale: f64,
+	},
+
+	LogNormal {
+		mean: f64,
+		std_dev: f64,
 	},
 
 	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
@@ -39,16 +60,24 @@ impl Distribution {
 	pub fn random_line(&self, rng: &mut Rng) -> Option<f64> {
 		match self {
 			Distribution::Normal { mean, std_dev } => {
-				let normal =
+				let dist =
 					Normal::new(*mean, *std_dev).unwrap();
-				Some(normal.sample(rng))
+				Some(dist.sample(rng))
 			}
 			Distribution::Gamma { shape, scale } => {
-				let gamma = Gamma::new(*shape, *scale).unwrap();
-				Some(gamma.sample(rng))
+				let dist = Gamma::new(*shape, *scale).unwrap();
+				Some(dist.sample(rng))
+			}
+			Distribution::ChiSquared { df } => {
+				let dist = ChiSquared::new(*df).unwrap();
+				Some(dist.sample(rng))
+			}
+			Distribution::StudentT { df } => {
+				let dist = StudentT::new(*df).unwrap();
+				Some(dist.sample(rng))
 			}
 			Distribution::Laplace { location, scale } => {
-				let _laplace = Laplace::new(*location, *scale)
+				let _dist = Laplace::new(*location, *scale)
 					.unwrap();
 
 				todo!("`statrs` depends on an older `rand` version")
@@ -68,8 +97,13 @@ impl Distribution {
 
 		match self {
 			Distribution::Exponential { rate } => {
-				let exp = Exp::new(*rate).unwrap();
-				Some(exp.sample(rng))
+				let dist = Exp::new(*rate).unwrap();
+				Some(dist.sample(rng))
+			}
+			Distribution::LogNormal { mean, std_dev } => {
+				let dist = LogNormal::new(*mean, *std_dev)
+					.unwrap();
+				Some(dist.sample(rng))
 			}
 			_ => None,
 		}
@@ -98,6 +132,11 @@ impl Distribution {
 					.unwrap();
 
 				dist.sample(rng)
+			}
+			Distribution::Beta { alpha, beta } => {
+				let dist = Beta::new(*alpha, *beta).unwrap();
+
+				low + dist.sample(rng) * (high - low)
 			}
 			_ => unreachable!(),
 		}
@@ -139,6 +178,9 @@ impl Distribution {
 					.unwrap();
 
 				dist.sample(rng)
+			}
+			Distribution::Beta { .. } => {
+				todo!()
 			}
 			_ => unreachable!(),
 		}
