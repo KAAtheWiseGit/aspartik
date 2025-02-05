@@ -1,4 +1,4 @@
-use rand::distr::{Distribution, WeightedIndex};
+use rand::distr::{weighted::WeightedIndex, Distribution};
 
 use super::{Operator, Rng as RngT};
 
