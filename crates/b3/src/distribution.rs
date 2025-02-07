@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use rand::Rng as _;
 use rand_distr::{
 	Beta, ChiSquared, Distribution as _, Exp, Gamma, LogNormal, Normal,
 	StudentT, Triangular, Uniform,
@@ -51,7 +52,10 @@ pub enum Distribution {
 	},
 
 	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
-	Bactrian,
+	Bactrian {
+		m: f64,
+		std_dev: f64,
+	},
 }
 
 impl Distribution {
@@ -81,6 +85,18 @@ impl Distribution {
 					.unwrap();
 
 				todo!("`statrs` depends on an older `rand` version")
+			}
+			Distribution::Bactrian { m, std_dev } => {
+				let dist = Normal::new(0.0, *std_dev).unwrap();
+				let mut point = dist.sample(rng);
+				point *= (1.0 - m * m).sqrt();
+				if rng.random::<bool>() {
+					point += m;
+				} else {
+					point -= m;
+				}
+
+				Some(point)
 			}
 			_ => None,
 		}
