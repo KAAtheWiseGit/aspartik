@@ -121,4 +121,22 @@ impl Parameter {
 			_ => None,
 		}
 	}
+
+	pub fn one_real(&self) -> Option<f64> {
+		self.as_real()
+			.map(|v| if v.len() == 1 { Some(v[0]) } else { None })
+			.flatten()
+	}
+
+	pub fn one_integer(&self) -> Option<i64> {
+		self.as_integer()
+			.map(|v| if v.len() == 1 { Some(v[0]) } else { None })
+			.flatten()
+	}
+
+	pub fn one_boolean(&self) -> Option<bool> {
+		self.as_boolean()
+			.map(|v| if v.len() == 1 { Some(v[0]) } else { None })
+			.flatten()
+	}
 }
