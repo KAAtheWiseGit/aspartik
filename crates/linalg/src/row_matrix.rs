@@ -172,13 +172,13 @@ impl<T: Copy + AddAssign, const N: usize, const M: usize> Add
 }
 
 impl<T: Copy + MulAssign, const N: usize, const M: usize> RowMatrix<T, N, M> {
-	fn component_mul_assign(&mut self, rhs: Self) {
+	pub fn component_mul_assign(&mut self, rhs: Self) {
 		for i in 0..M {
 			self[i] *= rhs[i];
 		}
 	}
 
-	fn component_mul(mut self, rhs: Self) -> Self {
+	pub fn component_mul(mut self, rhs: Self) -> Self {
 		for i in 0..M {
 			self[i] *= rhs[i];
 		}
@@ -264,10 +264,10 @@ where
 
 // Type-agnostic implementations.
 impl<T: Copy, const N: usize, const M: usize> RowMatrix<T, N, M> {
-	const NUM_ROWS: usize = N;
-	const NUM_COLUMNS: usize = M;
-	const NUM_ITEMS: usize = N * M;
-	const IS_SQUARE: bool = N == M;
+	pub const NUM_ROWS: usize = N;
+	pub const NUM_COLUMNS: usize = M;
+	pub const NUM_ITEMS: usize = N * M;
+	pub const IS_SQUARE: bool = N == M;
 
 	pub fn as_mut_ptr(&mut self) -> *mut T {
 		self[0].as_mut_ptr()

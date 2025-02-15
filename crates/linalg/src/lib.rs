@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[cfg(feature = "bytemuck")]
 mod bytemuck;
 mod lapack;

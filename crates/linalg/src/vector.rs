@@ -194,7 +194,7 @@ impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
 
 // Type-agnostic implementations.
 impl<T: Copy, const N: usize> Vector<T, N> {
-	const LENGTH: usize = N;
+	pub const LENGTH: usize = N;
 
 	pub fn as_ptr(&self) -> *const T {
 		self.v.as_ptr()
