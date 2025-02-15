@@ -24,7 +24,6 @@ authors = ["Andrej Kolčin <self@kaathewise.net>"]
 ahash = "0.8.11"
 anyhow = "1.0.93"
 bytemuck = "1.21.0"
-criterion = "0.5"
 crossbeam-channel = "0.5.13"
 divan = "0.1.17"
 nom = "8.0.0-alpha2"
