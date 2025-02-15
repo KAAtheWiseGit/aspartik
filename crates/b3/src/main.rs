@@ -17,15 +17,10 @@ fn main() {
 		let (seqs, tree) = util::make_tree("data/100.fasta".as_ref());
 		let model = Box::new(DnaModel::JukesCantor);
 
-		let likelihood: DynLikelihood<4>;
-		if gpu {
-			likelihood = Box::new(GpuLikelihood::new(
-				util::dna_to_rows(&seqs),
-			));
+		let likelihood: DynLikelihood<4> = if gpu {
+			Box::new(GpuLikelihood::new(util::dna_to_rows(&seqs)))
 		} else {
-			likelihood = Box::new(CpuLikelihood::new(
-				util::dna_to_rows(&seqs),
-			));
+			Box::new(CpuLikelihood::new(util::dna_to_rows(&seqs)))
 		};
 		let likelihoods: Vec<DynLikelihood<4>> = vec![likelihood];
 
