@@ -45,7 +45,7 @@ impl<const N: usize> Transitions<N> {
 			self.diag = RowMatrix::from_diagonal(
 				substitution.eigenvalues(),
 			);
-			self.p = substitution.eigenvectors();
+			self.p = substitution.eigenvectors().transpose();
 			self.inv_p = self.p.inverse();
 		}
 
@@ -71,10 +71,7 @@ impl<const N: usize> Transitions<N> {
 				.diag
 				.map_diagonal(|v| (v * distance).exp());
 
-			// TODO: check the `linalg` implementation of
-			// eigenvector calculation.  I think I might've mixed up
-			// left and right.
-			let transition = self.inv_p * diag * self.p;
+			let transition = self.p * diag * self.inv_p;
 
 			self.transitions.set(*edge, transition);
 		}
