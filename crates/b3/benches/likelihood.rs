@@ -1,5 +1,3 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-
 use b3::{
 	likelihood::{CpuLikelihood, GpuLikelihood},
 	log,
@@ -64,14 +62,16 @@ fn likelihood(length: usize, gpu: bool) {
 	.unwrap();
 }
 
-fn bench(c: &mut Criterion) {
-	c.bench_function("cpu", |b| b.iter(|| likelihood(10_001, false)));
-	c.bench_function("gpu", |b| b.iter(|| likelihood(10_001, true)));
+#[divan::bench(sample_count = 1, args = [100_000])]
+fn cpu(length: usize) {
+	likelihood(length, false)
 }
 
-criterion_group!(
-	name = benches;
-	config = Criterion::default().sample_size(10);
-	targets = bench
-);
-criterion_main!(benches);
+#[divan::bench(sample_count = 1, args = [100_000])]
+fn gpu(length: usize) {
+	likelihood(length, true)
+}
+
+fn main() {
+	divan::main();
+}

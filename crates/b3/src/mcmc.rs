@@ -73,7 +73,7 @@ fn step<const N: usize>(
 
 	// TODO: proper logging
 	if i % 2_000 == 0 {
-		println!("{:>8}: {:>8.0}", i, state.likelihood);
+		// println!("{:>8}: {:>8.0}", i, state.likelihood);
 	}
 
 	let hastings = match operator.propose(state)? {

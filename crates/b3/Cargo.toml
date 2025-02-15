@@ -25,7 +25,7 @@ vulkano = { workspace = true }
 vulkano-shaders = { workspace = true }
 
 [dev-dependencies]
-criterion = { workspace = true, features = ["html_reports"] }
+divan = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
 
 [[bench]]
