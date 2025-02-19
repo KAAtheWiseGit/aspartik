@@ -10,65 +10,56 @@ use rand_distr::{
 use crate::State;
 
 pub enum Distribution {
+	// Interval
 	Uniform,
-
 	Triangular,
-
 	Beta {
 		alpha: String,
 		beta: String,
 	},
 
-	Normal {
-		mean: String,
-		std_dev: String,
+	// Semi-interval
+	Chi {
+		df: String,
 	},
-
-	Cauchy {
-		location: String,
-		scale: String,
+	ChiSquared {
+		df: String,
 	},
-
 	Exponential {
 		rate: String,
 	},
-
 	Gamma {
 		shape: String,
 		scale: String,
 	},
-
 	InverseGamma {
 		shape: String,
 		scale: String,
 	},
-
-	Chi {
-		df: String,
-	},
-
-	ChiSquared {
-		df: String,
-	},
-
-	Poisson {
-		rate: String,
-	},
-
-	StudentT {
-		df: String,
-	},
-
-	Laplace {
-		location: String,
-		scale: String,
-	},
-
 	LogNormal {
 		mean: String,
 		std_dev: String,
 	},
+	Poisson {
+		rate: String,
+	},
 
+	// Full line
+	Cauchy {
+		location: String,
+		scale: String,
+	},
+	Laplace {
+		location: String,
+		scale: String,
+	},
+	Normal {
+		mean: String,
+		std_dev: String,
+	},
+	StudentT {
+		df: String,
+	},
 	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
 	Bactrian {
 		m: String,
@@ -99,19 +90,15 @@ impl Distribution {
 	/// for distributions which don't support that.
 	pub fn random_line(&self, state: &mut State) -> Result<Option<f64>> {
 		match self {
-			Distribution::Normal { mean, std_dev } => {
-				let mean = get_real(state, mean)?;
-				let std_dev = get_real(state, std_dev)?;
+			Distribution::Cauchy { location, scale } => {
+				let location = get_real(state, location)?;
+				let scale = get_real(state, scale)?;
 
-				let dist = Normal::new(mean, std_dev).unwrap();
+				let dist = Cauchy::new(location, scale)?;
+
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
-			Distribution::StudentT { df } => {
-				let df = get_real(state, df)?;
 
-				let dist = StudentT::new(df).unwrap();
-				Ok(Some(dist.sample(&mut state.rng)))
-			}
 			Distribution::Laplace { location, scale } => {
 				let location = get_real(state, location)?;
 				let scale = get_real(state, scale)?;
@@ -124,14 +111,22 @@ impl Distribution {
 
 				Ok(Some(x))
 			}
-			Distribution::Cauchy { location, scale } => {
-				let location = get_real(state, location)?;
-				let scale = get_real(state, scale)?;
 
-				let dist = Cauchy::new(location, scale)?;
+			Distribution::Normal { mean, std_dev } => {
+				let mean = get_real(state, mean)?;
+				let std_dev = get_real(state, std_dev)?;
 
+				let dist = Normal::new(mean, std_dev).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
+
+			Distribution::StudentT { df } => {
+				let df = get_real(state, df)?;
+
+				let dist = StudentT::new(df).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
 			Distribution::Bactrian { m, std_dev } => {
 				let m = get_real(state, m)?;
 				let std_dev = get_real(state, std_dev)?;
@@ -164,13 +159,6 @@ impl Distribution {
 		}
 
 		match self {
-			Distribution::Exponential { rate } => {
-				let rate = get_real(state, rate)?;
-
-				let dist = Exp::new(rate).unwrap();
-				Ok(Some(dist.sample(&mut state.rng)))
-			}
-
 			Distribution::Chi { df } => {
 				let df = get_integer(state, df)?;
 
@@ -191,6 +179,13 @@ impl Distribution {
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
+			Distribution::Exponential { rate } => {
+				let rate = get_real(state, rate)?;
+
+				let dist = Exp::new(rate).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
 			Distribution::Gamma { shape, scale } => {
 				let shape = get_real(state, shape)?;
 				let scale = get_real(state, scale)?;
@@ -208,14 +203,6 @@ impl Distribution {
 				Ok(Some(1.0 / x))
 			}
 
-			Distribution::Poisson { rate } => {
-				let rate = get_real(state, rate)?;
-
-				let dist = Poisson::new(rate)?;
-
-				Ok(Some(dist.sample(&mut state.rng)))
-			}
-
 			Distribution::LogNormal { mean, std_dev } => {
 				let mean = get_real(state, mean)?;
 				let std_dev = get_real(state, std_dev)?;
@@ -224,6 +211,15 @@ impl Distribution {
 					LogNormal::new(mean, std_dev).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
+
+			Distribution::Poisson { rate } => {
+				let rate = get_real(state, rate)?;
+
+				let dist = Poisson::new(rate)?;
+
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
 			_ => Ok(None),
 		}
 	}
@@ -250,6 +246,7 @@ impl Distribution {
 
 				Ok(dist.sample(&mut state.rng))
 			}
+
 			Distribution::Triangular => {
 				let center = (low + high) / 2.0;
 				let dist = Triangular::new(low, high, center)
@@ -257,6 +254,7 @@ impl Distribution {
 
 				Ok(dist.sample(&mut state.rng))
 			}
+
 			Distribution::Beta { alpha, beta } => {
 				let alpha = get_real(state, alpha)?;
 				let beta = get_real(state, beta)?;
@@ -266,6 +264,7 @@ impl Distribution {
 				Ok(low + dist.sample(&mut state.rng)
 					* (high - low))
 			}
+
 			_ => unreachable!(),
 		}
 	}
@@ -300,6 +299,7 @@ impl Distribution {
 
 				Ok(dist.sample(&mut state.rng))
 			}
+
 			Distribution::Triangular => {
 				let center = (low + high) / 2.0;
 				let dist = Triangular::new(low, high, center)
@@ -307,11 +307,13 @@ impl Distribution {
 
 				Ok(dist.sample(&mut state.rng))
 			}
+
 			Distribution::Beta { .. } => {
 				// Beta's parameters are set by the state, so we
 				// can't align it to the value
 				self.random_range(low, high, state)
 			}
+
 			_ => unreachable!(),
 		}
 	}
