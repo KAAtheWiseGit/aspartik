@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use rand::Rng as _;
 use rand_distr::{
 	Beta, Cauchy, ChiSquared, Distribution as _, Exp, Gamma, LogNormal,
@@ -213,7 +213,10 @@ impl Distribution {
 		high: f64,
 		state: &mut State,
 	) -> Result<f64> {
-		assert!(low < high);
+		ensure!(
+			low < high,
+			"low ({low}) must be strictly smaller than high ({high})",
+		);
 
 		if let Some(point) = self.random_line(state)? {
 			return Ok(interval_to_range(point.exp(), low, high));
@@ -258,10 +261,13 @@ impl Distribution {
 		value: f64,
 		state: &mut State,
 	) -> Result<f64> {
-		assert!(low < high);
-		assert!(
+		ensure!(
+			low < high,
+			"low ({low}) must be strictly smaller than high ({high})",
+		);
+		ensure!(
 			low < value && value < high,
-			"The value {value} is not in range {low}-{high}"
+			"The value ({value}) must lie between low and high ({low}-{high})",
 		);
 
 		let ratio = (high - value) / (value - low);
