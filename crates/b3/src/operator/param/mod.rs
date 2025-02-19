@@ -1,3 +1,3 @@
 mod scale;
 
-pub use scale::Scale;
+pub use scale::{ScaleAll, ScaleOne};

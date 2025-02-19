@@ -33,7 +33,8 @@ mod tree;
 
 pub mod scheduler;
 
-pub use param::Scale as ParamScale;
+pub use param::ScaleAll as ParamScaleAll;
+pub use param::ScaleOne as ParamScaleOne;
 pub use tree::Scale as TreeScale;
 pub use tree::Slide as TreeSlide;
 pub use tree::{
