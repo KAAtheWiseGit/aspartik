@@ -80,6 +80,14 @@ impl Parameter {
 		}
 	}
 
+	pub fn type_name(&self) -> &'static str {
+		match self {
+			Parameter::Real(..) => "real",
+			Parameter::Integer(..) => "integer",
+			Parameter::Boolean(..) => "boolean",
+		}
+	}
+
 	pub fn as_real(&self) -> Option<&RealParam> {
 		match self {
 			Parameter::Real(p) => Some(p),
@@ -120,35 +128,5 @@ impl Parameter {
 			Parameter::Boolean(p) => Some(p),
 			_ => None,
 		}
-	}
-
-	pub fn one_real(&self) -> Option<f64> {
-		self.as_real().and_then(|v| {
-			if v.len() == 1 {
-				Some(v[0])
-			} else {
-				None
-			}
-		})
-	}
-
-	pub fn one_integer(&self) -> Option<i64> {
-		self.as_integer().and_then(|v| {
-			if v.len() == 1 {
-				Some(v[0])
-			} else {
-				None
-			}
-		})
-	}
-
-	pub fn one_boolean(&self) -> Option<bool> {
-		self.as_boolean().and_then(|v| {
-			if v.len() == 1 {
-				Some(v[0])
-			} else {
-				None
-			}
-		})
 	}
 }

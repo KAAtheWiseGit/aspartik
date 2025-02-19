@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use rand::Rng as _;
 use rand_distr::{
 	Beta, Cauchy, ChiSquared, Distribution as _, Exp, Gamma, LogNormal,
@@ -67,32 +65,15 @@ pub enum Distribution {
 	},
 }
 
-fn get_real(state: &mut State, name: &str) -> Result<f64> {
-	state.param(name)?.one_real().ok_or_else(|| {
-		anyhow!(
-			"Expected the parameter {} to be a single real value",
-			name
-		)
-	})
-}
-
-fn get_integer(state: &mut State, name: &str) -> Result<i64> {
-	state.param(name)?.one_integer().ok_or_else(|| {
-		anyhow!(
-			"Expected the parameter {} to be a single integer value",
-			name
-		)
-	})
-}
-
 impl Distribution {
 	/// Returns a number sampled from the whole real numbers line or `None`
 	/// for distributions which don't support that.
 	pub fn random_line(&self, state: &mut State) -> Result<Option<f64>> {
 		match self {
 			Distribution::Cauchy { location, scale } => {
-				let location = get_real(state, location)?;
-				let scale = get_real(state, scale)?;
+				let location =
+					state.one_real_param(location)?;
+				let scale = state.one_real_param(scale)?;
 
 				let dist = Cauchy::new(location, scale)?;
 
@@ -100,8 +81,9 @@ impl Distribution {
 			}
 
 			Distribution::Laplace { location, scale } => {
-				let location = get_real(state, location)?;
-				let scale = get_real(state, scale)?;
+				let location =
+					state.one_real_param(location)?;
+				let scale = state.one_real_param(scale)?;
 
 				// <https://en.wikipedia.org/wiki/Laplace_distribution#Random_variate_generation>
 				let u: f64 = state.rng.random_range(-0.5..0.5);
@@ -113,23 +95,23 @@ impl Distribution {
 			}
 
 			Distribution::Normal { mean, std_dev } => {
-				let mean = get_real(state, mean)?;
-				let std_dev = get_real(state, std_dev)?;
+				let mean = state.one_real_param(mean)?;
+				let std_dev = state.one_real_param(std_dev)?;
 
 				let dist = Normal::new(mean, std_dev).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
 			Distribution::StudentT { df } => {
-				let df = get_real(state, df)?;
+				let df = state.one_real_param(df)?;
 
 				let dist = StudentT::new(df).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
 			Distribution::Bactrian { m, std_dev } => {
-				let m = get_real(state, m)?;
-				let std_dev = get_real(state, std_dev)?;
+				let m = state.one_real_param(m)?;
+				let std_dev = state.one_real_param(std_dev)?;
 
 				let dist = Normal::new(0.0, std_dev).unwrap();
 				let mut point = dist.sample(&mut state.rng);
@@ -160,7 +142,7 @@ impl Distribution {
 
 		match self {
 			Distribution::Chi { df } => {
-				let df = get_integer(state, df)?;
+				let df = state.one_integer_param(df)?;
 
 				Ok(Some((0..df)
 					.map(|_| {
@@ -173,30 +155,30 @@ impl Distribution {
 			}
 
 			Distribution::ChiSquared { df } => {
-				let df = get_integer(state, df)?;
+				let df = state.one_integer_param(df)?;
 
 				let dist = ChiSquared::new(df as f64).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
 			Distribution::Exponential { rate } => {
-				let rate = get_real(state, rate)?;
+				let rate = state.one_real_param(rate)?;
 
 				let dist = Exp::new(rate).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
 			Distribution::Gamma { shape, scale } => {
-				let shape = get_real(state, shape)?;
-				let scale = get_real(state, scale)?;
+				let shape = state.one_real_param(shape)?;
+				let scale = state.one_real_param(scale)?;
 
 				let dist = Gamma::new(shape, scale).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
 
 			Distribution::InverseGamma { shape, scale } => {
-				let shape = get_real(state, shape)?;
-				let scale = get_real(state, scale)?;
+				let shape = state.one_real_param(shape)?;
+				let scale = state.one_real_param(scale)?;
 
 				let dist = Gamma::new(shape, scale).unwrap();
 				let x = dist.sample(&mut state.rng);
@@ -204,8 +186,8 @@ impl Distribution {
 			}
 
 			Distribution::LogNormal { mean, std_dev } => {
-				let mean = get_real(state, mean)?;
-				let std_dev = get_real(state, std_dev)?;
+				let mean = state.one_real_param(mean)?;
+				let std_dev = state.one_real_param(std_dev)?;
 
 				let dist =
 					LogNormal::new(mean, std_dev).unwrap();
@@ -213,7 +195,7 @@ impl Distribution {
 			}
 
 			Distribution::Poisson { rate } => {
-				let rate = get_real(state, rate)?;
+				let rate = state.one_real_param(rate)?;
 
 				let dist = Poisson::new(rate)?;
 
@@ -256,8 +238,8 @@ impl Distribution {
 			}
 
 			Distribution::Beta { alpha, beta } => {
-				let alpha = get_real(state, alpha)?;
-				let beta = get_real(state, beta)?;
+				let alpha = state.one_real_param(alpha)?;
+				let beta = state.one_real_param(beta)?;
 
 				let dist = Beta::new(alpha, beta).unwrap();
 

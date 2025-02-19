@@ -36,7 +36,7 @@ impl<const N: usize> Transitions<N> {
 		substitution: Substitution<N>,
 		state: &State,
 	) -> bool {
-		let tree = state.get_tree();
+		let tree = &state.tree;
 
 		let full_update = substitution != self.current;
 		if full_update {

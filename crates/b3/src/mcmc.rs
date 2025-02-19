@@ -52,7 +52,7 @@ pub fn run<const N: usize>(
 			use std::io::Write;
 			file.write_fmt(format_args!(
 				"{}\n",
-				state.get_tree().into_newick()
+				state.tree.into_newick()
 			))?;
 		}
 	}
