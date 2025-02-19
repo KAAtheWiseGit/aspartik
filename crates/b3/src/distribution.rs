@@ -1,12 +1,20 @@
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use rand::Rng as _;
 use rand_distr::{
 	Beta, Cauchy, ChiSquared, Distribution as _, Exp, Gamma, LogNormal,
 	Normal, Poisson, StandardNormal, StudentT, Triangular, Uniform,
 };
+use statrs::distribution::{
+	Beta as BetaS, Cauchy as CauchyS, Chi as ChiS,
+	ChiSquared as ChiSquaredS, Continuous, Discrete, Exp as ExpS,
+	Gamma as GammaS, InverseGamma as InverseGammaS, Laplace as LaplaceS,
+	LogNormal as LogNormalS, Normal as NormalS, Poisson as PoissonS,
+	StudentsT as StudentsTS,
+};
 
 use crate::State;
 
+#[derive(Debug, Clone)]
 pub enum Distribution {
 	// Interval
 	Uniform,
@@ -66,6 +74,135 @@ pub enum Distribution {
 }
 
 impl Distribution {
+	pub fn pdf(&self, x: f64, state: &State) -> Result<f64> {
+		match self {
+			// Segment
+			Distribution::Beta { alpha, beta } => {
+				let alpha = state.one_real_param(alpha)?;
+				let beta = state.one_real_param(beta)?;
+
+				let dist = BetaS::new(alpha, beta)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			// Semi-interval
+			Distribution::Chi { df } => {
+				let df = state.one_integer_param(df)?;
+
+				let dist = ChiS::new(df as u64)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::ChiSquared { df } => {
+				let df = state.one_integer_param(df)?;
+
+				let dist = ChiSquaredS::new(df as f64)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::Exponential { rate } => {
+				let rate = state.one_real_param(rate)?;
+
+				let dist = ExpS::new(rate)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::Gamma { shape, scale } => {
+				let shape = state.one_real_param(shape)?;
+				let scale = state.one_real_param(scale)?;
+
+				let dist = GammaS::new(shape, 1.0 / scale)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::InverseGamma { shape, scale } => {
+				let shape = state.one_real_param(shape)?;
+				let scale = state.one_real_param(scale)?;
+
+				let dist =
+					InverseGammaS::new(shape, 1.0 / scale)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::LogNormal { mean, std_dev } => {
+				let mean = state.one_real_param(mean)?;
+				let std_dev = state.one_real_param(std_dev)?;
+
+				let dist = LogNormalS::new(mean, std_dev)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			// Full line
+			Distribution::Cauchy { location, scale } => {
+				let location =
+					state.one_real_param(location)?;
+				let scale = state.one_real_param(scale)?;
+
+				let dist = CauchyS::new(location, scale)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::Laplace { location, scale } => {
+				let location =
+					state.one_real_param(location)?;
+				let scale = state.one_real_param(scale)?;
+
+				let dist = LaplaceS::new(location, scale)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::Normal { mean, std_dev } => {
+				let mean = state.one_real_param(mean)?;
+				let std_dev = state.one_real_param(std_dev)?;
+
+				let dist = NormalS::new(mean, std_dev)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::StudentT { df } => {
+				let df = state.one_real_param(df)?;
+
+				let dist = StudentsTS::new(0.0, 1.0, df)?;
+
+				Ok(dist.pdf(x))
+			}
+
+			Distribution::Bactrian { .. } => {
+				todo!()
+			}
+
+			Distribution::Uniform
+			| Distribution::Triangular
+			| Distribution::Poisson { .. } => bail!(
+				"Distribution {self:?} does not have a PDF"
+			),
+		}
+	}
+
+	pub fn pmf(&self, x: i64, state: &State) -> Result<f64> {
+		match self {
+			Distribution::Poisson { rate } => {
+				let rate = state.one_integer_param(rate)?;
+
+				let dist = PoissonS::new(rate as f64)?;
+
+				Ok(dist.pmf(x as u64))
+			}
+
+			_ => bail!("Distribution {self:?} does not have a PMF"),
+		}
+	}
+
 	/// Returns a number sampled from the whole real numbers line or `None`
 	/// for distributions which don't support that.
 	pub fn random_line(&self, state: &mut State) -> Result<Option<f64>> {
@@ -195,9 +332,9 @@ impl Distribution {
 			}
 
 			Distribution::Poisson { rate } => {
-				let rate = state.one_real_param(rate)?;
+				let rate = state.one_integer_param(rate)?;
 
-				let dist = Poisson::new(rate)?;
+				let dist = Poisson::new(rate as f64)?;
 
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
