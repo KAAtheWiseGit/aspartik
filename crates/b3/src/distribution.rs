@@ -3,10 +3,9 @@
 use anyhow::{anyhow, Result};
 use rand::Rng as _;
 use rand_distr::{
-	Beta, ChiSquared, Distribution as _, Exp, Gamma, LogNormal, Normal,
-	StudentT, Triangular, Uniform,
+	Beta, Cauchy, ChiSquared, Distribution as _, Exp, Gamma, LogNormal,
+	Normal, Poisson, StandardNormal, StudentT, Triangular, Uniform,
 };
-use statrs::distribution::Laplace;
 
 use crate::State;
 
@@ -25,6 +24,11 @@ pub enum Distribution {
 		std_dev: String,
 	},
 
+	Cauchy {
+		location: String,
+		scale: String,
+	},
+
 	Exponential {
 		rate: String,
 	},
@@ -34,8 +38,21 @@ pub enum Distribution {
 		scale: String,
 	},
 
+	InverseGamma {
+		shape: String,
+		scale: String,
+	},
+
+	Chi {
+		df: String,
+	},
+
 	ChiSquared {
 		df: String,
+	},
+
+	Poisson {
+		rate: String,
 	},
 
 	StudentT {
@@ -89,19 +106,6 @@ impl Distribution {
 				let dist = Normal::new(mean, std_dev).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
-			Distribution::Gamma { shape, scale } => {
-				let shape = get_real(state, shape)?;
-				let scale = get_real(state, scale)?;
-
-				let dist = Gamma::new(shape, scale).unwrap();
-				Ok(Some(dist.sample(&mut state.rng)))
-			}
-			Distribution::ChiSquared { df } => {
-				let df = get_integer(state, df)?;
-
-				let dist = ChiSquared::new(df as f64).unwrap();
-				Ok(Some(dist.sample(&mut state.rng)))
-			}
 			Distribution::StudentT { df } => {
 				let df = get_real(state, df)?;
 
@@ -112,10 +116,21 @@ impl Distribution {
 				let location = get_real(state, location)?;
 				let scale = get_real(state, scale)?;
 
-				let _dist =
-					Laplace::new(location, scale).unwrap();
+				// <https://en.wikipedia.org/wiki/Laplace_distribution#Random_variate_generation>
+				let u: f64 = state.rng.random_range(-0.5..0.5);
+				let x = location
+					- scale * u.signum()
+						* (1.0 - 2.0 * u.abs()).ln();
 
-				todo!("`statrs` depends on an older `rand` version")
+				Ok(Some(x))
+			}
+			Distribution::Cauchy { location, scale } => {
+				let location = get_real(state, location)?;
+				let scale = get_real(state, scale)?;
+
+				let dist = Cauchy::new(location, scale)?;
+
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::Bactrian { m, std_dev } => {
 				let m = get_real(state, m)?;
@@ -155,6 +170,52 @@ impl Distribution {
 				let dist = Exp::new(rate).unwrap();
 				Ok(Some(dist.sample(&mut state.rng)))
 			}
+
+			Distribution::Chi { df } => {
+				let df = get_integer(state, df)?;
+
+				Ok(Some((0..df)
+					.map(|_| {
+						let x: f64 = StandardNormal
+							.sample(&mut state.rng);
+						x.powi(2)
+					})
+					.sum::<f64>()
+					.sqrt()))
+			}
+
+			Distribution::ChiSquared { df } => {
+				let df = get_integer(state, df)?;
+
+				let dist = ChiSquared::new(df as f64).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
+			Distribution::Gamma { shape, scale } => {
+				let shape = get_real(state, shape)?;
+				let scale = get_real(state, scale)?;
+
+				let dist = Gamma::new(shape, scale).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
+			Distribution::InverseGamma { shape, scale } => {
+				let shape = get_real(state, shape)?;
+				let scale = get_real(state, scale)?;
+
+				let dist = Gamma::new(shape, scale).unwrap();
+				let x = dist.sample(&mut state.rng);
+				Ok(Some(1.0 / x))
+			}
+
+			Distribution::Poisson { rate } => {
+				let rate = get_real(state, rate)?;
+
+				let dist = Poisson::new(rate)?;
+
+				Ok(Some(dist.sample(&mut state.rng)))
+			}
+
 			Distribution::LogNormal { mean, std_dev } => {
 				let mean = get_real(state, mean)?;
 				let std_dev = get_real(state, std_dev)?;
@@ -247,7 +308,9 @@ impl Distribution {
 				Ok(dist.sample(&mut state.rng))
 			}
 			Distribution::Beta { .. } => {
-				todo!()
+				// Beta's parameters are set by the state, so we
+				// can't align it to the value
+				self.random_range(low, high, state)
 			}
 			_ => unreachable!(),
 		}
