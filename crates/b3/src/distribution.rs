@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use anyhow::{anyhow, Result};
 use rand::Rng as _;
 use rand_distr::{
 	Beta, ChiSquared, Distribution as _, Exp, Gamma, LogNormal, Normal,
@@ -7,7 +8,7 @@ use rand_distr::{
 };
 use statrs::distribution::Laplace;
 
-use crate::operator::Rng;
+use crate::State;
 
 pub enum Distribution {
 	Uniform,
@@ -15,90 +16,123 @@ pub enum Distribution {
 	Triangular,
 
 	Beta {
-		alpha: f64,
-		beta: f64,
+		alpha: String,
+		beta: String,
 	},
 
 	Normal {
-		mean: f64,
-		std_dev: f64,
+		mean: String,
+		std_dev: String,
 	},
 
 	Exponential {
-		rate: f64,
+		rate: String,
 	},
 
 	Gamma {
-		shape: f64,
-		scale: f64,
+		shape: String,
+		scale: String,
 	},
 
 	ChiSquared {
-		df: f64,
+		df: String,
 	},
 
 	StudentT {
-		df: f64,
+		df: String,
 	},
 
 	Laplace {
-		location: f64,
-		scale: f64,
+		location: String,
+		scale: String,
 	},
 
 	LogNormal {
-		mean: f64,
-		std_dev: f64,
+		mean: String,
+		std_dev: String,
 	},
 
 	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
 	Bactrian {
-		m: f64,
-		std_dev: f64,
+		m: String,
+		std_dev: String,
 	},
+}
+
+fn get_real(state: &mut State, name: &str) -> Result<f64> {
+	state.param(name)?.one_real().ok_or_else(|| {
+		anyhow!(
+			"Expected the parameter {} to be a single real value",
+			name
+		)
+	})
+}
+
+fn get_integer(state: &mut State, name: &str) -> Result<i64> {
+	state.param(name)?.one_integer().ok_or_else(|| {
+		anyhow!(
+			"Expected the parameter {} to be a single integer value",
+			name
+		)
+	})
 }
 
 impl Distribution {
 	/// Returns a number sampled from the whole real numbers line or `None`
 	/// for distributions which don't support that.
-	pub fn random_line(&self, rng: &mut Rng) -> Option<f64> {
+	pub fn random_line(&self, state: &mut State) -> Result<Option<f64>> {
 		match self {
 			Distribution::Normal { mean, std_dev } => {
-				let dist =
-					Normal::new(*mean, *std_dev).unwrap();
-				Some(dist.sample(rng))
+				let mean = get_real(state, mean)?;
+				let std_dev = get_real(state, std_dev)?;
+
+				let dist = Normal::new(mean, std_dev).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::Gamma { shape, scale } => {
-				let dist = Gamma::new(*shape, *scale).unwrap();
-				Some(dist.sample(rng))
+				let shape = get_real(state, shape)?;
+				let scale = get_real(state, scale)?;
+
+				let dist = Gamma::new(shape, scale).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::ChiSquared { df } => {
-				let dist = ChiSquared::new(*df).unwrap();
-				Some(dist.sample(rng))
+				let df = get_integer(state, df)?;
+
+				let dist = ChiSquared::new(df as f64).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::StudentT { df } => {
-				let dist = StudentT::new(*df).unwrap();
-				Some(dist.sample(rng))
+				let df = get_real(state, df)?;
+
+				let dist = StudentT::new(df).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::Laplace { location, scale } => {
-				let _dist = Laplace::new(*location, *scale)
-					.unwrap();
+				let location = get_real(state, location)?;
+				let scale = get_real(state, scale)?;
+
+				let _dist =
+					Laplace::new(location, scale).unwrap();
 
 				todo!("`statrs` depends on an older `rand` version")
 			}
 			Distribution::Bactrian { m, std_dev } => {
-				let dist = Normal::new(0.0, *std_dev).unwrap();
-				let mut point = dist.sample(rng);
+				let m = get_real(state, m)?;
+				let std_dev = get_real(state, std_dev)?;
+
+				let dist = Normal::new(0.0, std_dev).unwrap();
+				let mut point = dist.sample(&mut state.rng);
 				point *= (1.0 - m * m).sqrt();
-				if rng.random::<bool>() {
+				if state.rng.random::<bool>() {
 					point += m;
 				} else {
 					point -= m;
 				}
 
-				Some(point)
+				Ok(Some(point))
 			}
-			_ => None,
+			_ => Ok(None),
 		}
 	}
 
@@ -106,53 +140,70 @@ impl Distribution {
 	/// interval or `None` for distributions which don't support that.
 	///
 	/// Full-line distributions are transformed using exponentiation.
-	pub fn random_semi_interval(&self, rng: &mut Rng) -> Option<f64> {
-		if let Some(point) = self.random_line(rng) {
-			return Some(point);
+	pub fn random_semi_interval(
+		&self,
+		state: &mut State,
+	) -> Result<Option<f64>> {
+		if let Some(point) = self.random_line(state)? {
+			return Ok(Some(point));
 		}
 
 		match self {
 			Distribution::Exponential { rate } => {
-				let dist = Exp::new(*rate).unwrap();
-				Some(dist.sample(rng))
+				let rate = get_real(state, rate)?;
+
+				let dist = Exp::new(rate).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
 			Distribution::LogNormal { mean, std_dev } => {
-				let dist = LogNormal::new(*mean, *std_dev)
-					.unwrap();
-				Some(dist.sample(rng))
+				let mean = get_real(state, mean)?;
+				let std_dev = get_real(state, std_dev)?;
+
+				let dist =
+					LogNormal::new(mean, std_dev).unwrap();
+				Ok(Some(dist.sample(&mut state.rng)))
 			}
-			_ => None,
+			_ => Ok(None),
 		}
 	}
 
 	/// Return a random value from the `(low, high)` interval.
-	pub fn random_range(&self, low: f64, high: f64, rng: &mut Rng) -> f64 {
+	pub fn random_range(
+		&self,
+		low: f64,
+		high: f64,
+		state: &mut State,
+	) -> Result<f64> {
 		assert!(low < high);
 
-		if let Some(point) = self.random_line(rng) {
-			return interval_to_range(point.exp(), low, high);
+		if let Some(point) = self.random_line(state)? {
+			return Ok(interval_to_range(point.exp(), low, high));
 		}
-		if let Some(point) = self.random_semi_interval(rng) {
-			return interval_to_range(point, low, high);
+		if let Some(point) = self.random_semi_interval(state)? {
+			return Ok(interval_to_range(point, low, high));
 		}
 
 		match self {
 			Distribution::Uniform => {
 				let dist = Uniform::new(low, high).unwrap();
 
-				dist.sample(rng)
+				Ok(dist.sample(&mut state.rng))
 			}
 			Distribution::Triangular => {
 				let center = (low + high) / 2.0;
 				let dist = Triangular::new(low, high, center)
 					.unwrap();
 
-				dist.sample(rng)
+				Ok(dist.sample(&mut state.rng))
 			}
 			Distribution::Beta { alpha, beta } => {
-				let dist = Beta::new(*alpha, *beta).unwrap();
+				let alpha = get_real(state, alpha)?;
+				let beta = get_real(state, beta)?;
 
-				low + dist.sample(rng) * (high - low)
+				let dist = Beta::new(alpha, beta).unwrap();
+
+				Ok(low + dist.sample(&mut state.rng)
+					* (high - low))
 			}
 			_ => unreachable!(),
 		}
@@ -163,8 +214,8 @@ impl Distribution {
 		low: f64,
 		high: f64,
 		value: f64,
-		rng: &mut Rng,
-	) -> f64 {
+		state: &mut State,
+	) -> Result<f64> {
 		assert!(low < high);
 		assert!(
 			low < value && value < high,
@@ -173,27 +224,27 @@ impl Distribution {
 
 		let ratio = (high - value) / (value - low);
 
-		if let Some(point) = self.random_line(rng) {
+		if let Some(point) = self.random_line(state)? {
 			let ratio = ratio * point.exp();
-			return interval_to_range(ratio, low, high);
+			return Ok(interval_to_range(ratio, low, high));
 		}
-		if let Some(point) = self.random_semi_interval(rng) {
+		if let Some(point) = self.random_semi_interval(state)? {
 			let ratio = ratio * point;
-			return interval_to_range(ratio, low, high);
+			return Ok(interval_to_range(ratio, low, high));
 		}
 
 		match self {
 			Distribution::Uniform => {
 				let dist = Uniform::new(low, high).unwrap();
 
-				dist.sample(rng)
+				Ok(dist.sample(&mut state.rng))
 			}
 			Distribution::Triangular => {
 				let center = (low + high) / 2.0;
 				let dist = Triangular::new(low, high, center)
 					.unwrap();
 
-				dist.sample(rng)
+				Ok(dist.sample(&mut state.rng))
 			}
 			Distribution::Beta { .. } => {
 				todo!()

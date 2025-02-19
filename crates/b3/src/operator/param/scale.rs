@@ -32,13 +32,12 @@ impl Operator for Scale {
 		let scale = self.distribution.random_range(
 			self.factor,
 			1.0 / self.factor,
-			&mut state.rng,
-		);
+			state,
+		)?;
 
 		// TODO: ugliness
 		let len = state.param(&self.parameter)?.len();
-		let index =
-			Uniform::new(0, len).unwrap().sample(&mut state.rng);
+		let index = Uniform::new(0, len)?.sample(&mut state.rng);
 
 		let param = state
 			.mut_param(&self.parameter)?

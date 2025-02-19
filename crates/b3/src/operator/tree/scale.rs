@@ -24,14 +24,13 @@ impl Scale {
 
 impl Operator for Scale {
 	fn propose(&self, state: &mut State) -> Result<Proposal> {
-		let rng = &mut state.rng;
-		let tree = &mut state.tree;
-
 		let scale = self.distribution.random_range(
 			self.factor,
 			1.0 / self.factor,
-			rng,
-		);
+			state,
+		)?;
+
+		let tree = &mut state.tree;
 
 		for node in tree.nodes() {
 			let new_weight = tree.weight_of(node) * scale;

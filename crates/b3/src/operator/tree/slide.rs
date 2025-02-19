@@ -15,10 +15,9 @@ impl Slide {
 
 impl Operator for Slide {
 	fn propose(&self, state: &mut State) -> Result<Proposal> {
-		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
-		let node = tree.sample_internal(rng);
+		let node = tree.sample_internal(&mut state.rng);
 		let Some(parent) = tree.parent_of(node) else {
 			// If the node is root, abort the proposal
 			return Ok(Proposal::Reject);
@@ -32,7 +31,9 @@ impl Operator for Slide {
 
 		let new_weight = self
 			.distribution
-			.random_range_with(low, high, weight, rng);
+			.random_range_with(low, high, weight, state)?;
+
+		let tree = &mut state.tree;
 
 		tree.update_weight(node.into(), new_weight);
 		Ok(Proposal::Hastings(0.0))
