@@ -12,6 +12,8 @@ use statrs::distribution::{
 	StudentsT as StudentsTS,
 };
 
+use std::f64::consts::PI;
+
 use crate::State;
 
 #[derive(Debug, Clone)]
@@ -177,8 +179,11 @@ impl Distribution {
 				Ok(dist.pdf(x))
 			}
 
-			Distribution::Bactrian { .. } => {
-				todo!()
+			Distribution::Bactrian { m, std_dev } => {
+				let m = state.one_real_param(m)?;
+				let std_dev = state.one_real_param(std_dev)?;
+
+				Ok(bactrian_pdf(x, m, std_dev))
 			}
 
 			Distribution::Uniform
@@ -446,4 +451,16 @@ impl Distribution {
 
 fn interval_to_range(ratio: f64, low: f64, high: f64) -> f64 {
 	low + (high - low) / (ratio + 1.0)
+}
+
+fn bactrian_pdf(x: f64, m: f64, s: f64) -> f64 {
+	let m2 = m * m;
+	let s2 = s * s;
+
+	let c = 1. / (2. * s * (2. * PI * (1. - m2)).sqrt());
+
+	let e1 = ((x + m * s).powi(2) / (2. * (1.0 - m2) * s2)).exp();
+	let e2 = ((x - m * s).powi(2) / (2. * (1.0 - m2) * s2)).exp();
+
+	c * (e1 + e2)
 }
