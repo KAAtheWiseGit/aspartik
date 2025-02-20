@@ -21,24 +21,25 @@ license = "AGPL-3.0-only"
 authors = ["Andrej Kolčin <self@kaathewise.net>"]
 
 [workspace.dependencies]
-ahash = "0.8.11"
-anyhow = "1.0.93"
-bytemuck = "1.21.0"
-crossbeam-channel = "0.5.13"
-divan = "0.1.17"
+ahash = "0.8"
+anyhow = "1.0"
+bytemuck = "1.21"
+crossbeam-channel = "0.5"
+divan = "0.1"
+lapack-sys = "0.15.0"
 nom = "8.0.0-alpha2"
 num-traits = "0.2.19"
-petgraph = { version = "0.6.5", default-features = false }
+petgraph = { version = "0.7", default-features = false }
 rand = "0.9.0"
 rand_distr = "0.5.0"
 rand_pcg = "0.9.0"
 rayon = "1.10.0"
-serde = "1.0.214"
-serde_json = "1.0.132"
-statrs = "0.18.0"
-thiserror = "1.0.67"
-vulkano = "0.34.1"
-vulkano-shaders = "0.34.0"
+serde = "1.0"
+serde_json = "1.0"
+statrs = "0.18"
+thiserror = "2"
+vulkano = { version = "0.35", default-features = false }
+vulkano-shaders = "0.35"
 
 [profile.bench]
 debug = true

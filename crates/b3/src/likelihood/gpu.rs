@@ -1,17 +1,20 @@
 use vulkano::{
 	buffer::{Buffer, BufferCreateInfo, BufferUsage},
 	command_buffer::{
-		allocator::StandardCommandBufferAllocator,
-		allocator::StandardCommandBufferAllocatorCreateInfo,
+		allocator::{
+			CommandBufferAllocator, StandardCommandBufferAllocator,
+			StandardCommandBufferAllocatorCreateInfo,
+		},
 		AutoCommandBufferBuilder, CommandBufferUsage,
 	},
 	descriptor_set::{
-		allocator::StandardDescriptorSetAllocator,
-		PersistentDescriptorSet, WriteDescriptorSet,
+		allocator::DescriptorSetAllocator,
+		allocator::StandardDescriptorSetAllocator, DescriptorSet,
+		WriteDescriptorSet,
 	},
 	device::{
-		Device, DeviceCreateInfo, Features, Queue, QueueCreateInfo,
-		QueueFlags,
+		Device, DeviceCreateInfo, DeviceFeatures, Queue,
+		QueueCreateInfo, QueueFlags,
 	},
 	instance::{Instance, InstanceCreateInfo},
 	memory::allocator::{
@@ -40,11 +43,11 @@ pub struct GpuLikelihood {
 	device: Arc<Device>,
 	queue: Arc<Queue>,
 	memory_allocator: Arc<StandardMemoryAllocator>,
-	descriptor_set_allocator: StandardDescriptorSetAllocator,
-	command_buffer_allocator: StandardCommandBufferAllocator,
+	descriptor_set_allocator: Arc<dyn DescriptorSetAllocator>,
+	command_buffer_allocator: Arc<dyn CommandBufferAllocator>,
 	propose_pipeline: Arc<ComputePipeline>,
 	reject_pipeline: Arc<ComputePipeline>,
-	descriptor_set_0: Arc<PersistentDescriptorSet>,
+	descriptor_set_0: Arc<DescriptorSet>,
 
 	/// Unlike in the CPU likelihood, this field is essential.  It tracks
 	/// which nodes were updated in the on-GPU buffer.  As such, it acts as
@@ -137,8 +140,8 @@ impl Likelihood for GpuLikelihood {
 
 		let descriptor_set_layout_1 =
 			descriptor_set_layouts.get(1).unwrap();
-		let descriptor_set_1 = PersistentDescriptorSet::new(
-			&self.descriptor_set_allocator,
+		let descriptor_set_1 = DescriptorSet::new(
+			self.descriptor_set_allocator.clone(),
 			descriptor_set_layout_1.clone(),
 			[
 				WriteDescriptorSet::buffer(0, nodes_buffer),
@@ -158,7 +161,7 @@ impl Likelihood for GpuLikelihood {
 
 		let mut command_buffer_builder =
 			AutoCommandBufferBuilder::primary(
-				&self.command_buffer_allocator,
+				self.command_buffer_allocator.clone(),
 				self.queue.queue_family_index(),
 				CommandBufferUsage::OneTimeSubmit,
 			)
@@ -167,7 +170,7 @@ impl Likelihood for GpuLikelihood {
 		let num_groups = (self.num_sites + 63) / 64;
 		let work_group_counts = [num_groups as u32, 1, 1];
 
-		command_buffer_builder
+		let cmd = command_buffer_builder
 			.bind_pipeline_compute(self.propose_pipeline.clone())
 			.unwrap()
 			.bind_descriptor_sets(
@@ -183,9 +186,11 @@ impl Likelihood for GpuLikelihood {
 				1u32,
 				descriptor_set_1,
 			)
-			.unwrap()
-			.dispatch(work_group_counts)
 			.unwrap();
+
+		// TODO: safety
+		let cmd = unsafe { cmd.dispatch(work_group_counts) };
+		cmd.unwrap();
 
 		let command_buffer = command_buffer_builder.build().unwrap();
 
@@ -233,8 +238,8 @@ impl Likelihood for GpuLikelihood {
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
 		let descriptor_set_layout_1 =
 			descriptor_set_layouts.get(1).unwrap();
-		let descriptor_set_1 = PersistentDescriptorSet::new(
-			&self.descriptor_set_allocator,
+		let descriptor_set_1 = DescriptorSet::new(
+			self.descriptor_set_allocator.clone(),
 			descriptor_set_layout_1.clone(),
 			[WriteDescriptorSet::buffer(0, nodes_buffer)],
 			[],
@@ -243,7 +248,7 @@ impl Likelihood for GpuLikelihood {
 
 		let mut command_buffer_builder =
 			AutoCommandBufferBuilder::primary(
-				&self.command_buffer_allocator,
+				self.command_buffer_allocator.clone(),
 				self.queue.queue_family_index(),
 				CommandBufferUsage::OneTimeSubmit,
 			)
@@ -252,7 +257,7 @@ impl Likelihood for GpuLikelihood {
 		let num_groups = (self.num_sites + 63) / 64;
 		let work_group_counts = [num_groups as u32, 1, 1];
 
-		command_buffer_builder
+		let cmd = command_buffer_builder
 			.bind_pipeline_compute(self.reject_pipeline.clone())
 			.unwrap()
 			.bind_descriptor_sets(
@@ -268,9 +273,11 @@ impl Likelihood for GpuLikelihood {
 				1u32,
 				descriptor_set_1,
 			)
-			.unwrap()
-			.dispatch(work_group_counts)
 			.unwrap();
+
+		// TODO: safety
+		let cmd = unsafe { cmd.dispatch(work_group_counts) };
+		cmd.unwrap();
 
 		let command_buffer = command_buffer_builder.build().unwrap();
 
@@ -338,7 +345,7 @@ impl GpuLikelihood {
 					queue_family_index,
 					..Default::default()
 				}],
-				enabled_features: Features {
+				enabled_features: DeviceFeatures {
 					shader_float64: true,
 					..Default::default()
 				},
@@ -396,15 +403,15 @@ impl GpuLikelihood {
 		).unwrap();
 
 		let descriptor_set_allocator =
-			StandardDescriptorSetAllocator::new(
+			Arc::new(StandardDescriptorSetAllocator::new(
 				device.clone(),
 				Default::default(),
-			);
+			));
 
-		let command_buffer_allocator = StandardCommandBufferAllocator::new(
+		let command_buffer_allocator = Arc::new(StandardCommandBufferAllocator::new(
 			device.clone(),
 			StandardCommandBufferAllocatorCreateInfo::default(),
-		);
+		));
 
 		#[rustfmt::skip]
 		macro_rules! make_pipeline {
@@ -442,8 +449,8 @@ impl GpuLikelihood {
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
 		#[allow(clippy::get_first)]
 		let descriptor_set_layout_0 = descriptor_set_layouts.get(0).unwrap();
-		let descriptor_set_0 = PersistentDescriptorSet::new(
-			&descriptor_set_allocator,
+		let descriptor_set_0 = DescriptorSet::new(
+			descriptor_set_allocator.clone(),
 			descriptor_set_layout_0.clone(),
 			[
 				WriteDescriptorSet::buffer(0, num_rows_buffer),

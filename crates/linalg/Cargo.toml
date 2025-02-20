@@ -10,7 +10,7 @@ build = "build.rs"
 
 [dependencies]
 bytemuck = { workspace = true, optional = true }
-lapack-sys = "0.14.0"
+lapack-sys = { workspace = true }
 num-traits = { workspace = true }
 
 [features]
