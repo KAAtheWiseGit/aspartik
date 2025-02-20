@@ -20,16 +20,36 @@ use crate::State;
 pub enum Distribution {
 	// Interval
 	Uniform,
+	/// In [`random_range`] the distribution's center is set to the middle
+	/// of the interval.  In [`random_range_with`] it's set to `value`.
+	///
+	///
+	/// [`random_range`]: Distribution::random_range
+	/// [`random_range_with`]: Distribution::random_range_with
 	Triangular,
+	/// Both `alpha` and `beta` must be real parameters.
+	///
+	/// As beta distribution is defined on the interval `[0, 1]` (or `(0,
+	/// 1)`, depending on the parameters).  Therefore, the functions
+	/// [`random_range`] and [`random_range_with`] will stretch it to fit
+	/// the given `(low, high)` interval.  As the mean depends on the
+	/// distribution's parameters, `random_range_with` works identically to
+	/// `random_range` and ignores `value`.
+	///
+	///
+	/// [`random_range`]: Distribution::random_range
+	/// [`random_range_with`]: Distribution::random_range_with
 	Beta {
 		alpha: String,
 		beta: String,
 	},
 
 	// Semi-interval
+	/// `df` must be an integer parameter.
 	Chi {
 		df: String,
 	},
+	/// `df` must be an integer parameter.
 	ChiSquared {
 		df: String,
 	},
@@ -48,6 +68,7 @@ pub enum Distribution {
 		mean: String,
 		std_dev: String,
 	},
+	/// `rate` must be an integer parameter.
 	Poisson {
 		rate: String,
 	},
@@ -65,10 +86,17 @@ pub enum Distribution {
 		mean: String,
 		std_dev: String,
 	},
+	/// `df` must be a real parameter.
 	StudentT {
 		df: String,
 	},
-	/// <https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/>
+	/// Bactrian kernel as defined by [Yang & Rodríguez, 2013][ref].
+	///
+	/// `m` is the "spikiness" parameter, `std_dev` is the standard
+	/// deviation of the underlying normal distribution.  The mean is set to
+	/// 0.
+	///
+	/// [ref]: https://pmc.ncbi.nlm.nih.gov/articles/PMC3845170/
 	Bactrian {
 		m: String,
 		std_dev: String,
@@ -76,6 +104,9 @@ pub enum Distribution {
 }
 
 impl Distribution {
+	/// Returns the density of a continuous distribution in the point `x`.
+	///
+	/// Throws an error for discrete distributions.
 	pub fn pdf(&self, x: f64, state: &State) -> Result<f64> {
 		match self {
 			// Segment
@@ -181,6 +212,7 @@ impl Distribution {
 
 			Distribution::Bactrian { m, std_dev } => {
 				let m = state.one_real_param(m)?;
+				ensure!(m < 1.0, "Bactrian m must be less than 1 (got {m})");
 				let std_dev = state.one_real_param(std_dev)?;
 
 				Ok(bactrian_pdf(x, m, std_dev))
@@ -194,6 +226,9 @@ impl Distribution {
 		}
 	}
 
+	/// Returns the discrete probability of the point `x`.
+	///
+	/// Throws an error for continuous functions.
 	pub fn pmf(&self, x: i64, state: &State) -> Result<f64> {
 		match self {
 			Distribution::Poisson { rate } => {
@@ -253,6 +288,7 @@ impl Distribution {
 
 			Distribution::Bactrian { m, std_dev } => {
 				let m = state.one_real_param(m)?;
+				ensure!(m < 1.0, "Bactrian m must be less than 1 (got {m})");
 				let std_dev = state.one_real_param(std_dev)?;
 
 				let dist = Normal::new(0.0, std_dev).unwrap();
@@ -279,7 +315,7 @@ impl Distribution {
 		state: &mut State,
 	) -> Result<Option<f64>> {
 		if let Some(point) = self.random_line(state)? {
-			return Ok(Some(point));
+			return Ok(Some(point.exp()));
 		}
 
 		match self {
@@ -349,6 +385,19 @@ impl Distribution {
 	}
 
 	/// Return a random value from the `(low, high)` interval.
+	///
+	/// Distributions defined on an semi-open interval are sampled using
+	/// [`random_semi_interval`] and are transformed into a point on the
+	/// interval with the formula `low + (high - low) / (ratio + 1.0)`.
+	/// Distributions defined on the full line are sampled with
+	/// [`random_line`], exponentiated, and transformed in the same way as
+	/// semi-interval distributions.
+	///
+	/// See [`Distribution`]'s documentation for behavior of the
+	/// interval-defined distributions.
+	///
+	/// [`random_semi_interval`]: Distribution::random_semi_interval
+	/// [`random_line`]: Distribution::random_line
 	pub fn random_range(
 		&self,
 		low: f64,
@@ -360,9 +409,6 @@ impl Distribution {
 			"low ({low}) must be strictly smaller than high ({high})",
 		);
 
-		if let Some(point) = self.random_line(state)? {
-			return Ok(interval_to_range(point.exp(), low, high));
-		}
 		if let Some(point) = self.random_semi_interval(state)? {
 			return Ok(interval_to_range(point, low, high));
 		}
@@ -396,6 +442,8 @@ impl Distribution {
 		}
 	}
 
+	/// Returns a value within the interval `(low, high)`, with the center
+	/// of mass roughly near `value`.
 	pub fn random_range_with(
 		&self,
 		low: f64,
@@ -414,10 +462,6 @@ impl Distribution {
 
 		let ratio = (high - value) / (value - low);
 
-		if let Some(point) = self.random_line(state)? {
-			let ratio = ratio * point.exp();
-			return Ok(interval_to_range(ratio, low, high));
-		}
 		if let Some(point) = self.random_semi_interval(state)? {
 			let ratio = ratio * point;
 			return Ok(interval_to_range(ratio, low, high));
