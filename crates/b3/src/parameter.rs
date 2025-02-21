@@ -1,3 +1,4 @@
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
 use std::ops::{Index, IndexMut};
@@ -14,6 +15,21 @@ pub type IntegerParam = Param<i64>;
 pub type BooleanParam = Param<bool>;
 
 impl<T: Copy + PartialOrd> Param<T> {
+	pub fn new<I>(values: I) -> Result<Self>
+	where
+		I: IntoIterator<Item = T>,
+	{
+		let values = values.into_iter().collect::<Vec<_>>();
+		if values.is_empty() {
+			bail!("Parameter must have at least one dimension")
+		}
+		Ok(Self {
+			values,
+			min: None,
+			max: None,
+		})
+	}
+
 	/// Returns `false` if any value inside the parameter is out of bounds.
 	pub fn is_valid(&self) -> bool {
 		self.values.iter().all(|val| {
@@ -61,7 +77,30 @@ pub enum Parameter {
 	Boolean(BooleanParam),
 }
 
+// Doesn't make sense, since a parameter mustn't be empty
+#[allow(clippy::len_without_is_empty)]
 impl Parameter {
+	pub fn real<I>(values: I) -> Result<Self>
+	where
+		I: IntoIterator<Item = f64>,
+	{
+		Ok(Self::Real(RealParam::new(values)?))
+	}
+
+	pub fn integer<I>(values: I) -> Result<Self>
+	where
+		I: IntoIterator<Item = i64>,
+	{
+		Ok(Self::Integer(IntegerParam::new(values)?))
+	}
+
+	pub fn boolean<I>(values: I) -> Result<Self>
+	where
+		I: IntoIterator<Item = bool>,
+	{
+		Ok(Self::Boolean(BooleanParam::new(values)?))
+	}
+
 	/// Checks that the parameter is valid: all of its values must lie
 	/// within bounds.
 	pub fn is_valid(&self) -> bool {
