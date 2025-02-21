@@ -5,7 +5,7 @@ pub mod mcmc;
 pub mod model;
 pub mod operator;
 mod parameter;
-pub mod probability;
+pub mod prior;
 mod state;
 mod transitions;
 mod tree;

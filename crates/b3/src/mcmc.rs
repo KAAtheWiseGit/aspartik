@@ -6,7 +6,7 @@ use crate::{
 	log,
 	model::Model,
 	operator::{scheduler::WeightedScheduler, Proposal},
-	probability::Probability,
+	prior::Probability,
 	State, Transitions,
 };
 use base::substitution::Substitution;
@@ -92,7 +92,7 @@ fn step<const N: usize>(
 
 	let tree_likelihood = propose(state, likelihoods, transitions, model);
 
-	let new_likelihood = tree_likelihood + prior.probability(state);
+	let new_likelihood = tree_likelihood + prior.probability(state)?;
 
 	let ratio = new_likelihood - state.likelihood + hastings;
 

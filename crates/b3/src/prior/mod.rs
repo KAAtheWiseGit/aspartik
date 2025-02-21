@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use crate::State;
 
 // modules:
@@ -21,18 +23,12 @@ use crate::State;
 //
 // - Tree taxa groupings, which check the tree and return -inf if the conditions
 //   aren't met.
-mod compound;
-mod poisson;
-mod uniform;
+mod distribution;
 
-pub use compound::Compound;
-pub use poisson::Poisson;
-pub use uniform::Uniform;
+pub use distribution::DistributionPrior;
 
 pub type LogProb = f64;
 
 pub trait Probability {
-	// Because we pass `State` here, this can be implemented for both
-	// parameter priors and for the tree likelihood.
-	fn probability(&self, state: &State) -> LogProb;
+	fn probability(&self, state: &State) -> Result<LogProb>;
 }

@@ -7,7 +7,7 @@ use b3::{
 		scheduler::WeightedScheduler, Operator, TreeNarrowExchange,
 		TreeScale, TreeSlide, TreeWideExchange,
 	},
-	probability::Compound,
+	prior::DistributionPrior,
 	util, Distribution, State, Transitions,
 };
 
@@ -26,7 +26,13 @@ fn likelihood(length: usize, gpu: bool) {
 	let transitions = Transitions::<4>::new(num_edges);
 
 	let mut state = State::new(tree);
-	let prior = Box::new(Compound::new([]));
+	let prior = Box::new(DistributionPrior::new(
+		"param".to_owned(),
+		Distribution::Normal {
+			mean: "mean".to_owned(),
+			std_dev: "std_dev".to_owned(),
+		},
+	));
 
 	// Local
 	let narrow_exchange = TreeNarrowExchange::new();
