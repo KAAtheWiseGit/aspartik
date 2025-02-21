@@ -1,28 +1,7 @@
 use anyhow::Result;
 
-use crate::State;
+use crate::{log::log_distribution, State};
 
-// modules:
-//
-// - [x] compound: combine several distributions
-//
-// - priors:
-//
-//   - [ ] Beta
-//   - [ ] Chi^2
-//   - [ ] Dirichlet
-//   - [ ] Exponential
-//   - [ ] Gamma
-//   - [ ] Inverse Gamma
-//   - [ ] Laplace
-//   - [ ] Log normal
-//   - [ ] Normal
-//   - [ ] One on X
-//   - [x] Poisson
-//   - [x] Uniform
-//
-// - Tree taxa groupings, which check the tree and return -inf if the conditions
-//   aren't met.
 mod distribution;
 
 pub use distribution::DistributionPrior;
@@ -31,4 +10,30 @@ pub type LogProb = f64;
 
 pub trait Probability {
 	fn probability(&self, state: &State) -> Result<LogProb>;
+}
+
+pub struct Prior {
+	name: String,
+	prior: Box<dyn Probability>,
+}
+
+impl Prior {
+	pub fn new<S, P>(name: S, prior: P) -> Self
+	where
+		S: AsRef<str>,
+		P: Probability + 'static,
+	{
+		Prior {
+			name: name.as_ref().to_owned(),
+			prior: Box::new(prior),
+		}
+	}
+}
+
+impl Probability for Prior {
+	fn probability(&self, state: &State) -> Result<LogProb> {
+		let probability = self.prior.probability(state)?;
+		log_distribution(&self.name, probability);
+		Ok(probability)
+	}
 }

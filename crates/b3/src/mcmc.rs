@@ -6,7 +6,7 @@ use crate::{
 	log,
 	model::Model,
 	operator::{scheduler::WeightedScheduler, Proposal},
-	prior::Probability,
+	prior::{Prior, Probability},
 	State, Transitions,
 };
 use base::substitution::Substitution;
@@ -27,7 +27,7 @@ pub type DynModel<const N: usize> =
 pub fn run<const N: usize>(
 	config: Config,
 	state: &mut State,
-	prior: Box<dyn Probability>,
+	prior: Prior,
 	scheduler: &mut WeightedScheduler,
 	mut likelihoods: Vec<DynLikelihood<N>>,
 	mut transitions: Transitions<N>,
@@ -41,7 +41,7 @@ pub fn run<const N: usize>(
 		step(
 			i,
 			state,
-			prior.as_ref(),
+			&prior,
 			scheduler,
 			&mut likelihoods,
 			&mut transitions,
@@ -63,7 +63,7 @@ pub fn run<const N: usize>(
 fn step<const N: usize>(
 	i: usize,
 	state: &mut State,
-	prior: &dyn Probability,
+	prior: &Prior,
 	scheduler: &mut WeightedScheduler,
 	likelihoods: &mut [DynLikelihood<N>],
 	transitions: &mut Transitions<N>,
