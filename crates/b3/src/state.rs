@@ -53,10 +53,10 @@ macro_rules! expect_one {
 }
 
 impl State {
-	pub fn new(tree: Tree) -> Self {
+	pub fn new(tree: Tree, params: HashMap<String, Parameter>) -> Self {
 		Self {
 			old_params: HashMap::new(),
-			params: HashMap::new(),
+			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
 			rng: Pcg64::seed_from_u64(4),

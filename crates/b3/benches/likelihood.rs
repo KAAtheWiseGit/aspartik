@@ -1,3 +1,7 @@
+use anyhow::Result;
+
+use std::collections::HashMap;
+
 use b3::{
 	likelihood::{CpuLikelihood, GpuLikelihood},
 	log,
@@ -8,10 +12,10 @@ use b3::{
 		TreeScale, TreeSlide, TreeWideExchange,
 	},
 	prior::{DistributionPrior, Prior},
-	util, Distribution, State, Transitions,
+	util, Distribution, Parameter, State, Transitions,
 };
 
-fn likelihood(length: usize, gpu: bool) {
+fn likelihood(length: usize, gpu: bool) -> Result<()> {
 	let (seqs, tree) = util::make_tree("data/100.fasta".as_ref());
 	let model = Box::new(DnaModel::JukesCantor);
 
@@ -25,7 +29,13 @@ fn likelihood(length: usize, gpu: bool) {
 	let num_edges = (seqs.len() - 1) * 2;
 	let transitions = Transitions::<4>::new(num_edges);
 
-	let mut state = State::new(tree);
+	let mut params = HashMap::new();
+	params.insert("param".to_owned(), Parameter::real([1.0])?);
+
+	params.insert("mean".to_owned(), Parameter::real([0.0])?);
+	params.insert("std_dev".to_owned(), Parameter::real([1.0])?);
+
+	let mut state = State::new(tree, params);
 	let prior = Prior::new(
 		"some prior",
 		DistributionPrior::new(
@@ -68,17 +78,16 @@ fn likelihood(length: usize, gpu: bool) {
 		transitions,
 		model,
 	)
-	.unwrap();
 }
 
 #[divan::bench(sample_count = 1, args = [100_000])]
 fn cpu(length: usize) {
-	likelihood(length, false)
+	likelihood(length, false).unwrap();
 }
 
 #[divan::bench(sample_count = 1, args = [100_000])]
 fn gpu(length: usize) {
-	likelihood(length, true)
+	likelihood(length, true).unwrap();
 }
 
 fn main() {
