@@ -16,7 +16,7 @@ macro_rules! mut_state {
 struct LogState {
 	loggers: Vec<Logger>,
 
-	probabilities: HashMap<String, f64>,
+	priors: HashMap<String, f64>,
 }
 
 pub fn init(loggers: Vec<Logger>) {
@@ -24,7 +24,7 @@ pub fn init(loggers: Vec<Logger>) {
 
 	*r = Some(LogState {
 		loggers,
-		probabilities: HashMap::new(),
+		priors: HashMap::new(),
 	});
 }
 
@@ -36,8 +36,8 @@ pub fn write(state: &State, index: usize) -> Result<()> {
 	Ok(())
 }
 
-pub fn log_distribution(name: &str, value: f64) {
-	mut_state!().probabilities.insert(name.to_owned(), value);
+pub fn log_prior(name: &str, value: f64) {
+	mut_state!().priors.insert(name.to_owned(), value);
 }
 
 pub struct Logger {
@@ -89,7 +89,7 @@ impl Logger {
 		for distribution in &self.probabilities {
 			distributions.insert(
 				distribution.to_owned(),
-				mut_state!().probabilities[distribution],
+				mut_state!().priors[distribution],
 			);
 		}
 
