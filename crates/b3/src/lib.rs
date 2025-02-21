@@ -12,6 +12,7 @@ mod tree;
 pub mod util;
 
 pub use distribution::Distribution;
+pub use parameter::Parameter;
 pub use state::State;
 pub use transitions::Transitions;
 pub use tree::Tree;
