@@ -104,6 +104,36 @@ pub enum Distribution {
 }
 
 impl Distribution {
+	#[allow(clippy::match_like_matches_macro)]
+	pub fn is_continious(&self) -> bool {
+		match self {
+			Distribution::Uniform
+			| Distribution::Triangular
+			| Distribution::Beta { .. }
+			| Distribution::Chi { .. }
+			| Distribution::ChiSquared { .. }
+			| Distribution::Exponential { .. }
+			| Distribution::Gamma { .. }
+			| Distribution::InverseGamma { .. }
+			| Distribution::LogNormal { .. }
+			| Distribution::Cauchy { .. }
+			| Distribution::Laplace { .. }
+			| Distribution::Normal { .. }
+			| Distribution::StudentT { .. }
+			| Distribution::Bactrian { .. } => true,
+			_ => false,
+		}
+	}
+
+	#[allow(clippy::match_like_matches_macro)]
+	pub fn is_discrete(&self) -> bool {
+		match self {
+			Distribution::Uniform
+			| Distribution::Poisson { .. } => true,
+			_ => false,
+		}
+	}
+
 	/// Returns the density of a continuous distribution in the point `x`.
 	///
 	/// Throws an error for discrete distributions.
