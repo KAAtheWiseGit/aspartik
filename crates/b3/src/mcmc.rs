@@ -33,9 +33,6 @@ pub fn run<const N: usize>(
 	mut transitions: Transitions<N>,
 	mut model: DynModel<N>,
 ) -> Result<()> {
-	// TODO: output configuration (maybe another logger type)
-	let mut file = std::fs::File::create("b3.trees")?;
-
 	// TODO: burnin
 	for i in 0..(config.burnin + config.length) {
 		step(
@@ -47,13 +44,8 @@ pub fn run<const N: usize>(
 			&mut transitions,
 			&mut model,
 		)?;
-
-		if i % config.save_state_every == 0 && i > config.burnin {
-			use std::io::Write;
-			file.write_fmt(format_args!(
-				"{}\n",
-				state.tree.into_newick()
-			))?;
+		if i >= config.burnin {
+			log::write(state, i)?;
 		}
 	}
 
@@ -105,8 +97,6 @@ fn step<const N: usize>(
 	} else {
 		reject(state, likelihoods, transitions);
 	}
-
-	log::write(state, i)?;
 
 	Ok(())
 }

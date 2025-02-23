@@ -60,8 +60,8 @@ fn likelihood(length: usize, gpu: bool) -> Result<()> {
 		[25.0, 25.0, 48.0, 2.0],
 	);
 
-	let logger = log::JsonLogger::new(1_000_000, None, vec![], vec![]);
-	log::init(vec![logger]);
+	let tree_logger = log::TreeLogger::new("b3.trees", 1_000)?;
+	log::init(vec![tree_logger]);
 
 	let config = Config {
 		burnin: 0,

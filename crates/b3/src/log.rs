@@ -46,6 +46,36 @@ pub fn record_prior(name: &str, value: f64) {
 	mut_state!().priors.insert(name.to_owned(), value);
 }
 
+pub struct TreeLogger {
+	every: usize,
+	file: File,
+}
+
+impl TreeLogger {
+	pub fn new<P>(file: P, every: usize) -> Result<Box<dyn Logger>>
+	where
+		P: AsRef<Path>,
+	{
+		let file = File::create(file.as_ref())?;
+		Ok(Box::new(TreeLogger { every, file }))
+	}
+}
+
+impl Logger for TreeLogger {
+	fn log(&mut self, state: &State, index: usize) -> Result<()> {
+		if index % self.every != 0 {
+			return Ok(());
+		}
+
+		use std::io::Write;
+		let tree = state.tree.into_newick();
+		self.file.write_all(tree.as_bytes())?;
+		self.file.write_all(b"\n")?;
+
+		Ok(())
+	}
+}
+
 pub struct JsonLogger {
 	log_every: usize,
 	dst: Box<dyn Write + Sync + Send>,
