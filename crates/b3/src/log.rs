@@ -1,9 +1,20 @@
+#![allow(clippy::new_ret_no_self)]
+
 use anyhow::Result;
 use serde_json::{json, to_string, to_value, Value as Json};
 
 use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
 
 use crate::State;
+
+pub trait Logger: Send {
+	fn log(
+		&mut self,
+		state: &State,
+		index: usize,
+		burnin: bool,
+	) -> Result<()>;
+}
 
 static STATE: Mutex<Option<LogState>> = Mutex::new(None);
 
@@ -14,33 +25,33 @@ macro_rules! mut_state {
 }
 
 struct LogState {
-	loggers: Vec<Logger>,
+	loggers: Vec<Box<dyn Logger>>,
 
 	priors: HashMap<String, f64>,
 }
 
-pub fn init(loggers: Vec<Logger>) {
-	let mut r = STATE.lock().unwrap();
+pub fn init(loggers: Vec<Box<dyn Logger>>) {
+	let mut state = STATE.lock().unwrap();
 
-	*r = Some(LogState {
+	*state = Some(LogState {
 		loggers,
 		priors: HashMap::new(),
 	});
 }
 
-pub fn write(state: &State, index: usize) -> Result<()> {
+pub fn write(state: &State, index: usize, burnin: bool) -> Result<()> {
 	for logger in &mut mut_state!().loggers {
-		logger.log(state, index)?;
+		logger.log(state, index, burnin)?;
 	}
 
 	Ok(())
 }
 
-pub fn log_prior(name: &str, value: f64) {
+pub fn record_prior(name: &str, value: f64) {
 	mut_state!().priors.insert(name.to_owned(), value);
 }
 
-pub struct Logger {
+pub struct JsonLogger {
 	log_every: usize,
 	dst: Box<dyn Write + Sync + Send>,
 
@@ -48,13 +59,13 @@ pub struct Logger {
 	parameters: Vec<String>,
 }
 
-impl Logger {
+impl JsonLogger {
 	pub fn new(
 		log_every: usize,
 		file: Option<&Path>,
 		probabilities: Vec<String>,
 		parameters: Vec<String>,
-	) -> Self {
+	) -> Box<dyn Logger> {
 		let dst = if let Some(path) = file {
 			Box::new(File::create(path).unwrap())
 				as Box<dyn Write + Sync + Send>
@@ -62,15 +73,26 @@ impl Logger {
 			Box::new(std::io::stdout())
 		};
 
-		Logger {
+		Box::new(JsonLogger {
 			log_every,
 			dst,
 			probabilities,
 			parameters,
-		}
+		})
 	}
+}
 
-	fn log(&mut self, state: &State, index: usize) -> Result<()> {
+impl Logger for JsonLogger {
+	fn log(
+		&mut self,
+		state: &State,
+		index: usize,
+		burnin: bool,
+	) -> Result<()> {
+		if burnin {
+			return Ok(());
+		}
+
 		if index % self.log_every != 0 {
 			return Ok(());
 		}

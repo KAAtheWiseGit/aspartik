@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{log::log_prior, State};
+use crate::{log::record_prior, State};
 
 mod distribution;
 
@@ -33,7 +33,7 @@ impl Prior {
 impl Probability for Prior {
 	fn probability(&self, state: &State) -> Result<LogProb> {
 		let probability = self.prior.probability(state)?;
-		log_prior(&self.name, probability);
+		record_prior(&self.name, probability);
 		Ok(probability)
 	}
 }
