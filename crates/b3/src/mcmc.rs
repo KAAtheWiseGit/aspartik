@@ -40,7 +40,6 @@ pub fn run<const N: usize>(
 	for i in 0..(config.burnin + config.length) {
 		step(
 			i,
-			i < config.burnin,
 			state,
 			&prior,
 			scheduler,
@@ -61,12 +60,10 @@ pub fn run<const N: usize>(
 	Ok(())
 }
 
-// That's true, I'll have to think what to do about it.  There needs to be a
-// unified place for all of the runtime objects
-#[allow(clippy::too_many_arguments)]
+// Too many arguments, I'll have to think what to do about it.  There needs to
+// be a unified place for all of the runtime objects
 fn step<const N: usize>(
 	i: usize,
-	burnin: bool,
 	state: &mut State,
 	prior: &Prior,
 	scheduler: &mut WeightedScheduler,
@@ -109,7 +106,7 @@ fn step<const N: usize>(
 		reject(state, likelihoods, transitions);
 	}
 
-	log::write(state, i, burnin)?;
+	log::write(state, i)?;
 
 	Ok(())
 }

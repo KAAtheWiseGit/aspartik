@@ -8,12 +8,7 @@ use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
 use crate::State;
 
 pub trait Logger: Send {
-	fn log(
-		&mut self,
-		state: &State,
-		index: usize,
-		burnin: bool,
-	) -> Result<()>;
+	fn log(&mut self, state: &State, index: usize) -> Result<()>;
 }
 
 static STATE: Mutex<Option<LogState>> = Mutex::new(None);
@@ -39,9 +34,9 @@ pub fn init(loggers: Vec<Box<dyn Logger>>) {
 	});
 }
 
-pub fn write(state: &State, index: usize, burnin: bool) -> Result<()> {
+pub fn write(state: &State, index: usize) -> Result<()> {
 	for logger in &mut mut_state!().loggers {
-		logger.log(state, index, burnin)?;
+		logger.log(state, index)?;
 	}
 
 	Ok(())
@@ -83,16 +78,7 @@ impl JsonLogger {
 }
 
 impl Logger for JsonLogger {
-	fn log(
-		&mut self,
-		state: &State,
-		index: usize,
-		burnin: bool,
-	) -> Result<()> {
-		if burnin {
-			return Ok(());
-		}
-
+	fn log(&mut self, state: &State, index: usize) -> Result<()> {
 		if index % self.log_every != 0 {
 			return Ok(());
 		}
