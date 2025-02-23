@@ -7,24 +7,42 @@ use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
 
 use crate::State;
 
+/// The trait defining the logging behaviour.
+///
+/// The loggers registered with `b3` are interfaced with using this trait.
 pub trait Logger: Send {
+	/// Calls the logger at step `index`, passing the current state.
+	///
+	/// This function is called every step, excluding burnin (TODO: index?).
+	/// Thus, the logger itself is responsible for implementing sampling and
+	/// flushing the output.
 	fn log(&mut self, state: &State, index: usize) -> Result<()>;
 }
 
 static STATE: Mutex<Option<LogState>> = Mutex::new(None);
 
+/// Unwraps the Mutex holding `LogState`.  Must be called once per the scope of
+/// the returned value, otherwise the function will deadlock.
 macro_rules! mut_state {
 	() => {
 		STATE.lock().unwrap().as_mut().unwrap()
 	};
 }
 
+/// The internal logging object, which holds the cache and all of the registered
+/// loggers.
 struct LogState {
+	/// The loggers to be executed.
 	loggers: Vec<Box<dyn Logger>>,
 
+	/// Cached prior probability values.  They must be set by priors using
+	/// `record_prior`.
 	priors: HashMap<String, f64>,
 }
 
+/// Initialize the given loggers.
+///
+/// They will be called by the main MCMC loop.
 pub fn init(loggers: Vec<Box<dyn Logger>>) {
 	let mut state = STATE.lock().unwrap();
 
@@ -34,7 +52,8 @@ pub fn init(loggers: Vec<Box<dyn Logger>>) {
 	});
 }
 
-pub fn write(state: &State, index: usize) -> Result<()> {
+/// Execute the loggers.
+pub(crate) fn write(state: &State, index: usize) -> Result<()> {
 	for logger in &mut mut_state!().loggers {
 		logger.log(state, index)?;
 	}
@@ -42,16 +61,21 @@ pub fn write(state: &State, index: usize) -> Result<()> {
 	Ok(())
 }
 
-pub fn record_prior(name: &str, value: f64) {
+/// Cache a value of a prior for the current iteration.
+pub(crate) fn record_prior(name: &str, value: f64) {
 	mut_state!().priors.insert(name.to_owned(), value);
 }
 
+/// Records the trees in Newick format, delimited by newlines.
+// XXX: tree selection
 pub struct TreeLogger {
 	every: usize,
 	file: File,
 }
 
 impl TreeLogger {
+	/// `file` is the file path to which trees will be written `every`
+	/// steps.
 	pub fn new<P>(file: P, every: usize) -> Result<Box<dyn Logger>>
 	where
 		P: AsRef<Path>,
@@ -71,6 +95,7 @@ impl Logger for TreeLogger {
 		let tree = state.tree.into_newick();
 		self.file.write_all(tree.as_bytes())?;
 		self.file.write_all(b"\n")?;
+		self.file.flush()?;
 
 		Ok(())
 	}
