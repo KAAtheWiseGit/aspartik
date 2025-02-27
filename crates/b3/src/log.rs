@@ -19,7 +19,7 @@ pub trait Logger: Send {
 	fn log(&mut self, state: &State, index: usize) -> Result<()>;
 }
 
-static STATE: Mutex<Option<LogState>> = Mutex::new(None);
+static STATE: Mutex<Option<GlobalLoggerStore>> = Mutex::new(None);
 
 /// Unwraps the Mutex holding `LogState`.  Must be called once per the scope of
 /// the returned value, otherwise the function will deadlock.
@@ -31,7 +31,7 @@ macro_rules! mut_state {
 
 /// The internal logging object, which holds the cache and all of the registered
 /// loggers.
-struct LogState {
+struct GlobalLoggerStore {
 	/// The loggers to be executed.
 	loggers: Vec<Box<dyn Logger>>,
 
@@ -46,7 +46,7 @@ struct LogState {
 pub fn init(loggers: Vec<Box<dyn Logger>>) {
 	let mut state = STATE.lock().unwrap();
 
-	*state = Some(LogState {
+	*state = Some(GlobalLoggerStore {
 		loggers,
 		priors: HashMap::new(),
 	});
@@ -64,6 +64,38 @@ pub(crate) fn write(state: &State, index: usize) -> Result<()> {
 /// Cache a value of a prior for the current iteration.
 pub(crate) fn record_prior(name: &str, value: f64) {
 	mut_state!().priors.insert(name.to_owned(), value);
+}
+
+/// Serializes the simulation state to allow pausing inference.
+pub struct StateLogger {
+	every: usize,
+	file: File,
+}
+
+impl StateLogger {
+	/// Serializes the state to `file` every `every`-th step.
+	pub fn new<P>(file: P, every: usize) -> Result<Box<dyn Logger>>
+	where
+		P: AsRef<Path>,
+	{
+		let file = File::create(file.as_ref())?;
+		Ok(Box::new(TreeLogger { every, file }))
+	}
+}
+
+impl Logger for StateLogger {
+	fn log(&mut self, state: &State, index: usize) -> Result<()> {
+		if index % self.every != 0 {
+			return Ok(());
+		}
+
+		// Truncate.  Only fails if the file is not writable, which is
+		// not the case here.
+		self.file.set_len(0)?;
+		serde_json::to_writer(&self.file, state)?;
+
+		Ok(())
+	}
 }
 
 /// Records the trees in Newick format, delimited by newlines.
