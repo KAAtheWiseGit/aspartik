@@ -106,7 +106,7 @@ loggers = [
 
 state = b3.State(
     tree=tree,
-    # parameters are implicit
+    # parameters/implicit parameters?
     seed=4,
 )
 
