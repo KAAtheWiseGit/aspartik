@@ -104,10 +104,20 @@ loggers = [
     ),
 ]
 
+state = b3.State(
+    tree=tree,
+    # parameters are implicit
+    seed=4,
+)
+
+# or load the state from a previous run:
+# state = b3.State.load("b3.state")
+
 b3.mcmc.run(
     burnin=100_000,
     length=1_000_000,
 
+    state=state,
     priors=priors,
     likelihoods=likelihoods,
     scheduler=scheduler,
