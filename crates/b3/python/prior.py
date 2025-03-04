@@ -1,3 +1,5 @@
+import math
+
 from b3 import State
 
 class UniformPrior:
@@ -10,6 +12,6 @@ class UniformPrior:
         param = state.param(param)
 
        if self.start < param < self.end:
-           return float("-inf")
+           return -math.inf
        else:
            return 1 / (self.end - self.start)
