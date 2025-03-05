@@ -5,10 +5,7 @@ from b3.operators import Proposal
 from b3.tree import Tree, Node, Internal
 
 class NarrowExchange:
-    def __init__(self):
-        pass
-
-    def propose(self, state: State) -> :
+    def propose(self, state: State) -> Proposal:
         tree = state.tree
 
         if tree.num_internals() < 2:

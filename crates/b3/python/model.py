@@ -5,6 +5,7 @@ from b3.transitions import Matrix
 # TDB
 
 class SubstitutionModel:
+    # operator updates: List[Edge] or List[Node]
     def update(self, state: State) -> List[Tuple[Matrix, Edge]]:
         ...
 
