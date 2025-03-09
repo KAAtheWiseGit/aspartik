@@ -16,3 +16,24 @@ pub use parameter::Parameter;
 pub use state::State;
 pub use transitions::Transitions;
 pub use tree::Tree;
+
+// test
+use pyo3::prelude::*;
+
+/// Documentation.
+#[pyfunction]
+fn hello_world(name: &str) -> PyResult<()> {
+	println!("Hello, {}!", name);
+
+	Ok(())
+}
+
+/// Short title.
+///
+/// Description.
+#[pymodule]
+fn b3(m: &Bound<'_, PyModule>) -> PyResult<()> {
+	m.add_function(wrap_pyfunction!(hello_world, m)?)?;
+
+	Ok(())
+}

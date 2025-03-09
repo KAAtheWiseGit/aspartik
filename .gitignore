@@ -3,3 +3,7 @@
 # test data
 *.fasta
 *.trees
+
+# python artifacts
+__pycache__/
+*.so

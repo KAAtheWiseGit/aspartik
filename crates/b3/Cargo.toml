@@ -14,6 +14,7 @@ shchurvec = { path = "../shchurvec" }
 
 anyhow = { workspace = true }
 crossbeam-channel = { workspace = true }
+pyo3 = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
 rand_pcg = { workspace = true, features = ["serde"] }
@@ -27,6 +28,10 @@ vulkano-shaders = { workspace = true }
 [dev-dependencies]
 divan = { workspace = true }
 rand = { workspace = true, features = ["small_rng"] }
+
+[lib]
+name = "b3"
+crate-type = ["cdylib"]
 
 [[bench]]
 name = "likelihood"
