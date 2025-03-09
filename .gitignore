@@ -4,6 +4,10 @@
 *.fasta
 *.trees
 
-# python artifacts
+# Python artifacts
 __pycache__/
 *.so
+
+# Python virtual environment
+# TODO: commit the list of installed packages (i.e. maturin)
+.venv/
