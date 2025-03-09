@@ -395,15 +395,15 @@ impl Tree {
 		Leaf(i)
 	}
 
-	pub fn nodes(&self) -> impl Iterator<Item = Node> {
+	pub fn nodes(&self) -> impl Iterator<Item = Node> + use<> {
 		(0..self.num_nodes()).map(Node)
 	}
 
-	pub fn internals(&self) -> impl Iterator<Item = Internal> {
+	pub fn internals(&self) -> impl Iterator<Item = Internal> + use<> {
 		(self.num_leaves()..self.num_nodes()).map(Internal)
 	}
 
-	pub fn leaves(&self) -> impl Iterator<Item = Leaf> {
+	pub fn leaves(&self) -> impl Iterator<Item = Leaf> + use<> {
 		(0..self.num_leaves()).map(Leaf)
 	}
 

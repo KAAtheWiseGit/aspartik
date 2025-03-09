@@ -106,14 +106,18 @@ impl<T> ShchurVec<T> {
 	/// function out in such cases.
 	unsafe fn active_inner_drop(&mut self, i: usize) {
 		if std::mem::needs_drop::<T>() {
-			self.active_inner_mut(i).assume_init_drop();
+			unsafe {
+				self.active_inner_mut(i).assume_init_drop();
+			}
 		}
 	}
 
 	/// [`ShchurVec::active_inner_drop`] for the inactive item.
 	unsafe fn inactive_inner_drop(&mut self, i: usize) {
 		if std::mem::needs_drop::<T>() {
-			self.inactive_inner_mut(i).assume_init_drop();
+			unsafe {
+				self.inactive_inner_mut(i).assume_init_drop();
+			}
 		}
 	}
 
