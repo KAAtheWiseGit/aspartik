@@ -1,9 +1,12 @@
 #![allow(clippy::new_ret_no_self)]
 
 use anyhow::Result;
+use pyo3::prelude::*;
 use serde_json::{json, to_string, to_value, Value as Json};
 
-use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Mutex};
+use std::{
+	collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Mutex,
+};
 
 use crate::State;
 
@@ -67,19 +70,19 @@ pub(crate) fn record_prior(name: &str, value: f64) {
 }
 
 /// Serializes the simulation state to allow pausing inference.
+#[pyclass]
 pub struct StateLogger {
 	every: usize,
 	file: File,
 }
 
+#[pymethods]
 impl StateLogger {
 	/// Serializes the state to `file` every `every`-th step.
-	pub fn new<P>(file: P, every: usize) -> Result<Box<dyn Logger>>
-	where
-		P: AsRef<Path>,
-	{
-		let file = File::create(file.as_ref())?;
-		Ok(Box::new(TreeLogger { every, file }))
+	#[new]
+	pub fn new(file: PathBuf, every: usize) -> Result<Self> {
+		let file = File::create(file)?;
+		Ok(StateLogger { every, file })
 	}
 }
 
@@ -100,20 +103,20 @@ impl Logger for StateLogger {
 
 /// Records the trees in Newick format, delimited by newlines.
 // XXX: tree selection
+#[pyclass]
 pub struct TreeLogger {
 	every: usize,
 	file: File,
 }
 
+#[pymethods]
 impl TreeLogger {
 	/// `file` is the file path to which trees will be written `every`
 	/// steps.
-	pub fn new<P>(file: P, every: usize) -> Result<Box<dyn Logger>>
-	where
-		P: AsRef<Path>,
-	{
-		let file = File::create(file.as_ref())?;
-		Ok(Box::new(TreeLogger { every, file }))
+	#[new]
+	pub fn new(file: PathBuf, every: usize) -> Result<Self> {
+		let file = File::create(&file)?;
+		Ok(TreeLogger { every, file })
 	}
 }
 
@@ -133,29 +136,27 @@ impl Logger for TreeLogger {
 	}
 }
 
+#[pyclass]
 pub struct JsonLogger {
 	log_every: usize,
-	dst: Box<dyn Write + Sync + Send>,
+	dst: File,
 
 	probabilities: Vec<String>,
 	parameters: Vec<String>,
 }
 
+#[pymethods]
 impl JsonLogger {
+	#[new]
 	pub fn new(
 		log_every: usize,
-		file: Option<&Path>,
+		file: PathBuf,
 		probabilities: Vec<String>,
 		parameters: Vec<String>,
-	) -> Box<dyn Logger> {
-		let dst = if let Some(path) = file {
-			Box::new(File::create(path).unwrap())
-				as Box<dyn Write + Sync + Send>
-		} else {
-			Box::new(std::io::stdout())
-		};
+	) -> Result<Self> {
+		let dst = File::create(file)?;
 
-		Box::new(JsonLogger {
+		Ok(JsonLogger {
 			log_every,
 			dst,
 			probabilities,
@@ -197,4 +198,14 @@ impl Logger for JsonLogger {
 
 		Ok(())
 	}
+}
+
+pub fn submodule(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
+	let m = PyModule::new(py, "tree")?;
+
+	m.add_class::<StateLogger>()?;
+	m.add_class::<TreeLogger>()?;
+	m.add_class::<JsonLogger>()?;
+
+	Ok(m)
 }
