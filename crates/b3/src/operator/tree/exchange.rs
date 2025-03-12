@@ -118,8 +118,8 @@ impl Operator for WideExchange {
 		};
 
 		if j != i_parent.into()
-			&& tree.weight_of(j) < tree.weight_of(i_parent)
-			&& tree.weight_of(i) < tree.weight_of(j_parent)
+			&& tree.weight_of(j) < tree.weight_of(i_parent.into())
+			&& tree.weight_of(i) < tree.weight_of(j_parent.into())
 		{
 			tree.swap_parents(i, j);
 

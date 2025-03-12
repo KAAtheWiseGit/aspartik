@@ -18,14 +18,14 @@ impl Operator for Slide {
 		let tree = &mut state.tree;
 
 		let node = tree.sample_internal(&mut state.rng);
-		let Some(parent) = tree.parent_of(node) else {
+		let Some(parent) = tree.parent_of(node.into()) else {
 			// If the node is root, abort the proposal
 			return Ok(Proposal::Reject);
 		};
 		let (left, right) = tree.children_of(node);
 
-		let weight = tree.weight_of(node);
-		let low = tree.weight_of(parent);
+		let weight = tree.weight_of(node.into());
+		let low = tree.weight_of(parent.into());
 		// maximum of two child weights
 		let high = tree.weight_of(left).min(tree.weight_of(right));
 

@@ -28,7 +28,7 @@ pub struct Tree {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(eq)]
+#[pyclass(subclass, eq)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -44,11 +44,11 @@ impl From<Leaf> for Node {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(eq)]
+#[pyclass(extends=Node, eq)]
 pub struct Internal(usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(eq)]
+#[pyclass(extends=Node, eq)]
 pub struct Leaf(usize);
 
 impl Tree {
@@ -149,7 +149,9 @@ impl Tree {
 				set.insert(curr);
 				chain.push(curr);
 
-				if let Some(parent) = self.parent_of(curr) {
+				if let Some(parent) =
+					self.parent_of(curr.into())
+				{
 					curr = parent;
 				} else {
 					break;
@@ -261,18 +263,18 @@ impl Tree {
 			let (left, right) = self.children_of(node);
 
 			assert!(
-				self.weight_of(node) < self.weight_of(left),
+				self.weight_of(node.into()) < self.weight_of(left),
 				"Node {} ({}) is lower than it's left child {} ({})",
 				node.0,
-				self.weight_of(node),
+				self.weight_of(node.into()),
 				left.0,
 				self.weight_of(left),
 			);
 			assert!(
-				self.weight_of(node) < self.weight_of(right),
+				self.weight_of(node.into()) < self.weight_of(right),
 				"Node {} ({}) is lower than it's right child {} ({})",
 				node.0,
-				self.weight_of(node),
+				self.weight_of(node.into()),
 				left.0,
 				self.weight_of(right),
 			);
@@ -300,16 +302,15 @@ impl Tree {
 		self.num_internals() + 1
 	}
 
-	pub fn is_internal<N: Into<Node>>(&self, node: N) -> bool {
-		node.into().0 >= self.num_leaves()
+	pub fn is_internal(&self, node: Node) -> bool {
+		node.0 >= self.num_leaves()
 	}
 
-	pub fn is_leaf<N: Into<Node>>(&self, node: N) -> bool {
-		node.into().0 < self.num_leaves()
+	pub fn is_leaf(&self, node: Node) -> bool {
+		node.0 < self.num_leaves()
 	}
 
-	pub fn as_internal<N: Into<Node>>(&self, node: N) -> Option<Internal> {
-		let node = node.into();
+	pub fn as_internal(&self, node: Node) -> Option<Internal> {
 		if self.is_internal(node) {
 			Some(Internal(node.0))
 		} else {
@@ -317,8 +318,7 @@ impl Tree {
 		}
 	}
 
-	pub fn as_leaf<N: Into<Node>>(&self, node: N) -> Option<Leaf> {
-		let node = node.into();
+	pub fn as_leaf(&self, node: Node) -> Option<Leaf> {
 		if self.is_leaf(node) {
 			Some(Leaf(node.0))
 		} else {
@@ -333,8 +333,8 @@ impl Tree {
 		Internal(i)
 	}
 
-	pub fn weight_of<N: Into<Node>>(&self, node: N) -> f64 {
-		self.weights[node.into().0]
+	pub fn weight_of(&self, node: Node) -> f64 {
+		self.weights[node.0]
 	}
 
 	pub fn children_of(&self, node: Internal) -> (Node, Node) {
@@ -359,7 +359,7 @@ impl Tree {
 	pub fn edge_distance(&self, edge: usize) -> f64 {
 		let (child, parent) = self.edge_nodes(edge);
 
-		self.weight_of(child) - self.weight_of(parent)
+		self.weight_of(child) - self.weight_of(parent.into())
 	}
 
 	fn edge_nodes(&self, edge: usize) -> (Node, Internal) {
@@ -371,8 +371,8 @@ impl Tree {
 
 	/// Returns the parent of `node`, or `None` if the node is the root of
 	/// the tree.
-	pub fn parent_of<N: Into<Node>>(&self, node: N) -> Option<Internal> {
-		Some(self.parents[node.into().0])
+	pub fn parent_of(&self, node: Node) -> Option<Internal> {
+		Some(self.parents[node.0])
 			.take_if(|p| *p != ROOT)
 			.map(Internal)
 	}
@@ -434,7 +434,7 @@ impl Tree {
 			tree.add_edge(map[&parent.into()], map[&right]);
 
 			// set root
-			if self.parent_of(parent).is_none() {
+			if self.parent_of(parent.into()).is_none() {
 				tree.set_root(map[&parent.into()]);
 			}
 		}
