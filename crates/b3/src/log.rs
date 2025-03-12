@@ -201,7 +201,7 @@ impl Logger for JsonLogger {
 }
 
 pub fn submodule(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
-	let m = PyModule::new(py, "tree")?;
+	let m = PyModule::new(py, "log")?;
 
 	m.add_class::<StateLogger>()?;
 	m.add_class::<TreeLogger>()?;
