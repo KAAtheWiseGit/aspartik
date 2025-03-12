@@ -23,6 +23,30 @@ impl Param {
 	}
 }
 
+impl ToString for Param {
+	fn to_string(&self) -> String {
+		let mut out = String::new();
+
+		macro_rules! seq {
+			($p: expr) => {
+				for (i, value) in $p.iter().enumerate() {
+					out += &value.to_string();
+					if i < $p.len() - 1 {
+						out += ", ";
+					}
+				}
+			};
+		}
+		match self {
+			Param::Real(p) => seq!(p),
+			Param::Integer(p) => seq!(p),
+			Param::Boolean(p) => seq!(p),
+		}
+
+		out
+	}
+}
+
 #[derive(Debug)]
 #[pyclass(sequence)]
 pub struct PyParameter {
@@ -127,41 +151,17 @@ impl PyParameter {
 	pub fn __repr__(&self) -> String {
 		let mut out = String::from("PyParameter.");
 		match &self.inner {
-			// XXX: deduplicate
-			Param::Real(p) => {
-				out += "Real(";
-				for (i, value) in p.iter().enumerate() {
-					out += &value.to_string();
-					if i < p.len() - 1 {
-						out += ", ";
-					}
-				}
-			}
-			Param::Integer(p) => {
-				out += "Integer(";
-				for (i, value) in p.iter().enumerate() {
-					out += &value.to_string();
-					if i < p.len() - 1 {
-						out += ", ";
-					}
-				}
-			}
-			Param::Boolean(p) => {
-				out += "Boolean(";
-				for (i, value) in p.iter().enumerate() {
-					if *value {
-						out += "True";
-					} else {
-						out += "False";
-					}
-					if i < p.len() - 1 {
-						out += ", ";
-					}
-				}
-			}
+			Param::Real(..) => out += "Real(",
+			Param::Integer(..) => out += "Integer(",
+			Param::Boolean(..) => out += "Boolean(",
 		}
+		out += &self.inner.to_string();
 		out += ")";
 		out
+	}
+
+	pub fn __str__(&self) -> String {
+		format!("[{}]", self.inner.to_string())
 	}
 }
 
