@@ -1,4 +1,5 @@
 use anyhow::Result;
+use pyo3::prelude::*;
 
 use crate::{log::record_prior, State};
 
@@ -35,5 +36,33 @@ impl Probability for Prior {
 		let probability = self.prior.probability(state)?;
 		record_prior(&self.name, probability);
 		Ok(probability)
+	}
+}
+
+pub struct PyPrior {
+	inner: PyObject,
+}
+
+impl PyPrior {
+	pub fn new(obj: PyObject) -> Self {
+		Self { inner: obj }
+	}
+}
+
+impl Probability for PyPrior {
+	fn probability(&self, _state: &State) -> Result<LogProb> {
+		let out: f64 = Python::with_gil(|py| {
+			let out = self
+				.inner
+				.bind(py)
+				.call_method1(
+					"probability",
+					(/* TODO: state */),
+				)?
+				.extract::<f64>()?;
+			Ok::<f64, PyErr>(out)
+		})?;
+
+		Ok(out)
 	}
 }
