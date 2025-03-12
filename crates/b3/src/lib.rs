@@ -11,6 +11,8 @@ mod transitions;
 mod tree;
 pub mod util;
 
+mod py_parameter;
+
 pub use distribution::Distribution;
 pub use parameter::Parameter;
 pub use state::State;
@@ -35,6 +37,8 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	py.import("sys")?
 		.getattr("modules")?
 		.set_item("b3.log", log)?;
+
+	m.add_class::<py_parameter::PyParameter>()?;
 
 	Ok(())
 }
