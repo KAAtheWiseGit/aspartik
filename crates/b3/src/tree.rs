@@ -1,3 +1,4 @@
+use pyo3::prelude::*;
 use rand::{
 	distr::{Distribution, Uniform},
 	Rng,
@@ -27,6 +28,7 @@ pub struct Tree {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[pyclass(eq)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -42,9 +44,11 @@ impl From<Leaf> for Node {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[pyclass(eq)]
 pub struct Internal(usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[pyclass(eq)]
 pub struct Leaf(usize);
 
 impl Tree {
@@ -456,4 +460,14 @@ impl<'de> Deserialize<'de> for Tree {
 		// Parse Newick tree from string
 		todo!()
 	}
+}
+
+pub fn submodule(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
+	let m = PyModule::new(py, "tree")?;
+
+	m.add_class::<Node>()?;
+	m.add_class::<Leaf>()?;
+	m.add_class::<Internal>()?;
+
+	Ok(m)
 }

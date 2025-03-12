@@ -17,23 +17,18 @@ pub use state::State;
 pub use transitions::Transitions;
 pub use tree::Tree;
 
-// test
 use pyo3::prelude::*;
-
-/// Documentation.
-#[pyfunction]
-fn hello_world(name: &str) -> PyResult<()> {
-	println!("Hello, {}!", name);
-
-	Ok(())
-}
 
 /// Short title.
 ///
 /// Description.
 #[pymodule]
-fn b3(m: &Bound<'_, PyModule>) -> PyResult<()> {
-	m.add_function(wrap_pyfunction!(hello_world, m)?)?;
+fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+	let tree = tree::submodule(py)?;
+	m.add_submodule(&tree)?;
+	py.import("sys")?
+		.getattr("modules")?
+		.set_item("b3.tree", tree)?;
 
 	Ok(())
 }
