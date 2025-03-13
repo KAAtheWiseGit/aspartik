@@ -34,6 +34,13 @@ pub struct Tree {
 #[pyclass(frozen, eq)]
 pub struct Node(usize);
 
+#[pymethods]
+impl Node {
+	fn __repr__(&self) -> String {
+		format!("Node({})", self.0)
+	}
+}
+
 impl From<Internal> for Node {
 	fn from(internal: Internal) -> Node {
 		Self(internal.0)
@@ -50,9 +57,23 @@ impl From<Leaf> for Node {
 #[pyclass(frozen, eq)]
 pub struct Internal(usize);
 
+#[pymethods]
+impl Internal {
+	fn __repr__(&self) -> String {
+		format!("Internal({})", self.0)
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[pyclass(frozen, eq)]
 pub struct Leaf(usize);
+
+#[pymethods]
+impl Leaf {
+	fn __repr__(&self) -> String {
+		format!("Leaf({})", self.0)
+	}
+}
 
 impl Tree {
 	pub(crate) fn new(
