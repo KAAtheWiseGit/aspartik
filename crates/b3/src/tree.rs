@@ -1,3 +1,4 @@
+use anyhow::Result;
 use pyo3::prelude::*;
 use rand::{
 	distr::{Distribution, Uniform},
@@ -5,7 +6,10 @@ use rand::{
 };
 use serde::{Deserialize, Serialize};
 
-use std::collections::{HashSet, VecDeque};
+use std::{
+	collections::{HashSet, VecDeque},
+	sync::{Arc, Mutex},
+};
 
 use io::newick::{
 	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
@@ -96,7 +100,6 @@ impl Tree {
 		self.updated_edges.clone()
 	}
 
-	// should retrun `Internal`
 	pub fn nodes_to_update(&self) -> Vec<Internal> {
 		self.walk_nodes(&self.updated_nodes)
 	}
@@ -462,12 +465,160 @@ impl<'de> Deserialize<'de> for Tree {
 	}
 }
 
+#[derive(Debug, Clone)]
+#[pyclass(name = "Tree")]
+pub struct PyTree {
+	inner: Arc<Mutex<Tree>>,
+}
+
+fn to_node(obj: Bound<PyAny>) -> Result<Node> {
+	if let Ok(internal) = obj.extract::<Internal>() {
+		Ok(internal.into())
+	} else if let Ok(leaf) = obj.extract::<Leaf>() {
+		Ok(leaf.into())
+	} else if let Ok(node) = obj.extract::<Node>() {
+		Ok(node)
+	} else {
+		use pyo3::exceptions::PyTypeError;
+		Err(PyTypeError::new_err("Wrong type").into())
+	}
+}
+
+macro_rules! inner {
+	($self: expr) => {
+		$self.inner.lock().unwrap()
+	};
+}
+
+// TODO: user-facing documentation goes here
+#[pymethods]
+impl PyTree {
+	#[new]
+	pub fn new(
+		names: Vec<String>,
+		weights: Vec<f64>,
+		children: Vec<usize>,
+	) -> Self {
+		let tree = Tree::new(names, &weights, &children);
+		Self {
+			inner: Arc::new(Mutex::new(tree)),
+		}
+	}
+
+	pub fn update_edge(
+		&mut self,
+		edge: usize,
+		new_child: Bound<PyAny>,
+	) -> Result<()> {
+		let new_child = to_node(new_child)?;
+		inner!(self).update_edge(edge, new_child);
+		Ok(())
+	}
+
+	pub fn update_weight(
+		&mut self,
+		node: Bound<PyAny>,
+		weight: f64,
+	) -> Result<()> {
+		let node = to_node(node)?;
+		inner!(self).update_weight(node, weight);
+		Ok(())
+	}
+
+	pub fn update_root(&mut self, node: Bound<PyAny>) -> Result<()> {
+		let node = to_node(node)?;
+		inner!(self).update_root(node);
+		Ok(())
+	}
+
+	pub fn swap_parents(
+		&mut self,
+		a: Bound<PyAny>,
+		b: Bound<PyAny>,
+	) -> Result<()> {
+		let (a, b) = (to_node(a)?, to_node(b)?);
+		inner!(self).swap_parents(a, b);
+		Ok(())
+	}
+
+	#[getter]
+	pub fn num_nodes(&self) -> usize {
+		inner!(self).num_nodes()
+	}
+
+	#[getter]
+	pub fn num_internals(&self) -> usize {
+		inner!(self).num_internals()
+	}
+
+	#[getter]
+	pub fn num_leaves(&self) -> usize {
+		inner!(self).num_leaves()
+	}
+
+	pub fn is_internal(&self, node: Bound<PyAny>) -> Result<bool> {
+		let node = to_node(node)?;
+		Ok(inner!(self).is_internal(node))
+	}
+
+	pub fn is_leaf(&self, node: Bound<PyAny>) -> Result<bool> {
+		let node = to_node(node)?;
+		Ok(inner!(self).is_leaf(node))
+	}
+
+	pub fn as_internal(
+		&self,
+		node: Bound<PyAny>,
+	) -> Result<Option<Internal>> {
+		let node = to_node(node)?;
+		Ok(inner!(self).as_internal(node))
+	}
+
+	pub fn as_leaf(&self, node: Bound<PyAny>) -> Result<Option<Leaf>> {
+		let node = to_node(node)?;
+		Ok(inner!(self).as_leaf(node))
+	}
+
+	/// Returns the index of the root node.
+	pub fn root(&self) -> Internal {
+		inner!(self).root()
+	}
+
+	pub fn weight_of(&self, node: Bound<PyAny>) -> Result<f64> {
+		let node = to_node(node)?;
+		Ok(inner!(self).weight_of(node))
+	}
+
+	pub fn children_of(&self, node: Internal) -> (Node, Node) {
+		inner!(self).children_of(node)
+	}
+
+	pub fn edge_index(&self, child: Bound<PyAny>) -> Result<usize> {
+		let child = to_node(child)?;
+		Ok(inner!(self).edge_index(child))
+	}
+
+	pub fn edge_distance(&self, edge: usize) -> f64 {
+		inner!(self).edge_distance(edge)
+	}
+
+	pub fn parent_of(
+		&self,
+		node: Bound<PyAny>,
+	) -> Result<Option<Internal>> {
+		let node = to_node(node)?;
+
+		Ok(inner!(self).parent_of(node))
+	}
+}
+
 pub fn submodule(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
 	let m = PyModule::new(py, "tree")?;
 
 	m.add_class::<Node>()?;
 	m.add_class::<Leaf>()?;
 	m.add_class::<Internal>()?;
+	m.add_class::<PyTree>()?;
 
 	Ok(m)
 }
