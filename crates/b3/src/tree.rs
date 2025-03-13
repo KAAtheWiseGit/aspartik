@@ -1,10 +1,7 @@
 use anyhow::Result;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use rand::{
-	distr::{Distribution, Uniform},
-	Rng,
-};
+use rand::distr::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -12,6 +9,7 @@ use std::{
 	sync::{Arc, Mutex},
 };
 
+use crate::Rng;
 use io::newick::{
 	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
 };
@@ -379,23 +377,20 @@ impl Tree {
 			.map(Internal)
 	}
 
-	pub fn sample_node<R: Rng + ?Sized>(&self, rng: &mut R) -> Node {
+	pub fn random_node(&self, rng: &mut Rng) -> Node {
 		let range = Uniform::new(0, self.num_nodes()).unwrap();
 		let i = range.sample(rng);
 		Node(i)
 	}
 
-	pub fn sample_internal<R: Rng + ?Sized>(
-		&self,
-		rng: &mut R,
-	) -> Internal {
+	pub fn random_internal(&self, rng: &mut Rng) -> Internal {
 		let range = Uniform::new(self.num_leaves(), self.num_nodes())
 			.unwrap();
 		let i = range.sample(rng);
 		Internal(i)
 	}
 
-	pub fn sample_leaf<R: Rng + ?Sized>(&self, rng: &mut R) -> Leaf {
+	pub fn random_leaf(&self, rng: &mut Rng) -> Leaf {
 		let range = Uniform::new(0, self.num_leaves()).unwrap();
 		let i = range.sample(rng);
 		Leaf(i)
@@ -413,7 +408,7 @@ impl Tree {
 		(0..self.num_leaves()).map(Leaf)
 	}
 
-	pub(crate) fn into_newick(&self) -> String {
+	pub(crate) fn to_newick(&self) -> String {
 		let mut tree = NewickTree::new();
 
 		use std::collections::HashMap;
@@ -450,7 +445,7 @@ impl Serialize for Tree {
 	where
 		S: serde::Serializer,
 	{
-		serializer.serialize_str(&self.into_newick())
+		serializer.serialize_str(&self.to_newick())
 	}
 }
 
@@ -630,6 +625,21 @@ impl PyTree {
 		let node = to_node(node)?;
 
 		Ok(inner!(self).parent_of(node))
+	}
+
+	/// Samples a random node from the tree.
+	fn random_node(&self, rng: &mut Rng) -> Node {
+		inner!(self).random_node(rng)
+	}
+
+	/// Samples a random internal node from a tree.
+	fn random_internal(&self, rng: &mut Rng) -> Internal {
+		inner!(self).random_internal(rng)
+	}
+
+	/// Samples a random leaf node from a tree.
+	fn random_leaf(&self, rng: &mut Rng) -> Leaf {
+		inner!(self).random_leaf(rng)
 	}
 }
 

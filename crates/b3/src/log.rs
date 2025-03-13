@@ -127,7 +127,7 @@ impl Logger for TreeLogger {
 		}
 
 		use std::io::Write;
-		let tree = state.tree.into_newick();
+		let tree = state.tree.to_newick();
 		self.file.write_all(tree.as_bytes())?;
 		self.file.write_all(b"\n")?;
 		self.file.flush()?;

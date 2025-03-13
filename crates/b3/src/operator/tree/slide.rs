@@ -17,7 +17,7 @@ impl Operator for Slide {
 	fn propose(&self, state: &mut State) -> Result<Proposal> {
 		let tree = &mut state.tree;
 
-		let node = tree.sample_internal(&mut state.rng);
+		let node = tree.random_internal(&mut state.rng);
 		let Some(parent) = tree.parent_of(node.into()) else {
 			// If the node is root, abort the proposal
 			return Ok(Proposal::Reject);

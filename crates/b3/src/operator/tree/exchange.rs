@@ -26,7 +26,7 @@ impl Operator for NarrowExchange {
 
 		// An internal node which has at least one internal node child.
 		let grandparent = loop {
-			let internal = tree.sample_internal(rng);
+			let internal = tree.random_internal(rng);
 			if is_grandparent(tree, internal) {
 				break internal;
 			}
@@ -102,9 +102,9 @@ impl Operator for WideExchange {
 		let rng = &mut state.rng;
 		let tree = &mut state.tree;
 
-		let i = tree.sample_node(rng);
+		let i = tree.random_node(rng);
 		let j = loop {
-			let out = tree.sample_node(rng);
+			let out = tree.random_node(rng);
 			if out != i {
 				break out;
 			}
