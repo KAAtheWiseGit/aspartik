@@ -1,10 +1,14 @@
 #![allow(dead_code)]
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use pyo3::prelude::*;
 use pyo3::{
-	conversion::FromPyObjectBound, exceptions::PyIndexError, types::PyTuple,
+	conversion::FromPyObjectBound,
+	exceptions::{PyIndexError, PyTypeError},
+	types::PyTuple,
 };
+
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 enum Param {
@@ -23,27 +27,40 @@ impl Param {
 	}
 }
 
-impl ToString for Param {
-	fn to_string(&self) -> String {
-		let mut out = String::new();
-
-		macro_rules! seq {
-			($p: expr) => {
-				for (i, value) in $p.iter().enumerate() {
-					out += &value.to_string();
-					if i < $p.len() - 1 {
-						out += ", ";
+impl Display for Param {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			Param::Real(p) => {
+				for (i, value) in p.iter().enumerate() {
+					value.fmt(f)?;
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
 					}
 				}
-			};
-		}
-		match self {
-			Param::Real(p) => seq!(p),
-			Param::Integer(p) => seq!(p),
-			Param::Boolean(p) => seq!(p),
+			}
+			Param::Integer(p) => {
+				for (i, value) in p.iter().enumerate() {
+					value.fmt(f)?;
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
+					}
+				}
+			}
+			Param::Boolean(p) => {
+				for (i, value) in p.iter().enumerate() {
+					if *value {
+						f.write_str("True")?;
+					} else {
+						f.write_str("False")?;
+					}
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
+					}
+				}
+			}
 		}
 
-		out
+		Ok(())
 	}
 }
 
@@ -54,14 +71,30 @@ pub struct PyParameter {
 }
 
 impl PyParameter {
-	fn check_index(&self, i: usize) -> PyResult<()> {
+	fn check_index(&self, i: usize) -> Result<()> {
 		if i >= self.inner.len() {
+			let dimension = if self.inner.len() % 10 == 1 {
+				"dimension"
+			} else {
+				"dimensions"
+			};
 			Err(PyIndexError::new_err(
-				format!("Parameter has {} dimensions, index {i} is out of bounds", self.inner.len()))
-			)
+				format!("Parameter has {} {}, index {} is out of bounds", self.inner.len(), dimension, i)
+			).into())
 		} else {
 			Ok(())
 		}
+	}
+}
+
+fn check_empty(values: &Bound<PyTuple>) -> Result<()> {
+	if values.is_empty() {
+		Err(PyTypeError::new_err(
+			"A parameter must have at least one value",
+		)
+		.into())
+	} else {
+		Ok(())
 	}
 }
 
@@ -71,9 +104,7 @@ impl PyParameter {
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Real(values: &Bound<PyTuple>) -> Result<Self> {
-		if values.is_empty() {
-			bail!("A parameter must have at least one value")
-		}
+		check_empty(values)?;
 
 		let values: Vec<f64> = extract(values)?;
 		Ok(Self {
@@ -84,9 +115,7 @@ impl PyParameter {
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Integer(values: &Bound<PyTuple>) -> Result<Self> {
-		if values.is_empty() {
-			bail!("A parameter must have at least one value")
-		}
+		check_empty(values)?;
 
 		let values: Vec<i64> = extract(values)?;
 		Ok(Self {
@@ -97,9 +126,7 @@ impl PyParameter {
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Boolean(values: &Bound<PyTuple>) -> Result<Self> {
-		if values.is_empty() {
-			bail!("A parameter must have at least one value")
-		}
+		check_empty(values)?;
 
 		let values: Vec<bool> = extract(values)?;
 		Ok(Self {
@@ -111,7 +138,7 @@ impl PyParameter {
 		self.inner.len()
 	}
 
-	pub fn __getitem__(&self, py: Python, i: usize) -> PyResult<PyObject> {
+	pub fn __getitem__(&self, py: Python, i: usize) -> Result<PyObject> {
 		self.check_index(i)?;
 
 		Ok(match &self.inner {
@@ -149,26 +176,24 @@ impl PyParameter {
 	}
 
 	pub fn __repr__(&self) -> String {
-		let mut out = String::from("PyParameter.");
-		match &self.inner {
-			Param::Real(..) => out += "Real(",
-			Param::Integer(..) => out += "Integer(",
-			Param::Boolean(..) => out += "Boolean(",
-		}
-		out += &self.inner.to_string();
-		out += ")";
-		out
+		let subtype = match &self.inner {
+			Param::Real(..) => "Real",
+			Param::Integer(..) => "Integer",
+			Param::Boolean(..) => "Boolean",
+		};
+
+		format!("PyParameter.{}({})", subtype, self.inner)
 	}
 
 	pub fn __str__(&self) -> String {
-		format!("[{}]", self.inner.to_string())
+		format!("[{}]", self.inner)
 	}
 }
 
 fn extract<T: for<'a> FromPyObjectBound<'a, 'a>>(
-	tuble: &Bound<PyTuple>,
+	tuple: &Bound<PyTuple>,
 ) -> Result<Vec<T>> {
-	Ok(tuble.into_iter()
+	Ok(tuple.into_iter()
 		.map(|v| v.extract::<T>())
 		.collect::<PyResult<Vec<T>>>()?)
 }
