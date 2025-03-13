@@ -65,7 +65,18 @@ impl Display for Param {
 }
 
 #[derive(Debug)]
-#[pyclass(sequence)]
+#[pyclass(name = "Parameter", sequence)]
+/// Represents dimensional parameters which can hold arbitrary numbers.
+///
+/// This class has no constructor.  Instead, it's static methods `Real`,
+/// `Integer`, and `Boolean` can be used to create parameters made up of
+/// doubles, 64-bit signed integers, or booleans respectively.  A parameter can
+/// only hold one type: it cannot mix integers and floats, for example.  It also
+/// cannot change the number of dimensions after creation.
+///
+/// The parameter values can be accessed using indexing.  Dimensions are
+/// zero-indexed, so `param[0]` is the first value, `param[1]` is the second,
+/// and so on.
 pub struct PyParameter {
 	inner: Param,
 }
@@ -101,6 +112,13 @@ fn check_empty(values: &Bound<PyTuple>) -> Result<()> {
 #[pymethods]
 #[allow(non_snake_case)]
 impl PyParameter {
+	/// Create a new real parameter.
+	///
+	/// The values will be coerced to a double-precision floating number.
+	///
+	/// Note that Python will coerce `True` and `False` to 0 and 1, so
+	/// `Parameter.Real(True, False)` will succeed a and return a parameter
+	/// with values `[0.0, 1.0]`.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Real(values: &Bound<PyTuple>) -> Result<Self> {
@@ -112,6 +130,11 @@ impl PyParameter {
 		})
 	}
 
+	/// Create a new integer parameter.
+	///
+	/// Note that Python will coerce `True` and `False` to 0 and 1, so
+	/// `Parameter.Integer(True, False)` will succeed a and return a
+	/// parameter with values `[0, 1]`.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Integer(values: &Bound<PyTuple>) -> Result<Self> {
@@ -123,6 +146,7 @@ impl PyParameter {
 		})
 	}
 
+	/// Create a new boolean parameter.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
 	pub fn Boolean(values: &Bound<PyTuple>) -> Result<Self> {
@@ -182,7 +206,7 @@ impl PyParameter {
 			Param::Boolean(..) => "Boolean",
 		};
 
-		format!("PyParameter.{}({})", subtype, self.inner)
+		format!("Parameter.{}({})", subtype, self.inner)
 	}
 
 	pub fn __str__(&self) -> String {
