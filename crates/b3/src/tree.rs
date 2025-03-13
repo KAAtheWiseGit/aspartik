@@ -28,7 +28,7 @@ pub struct Tree {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(subclass, eq)]
+#[pyclass(frozen, eq)]
 pub struct Node(usize);
 
 impl From<Internal> for Node {
@@ -44,11 +44,11 @@ impl From<Leaf> for Node {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(extends=Node, eq)]
+#[pyclass(frozen, eq)]
 pub struct Internal(usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(extends=Node, eq)]
+#[pyclass(frozen, eq)]
 pub struct Leaf(usize);
 
 impl Tree {
