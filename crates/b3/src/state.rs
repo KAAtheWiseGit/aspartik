@@ -1,11 +1,10 @@
 use anyhow::{anyhow, bail, Result};
-use rand::SeedableRng;
-use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
 use crate::{
+	Rng,
 	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
 	tree::Tree,
 };
@@ -25,7 +24,7 @@ pub struct State {
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
 
-	pub(crate) rng: Pcg64,
+	pub(crate) rng: Rng,
 }
 
 macro_rules! cast {
@@ -59,7 +58,7 @@ impl State {
 			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
-			rng: Pcg64::seed_from_u64(4),
+			rng: Rng::new(4),
 		}
 	}
 
