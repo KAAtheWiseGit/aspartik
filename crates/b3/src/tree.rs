@@ -465,7 +465,7 @@ impl<'de> Deserialize<'de> for Tree {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass(name = "Tree")]
+#[pyclass(name = "Tree", frozen)]
 /// A phylogenetic bifurcating tree.
 ///
 /// The leaf nodes are derived from the data samples.  Anonymous internal nodes
@@ -514,7 +514,7 @@ impl PyTree {
 	/// This function doesn't do any validation, it's up to the operator to
 	/// preserve the validity of the tree.
 	fn update_edge(
-		&mut self,
+		&self,
 		edge: usize,
 		new_child: Bound<PyAny>,
 	) -> Result<()> {
@@ -524,11 +524,7 @@ impl PyTree {
 	}
 
 	/// Sets the weight of `node` to `weight`.
-	fn update_weight(
-		&mut self,
-		node: Bound<PyAny>,
-		weight: f64,
-	) -> Result<()> {
+	fn update_weight(&self, node: Bound<PyAny>, weight: f64) -> Result<()> {
 		let node = to_node(node)?;
 		inner!(self).update_weight(node, weight);
 		Ok(())
@@ -537,7 +533,7 @@ impl PyTree {
 	/// Makes `node` the root of the tree.
 	///
 	/// The old root must be regrafted with a separate `update_edge` call.
-	fn update_root(&mut self, node: Bound<PyAny>) -> Result<()> {
+	fn update_root(&self, node: Bound<PyAny>) -> Result<()> {
 		let node = to_node(node)?;
 		inner!(self).update_root(node);
 		Ok(())
@@ -548,11 +544,7 @@ impl PyTree {
 	/// `a` and `b` must not be a child/parent and neither of them can be a
 	/// root node.  If `a` and `b` share the same parent, they switch
 	/// polarity (left child becomes the right child and visa versa).
-	fn swap_parents(
-		&mut self,
-		a: Bound<PyAny>,
-		b: Bound<PyAny>,
-	) -> Result<()> {
+	fn swap_parents(&self, a: Bound<PyAny>, b: Bound<PyAny>) -> Result<()> {
 		let (a, b) = (to_node(a)?, to_node(b)?);
 		inner!(self).swap_parents(a, b);
 		Ok(())
