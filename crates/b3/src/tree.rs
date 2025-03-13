@@ -1,4 +1,5 @@
 use anyhow::Result;
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use rand::{
 	distr::{Distribution, Uniform},
@@ -56,7 +57,7 @@ pub struct Internal(usize);
 pub struct Leaf(usize);
 
 impl Tree {
-	pub fn new(
+	pub(crate) fn new(
 		names: Vec<String>,
 		weights: &[f64],
 		children: &[usize],
@@ -77,14 +78,14 @@ impl Tree {
 		out
 	}
 
-	pub fn accept(&mut self) {
+	pub(crate) fn accept(&mut self) {
 		self.children.accept();
 		self.parents.accept();
 		self.weights.accept();
 		self.clear_updated();
 	}
 
-	pub fn reject(&mut self) {
+	pub(crate) fn reject(&mut self) {
 		self.children.reject();
 		self.parents.reject();
 		self.weights.reject();
@@ -96,21 +97,21 @@ impl Tree {
 		self.updated_nodes.clear();
 	}
 
-	pub fn edges_to_update(&self) -> Vec<usize> {
+	pub(crate) fn edges_to_update(&self) -> Vec<usize> {
 		self.updated_edges.clone()
 	}
 
-	pub fn nodes_to_update(&self) -> Vec<Internal> {
+	pub(crate) fn nodes_to_update(&self) -> Vec<Internal> {
 		self.walk_nodes(&self.updated_nodes)
 	}
 
-	pub fn full_update(&self) -> Vec<Internal> {
+	pub(crate) fn full_update(&self) -> Vec<Internal> {
 		let internals: Vec<Node> =
 			self.internals().map(|n| n.into()).collect();
 		self.walk_nodes(&internals)
 	}
 
-	pub fn to_lists(
+	pub(crate) fn to_lists(
 		&self,
 		nodes: &[Internal],
 	) -> (Vec<usize>, Vec<usize>, Vec<usize>) {
@@ -173,10 +174,11 @@ impl Tree {
 		deq.into()
 	}
 
-	/// Set the child of `edge` to `node`.
-	///
-	/// Doesn't do any validation.
-	pub fn update_edge(&mut self, edge: usize, new_child: Node) {
+	/// Overwrites the child of `edge` with `new_child`.  Only `edge` and
+	/// `new_child` changes are recorded, it is presumed that the operator
+	/// will call another method for the old child and `new_child`'s parent
+	/// edge.
+	fn update_edge(&mut self, edge: usize, new_child: Node) {
 		let (_, parent) = self.edge_nodes(edge);
 
 		self.children.set(edge, new_child.0);
@@ -190,9 +192,8 @@ impl Tree {
 		self.updated_nodes.push(new_child);
 	}
 
-	/// Set the weight of `node` to `weight`.
-	///
-	/// Takes care of book-keeping the parent and child edge updates.
+	/// Sets the weight of `node`, recording it and it's parent and child
+	/// edges (if it has those).
 	pub fn update_weight(&mut self, node: Node, weight: f64) {
 		self.weights.set(node.0, weight);
 		self.updated_nodes.push(node);
@@ -207,9 +208,7 @@ impl Tree {
 		}
 	}
 
-	/// Make `node` the root of the tree.
-	///
-	/// The old root must be updated in a separate `update_edge` call.
+	/// Doesn't overwrite the old root.
 	pub fn update_root(&mut self, node: Node) {
 		self.parents.set(node.0, ROOT);
 	}
@@ -220,11 +219,6 @@ impl Tree {
 		self.update_edge(edge, replacement);
 	}
 
-	/// Swaps the parents of nodes `a` and `b`.
-	///
-	/// The parent of `a` becomes the parent of `b` and visa versa.  If `a`
-	/// and `b` share the same parent, they switch polarity (left <->
-	/// right).
 	// TODO: invariants (a can't be a parent of b)
 	pub fn swap_parents(&mut self, a: Node, b: Node) {
 		assert!(self.parent_of(a).is_some(), "a must not be root");
@@ -329,7 +323,10 @@ impl Tree {
 		}
 	}
 
-	/// Returns the index of the root node.
+	/// # Panics
+	///
+	/// Panics if the tree is malformed and has no root.  This can happen
+	/// between the calls to `root` and `update_edge`, for example.
 	pub fn root(&self) -> Internal {
 		// There must always be a rooted element in the tree.
 		let i = self.parents.iter().position(|p| *p == ROOT).unwrap();
@@ -349,6 +346,10 @@ impl Tree {
 	}
 
 	/// Index of the edge between `child` and its parent.
+	///
+	/// # Panics
+	///
+	/// Panics if `child` is root.
 	pub fn edge_index(&self, child: Node) -> usize {
 		let parent = self.parent_of(child).unwrap();
 
@@ -372,8 +373,6 @@ impl Tree {
 		(Node(child), Internal(parent))
 	}
 
-	/// Returns the parent of `node`, or `None` if the node is the root of
-	/// the tree.
 	pub fn parent_of(&self, node: Node) -> Option<Internal> {
 		Some(self.parents[node.0])
 			.take_if(|p| *p != ROOT)
@@ -414,7 +413,7 @@ impl Tree {
 		(0..self.num_leaves()).map(Leaf)
 	}
 
-	pub fn into_newick(&self) -> String {
+	pub(crate) fn into_newick(&self) -> String {
 		let mut tree = NewickTree::new();
 
 		use std::collections::HashMap;
@@ -467,6 +466,10 @@ impl<'de> Deserialize<'de> for Tree {
 
 #[derive(Debug, Clone)]
 #[pyclass(name = "Tree")]
+/// A phylogenetic bifurcating tree.
+///
+/// The leaf nodes are derived from the data samples.  Anonymous internal nodes
+/// are created automatically.
 pub struct PyTree {
 	inner: Arc<Mutex<Tree>>,
 }
@@ -479,7 +482,6 @@ fn to_node(obj: Bound<PyAny>) -> Result<Node> {
 	} else if let Ok(node) = obj.extract::<Node>() {
 		Ok(node)
 	} else {
-		use pyo3::exceptions::PyTypeError;
 		Err(PyTypeError::new_err("Wrong type").into())
 	}
 }
@@ -490,11 +492,10 @@ macro_rules! inner {
 	};
 }
 
-// TODO: user-facing documentation goes here
 #[pymethods]
 impl PyTree {
 	#[new]
-	pub fn new(
+	fn new(
 		names: Vec<String>,
 		weights: Vec<f64>,
 		children: Vec<usize>,
@@ -505,7 +506,14 @@ impl PyTree {
 		}
 	}
 
-	pub fn update_edge(
+	/// Points `edge` to `node`.
+	///
+	/// This will only change the child, so the parent (internal node from
+	/// which `edge` comes out) will now have `node` as a child.
+	///
+	/// This function doesn't do any validation, it's up to the operator to
+	/// preserve the validity of the tree.
+	fn update_edge(
 		&mut self,
 		edge: usize,
 		new_child: Bound<PyAny>,
@@ -515,7 +523,8 @@ impl PyTree {
 		Ok(())
 	}
 
-	pub fn update_weight(
+	/// Sets the weight of `node` to `weight`.
+	fn update_weight(
 		&mut self,
 		node: Bound<PyAny>,
 		weight: f64,
@@ -525,13 +534,21 @@ impl PyTree {
 		Ok(())
 	}
 
-	pub fn update_root(&mut self, node: Bound<PyAny>) -> Result<()> {
+	/// Makes `node` the root of the tree.
+	///
+	/// The old root must be regrafted with a separate `update_edge` call.
+	fn update_root(&mut self, node: Bound<PyAny>) -> Result<()> {
 		let node = to_node(node)?;
 		inner!(self).update_root(node);
 		Ok(())
 	}
 
-	pub fn swap_parents(
+	/// Swaps the parents of `a` and `b`.
+	///
+	/// `a` and `b` must not be a child/parent and neither of them can be a
+	/// root node.  If `a` and `b` share the same parent, they switch
+	/// polarity (left child becomes the right child and visa versa).
+	fn swap_parents(
 		&mut self,
 		a: Bound<PyAny>,
 		b: Bound<PyAny>,
@@ -541,71 +558,83 @@ impl PyTree {
 		Ok(())
 	}
 
+	/// The total number of nodes in the tree.
 	#[getter]
-	pub fn num_nodes(&self) -> usize {
+	fn num_nodes(&self) -> usize {
 		inner!(self).num_nodes()
 	}
 
+	/// The number of internal nodes (those with children).
 	#[getter]
-	pub fn num_internals(&self) -> usize {
+	fn num_internals(&self) -> usize {
 		inner!(self).num_internals()
 	}
 
+	/// The number of leaves (leaf nodes, those with data).
 	#[getter]
-	pub fn num_leaves(&self) -> usize {
+	fn num_leaves(&self) -> usize {
 		inner!(self).num_leaves()
 	}
 
-	pub fn is_internal(&self, node: Bound<PyAny>) -> Result<bool> {
+	/// Returns `True` if `node` is internal.
+	fn is_internal(&self, node: Bound<PyAny>) -> Result<bool> {
 		let node = to_node(node)?;
 		Ok(inner!(self).is_internal(node))
 	}
 
-	pub fn is_leaf(&self, node: Bound<PyAny>) -> Result<bool> {
+	/// Returns `True` if `node` is a leaf.
+	fn is_leaf(&self, node: Bound<PyAny>) -> Result<bool> {
 		let node = to_node(node)?;
 		Ok(inner!(self).is_leaf(node))
 	}
 
-	pub fn as_internal(
-		&self,
-		node: Bound<PyAny>,
-	) -> Result<Option<Internal>> {
-		let node = to_node(node)?;
-		Ok(inner!(self).as_internal(node))
+	/// Converts `node` to the type `Internal` if it is internal, or returns
+	/// `None` otherwise.
+	fn as_internal(&self, node: Node) -> Option<Internal> {
+		inner!(self).as_internal(node)
 	}
 
-	pub fn as_leaf(&self, node: Bound<PyAny>) -> Result<Option<Leaf>> {
-		let node = to_node(node)?;
-		Ok(inner!(self).as_leaf(node))
+	/// Converts `node` to the type `Leaf` if it is a leaf, or returns
+	/// `None` otherwise.
+	fn as_leaf(&self, node: Node) -> Option<Leaf> {
+		inner!(self).as_leaf(node)
 	}
 
-	/// Returns the index of the root node.
-	pub fn root(&self) -> Internal {
+	/// Returns the root node.
+	fn root(&self) -> Internal {
 		inner!(self).root()
 	}
 
-	pub fn weight_of(&self, node: Bound<PyAny>) -> Result<f64> {
+	/// Returns the weight of a node.
+	fn weight_of(&self, node: Bound<PyAny>) -> Result<f64> {
 		let node = to_node(node)?;
 		Ok(inner!(self).weight_of(node))
 	}
 
-	pub fn children_of(&self, node: Internal) -> (Node, Node) {
+	/// Returns the `(left, right)` children of a node.
+	///
+	/// This function takes the `Internal` type as its input, so it is
+	/// guaranteed to always return the children.  See `as_internal` for
+	/// converting general nodes to internal ones.
+	fn children_of(&self, node: Internal) -> (Node, Node) {
 		inner!(self).children_of(node)
 	}
 
-	pub fn edge_index(&self, child: Bound<PyAny>) -> Result<usize> {
+	/// Returns the index of an edge from `child` to its parent.
+	fn edge_index(&self, child: Bound<PyAny>) -> Result<usize> {
 		let child = to_node(child)?;
 		Ok(inner!(self).edge_index(child))
 	}
 
-	pub fn edge_distance(&self, edge: usize) -> f64 {
+	/// Returns the length of `edge` (distance between the child and the
+	/// parent on that edge).
+	fn edge_distance(&self, edge: usize) -> f64 {
 		inner!(self).edge_distance(edge)
 	}
 
-	pub fn parent_of(
-		&self,
-		node: Bound<PyAny>,
-	) -> Result<Option<Internal>> {
+	/// Returns the parent of `node`, or `None` if the node is the root of
+	/// the tree.
+	fn parent_of(&self, node: Bound<PyAny>) -> Result<Option<Internal>> {
 		let node = to_node(node)?;
 
 		Ok(inner!(self).parent_of(node))
