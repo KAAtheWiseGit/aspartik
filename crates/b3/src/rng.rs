@@ -3,17 +3,22 @@ use pyo3::prelude::*;
 use pyo3::{ffi::c_str, types::PyDict};
 use rand::{Rng as _, SeedableRng};
 use rand_pcg::Pcg64;
-use serde::{Deserialize, Serialize};
 
 use std::{
 	ffi::CStr,
-	ops::{Deref, DerefMut},
+	sync::{Arc, Mutex, MutexGuard},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-#[pyclass]
+#[derive(Debug, Clone)]
+#[pyclass(frozen)]
 pub struct Rng {
-	inner: Pcg64,
+	inner: Arc<Mutex<Pcg64>>,
+}
+
+impl Rng {
+	fn inner(&self) -> MutexGuard<Pcg64> {
+		self.inner.lock().unwrap()
+	}
 }
 
 const NEW_GENERATOR: &CStr = c_str!(r#"
@@ -26,8 +31,9 @@ rng = numpy.random.default_rng(seed)
 impl Rng {
 	#[new]
 	pub fn new(seed: u64) -> Self {
+		let inner = Pcg64::seed_from_u64(seed);
 		Rng {
-			inner: Pcg64::seed_from_u64(seed),
+			inner: Arc::new(Mutex::new(inner)),
 		}
 	}
 
@@ -36,8 +42,8 @@ impl Rng {
 	/// This method should always be used to create random samplers for
 	/// operators, since `Rng` is seeded and its internal state is tracked
 	/// in the simulation state.
-	fn generator(&mut self, py: Python) -> Result<PyObject> {
-		let seed: u64 = self.random();
+	fn generator(&self, py: Python) -> Result<PyObject> {
+		let seed: u64 = self.inner().random();
 
 		let locals = PyDict::new(py);
 		locals.set_item("seed", seed)?;
@@ -45,19 +51,5 @@ impl Rng {
 		let rng = locals.get_item("rng")?.unwrap();
 
 		Ok(rng.into())
-	}
-}
-
-impl Deref for Rng {
-	type Target = Pcg64;
-
-	fn deref(&self) -> &Self::Target {
-		&self.inner
-	}
-}
-
-impl DerefMut for Rng {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.inner
 	}
 }
