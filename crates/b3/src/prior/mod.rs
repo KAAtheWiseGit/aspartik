@@ -3,9 +3,8 @@ use pyo3::prelude::*;
 
 use crate::{log::record_prior, State};
 
-mod distribution;
-
-pub use distribution::DistributionPrior;
+// mod distribution;
+// pub use distribution::DistributionPrior;
 
 pub type LogProb = f64;
 
