@@ -9,14 +9,16 @@ use std::{
 	sync::{Arc, Mutex, MutexGuard},
 };
 
+pub type Rng = Pcg64;
+
 #[derive(Debug, Clone)]
 #[pyclass(frozen)]
-pub struct Rng {
-	inner: Arc<Mutex<Pcg64>>,
+pub struct PyRng {
+	inner: Arc<Mutex<Rng>>,
 }
 
-impl Rng {
-	fn inner(&self) -> MutexGuard<Pcg64> {
+impl PyRng {
+	pub fn inner(&self) -> MutexGuard<Pcg64> {
 		self.inner.lock().unwrap()
 	}
 }
@@ -28,11 +30,11 @@ rng = numpy.random.default_rng(seed)
 "#);
 
 #[pymethods]
-impl Rng {
+impl PyRng {
 	#[new]
 	pub fn new(seed: u64) -> Self {
 		let inner = Pcg64::seed_from_u64(seed);
-		Rng {
+		PyRng {
 			inner: Arc::new(Mutex::new(inner)),
 		}
 	}

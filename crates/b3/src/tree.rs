@@ -9,7 +9,7 @@ use std::{
 	sync::{Arc, Mutex, MutexGuard},
 };
 
-use crate::Rng;
+use crate::rng::{PyRng, Rng};
 use io::newick::{
 	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
 };
@@ -649,18 +649,18 @@ impl PyTree {
 	}
 
 	/// Samples a random node from the tree.
-	fn random_node(&self, rng: &mut Rng) -> Node {
-		self.inner().random_node(rng)
+	fn random_node(&self, rng: &PyRng) -> Node {
+		self.inner().random_node(&mut rng.inner())
 	}
 
 	/// Samples a random internal node from a tree.
-	fn random_internal(&self, rng: &mut Rng) -> Internal {
-		self.inner().random_internal(rng)
+	fn random_internal(&self, rng: &PyRng) -> Internal {
+		self.inner().random_internal(&mut rng.inner())
 	}
 
 	/// Samples a random leaf node from a tree.
-	fn random_leaf(&self, rng: &mut Rng) -> Leaf {
-		self.inner().random_leaf(rng)
+	fn random_leaf(&self, rng: &PyRng) -> Leaf {
+		self.inner().random_leaf(&mut rng.inner())
 	}
 }
 
