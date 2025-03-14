@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Result};
 use pyo3::prelude::*;
 use pyo3::{
+	class::basic::CompareOp,
 	conversion::FromPyObjectBound,
 	exceptions::{PyIndexError, PyTypeError},
 	types::PyTuple,
@@ -13,7 +14,7 @@ use std::{
 	sync::{Arc, Mutex, MutexGuard},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Parameter {
 	Real(Vec<f64>),
 	Integer(Vec<i64>),
@@ -43,6 +44,17 @@ impl Parameter {
 			Ok(())
 		}
 	}
+}
+
+fn compare<T: PartialOrd>(values: &[T], other: T, op: CompareOp) -> bool {
+	values.iter().all(|v| match op {
+		CompareOp::Lt => *v < other,
+		CompareOp::Le => *v <= other,
+		CompareOp::Eq => *v == other,
+		CompareOp::Ne => *v != other,
+		CompareOp::Gt => *v > other,
+		CompareOp::Ge => *v >= other,
+	})
 }
 
 impl Display for Parameter {
@@ -231,6 +243,29 @@ impl PyParameter {
 
 	fn __str__(&self) -> Result<String> {
 		Ok(format!("[{}]", self.inner()?))
+	}
+
+	fn __richcmp__(
+		&self,
+		other: Bound<PyAny>,
+		op: CompareOp,
+	) -> Result<bool> {
+		let inner = &*self.inner()?;
+
+		match inner {
+			Parameter::Real(p) => {
+				let other = other.extract::<f64>()?;
+				Ok(compare(p, other, op))
+			}
+			Parameter::Integer(p) => {
+				let other = other.extract::<i64>()?;
+				Ok(compare(p, other, op))
+			}
+			Parameter::Boolean(p) => {
+				let other = other.extract::<bool>()?;
+				Ok(compare(p, other, op))
+			}
+		}
 	}
 }
 
