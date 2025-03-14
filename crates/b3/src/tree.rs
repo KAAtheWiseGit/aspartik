@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use std::{
 	collections::{HashSet, VecDeque},
-	sync::{Arc, Mutex},
+	sync::{Arc, Mutex, MutexGuard},
 };
 
 use crate::Rng;
@@ -502,10 +502,10 @@ fn to_node(obj: Bound<PyAny>) -> Result<Node> {
 	}
 }
 
-macro_rules! inner {
-	($self: expr) => {
-		$self.inner.lock().unwrap()
-	};
+impl PyTree {
+	pub fn inner(&self) -> MutexGuard<Tree> {
+		self.inner.lock().unwrap()
+	}
 }
 
 #[pymethods]
@@ -535,14 +535,14 @@ impl PyTree {
 		new_child: Bound<PyAny>,
 	) -> Result<()> {
 		let new_child = to_node(new_child)?;
-		inner!(self).update_edge(edge, new_child);
+		self.inner().update_edge(edge, new_child);
 		Ok(())
 	}
 
 	/// Sets the weight of `node` to `weight`.
 	fn update_weight(&self, node: Bound<PyAny>, weight: f64) -> Result<()> {
 		let node = to_node(node)?;
-		inner!(self).update_weight(node, weight);
+		self.inner().update_weight(node, weight);
 		Ok(())
 	}
 
@@ -551,7 +551,7 @@ impl PyTree {
 	/// The old root must be regrafted with a separate `update_edge` call.
 	fn update_root(&self, node: Bound<PyAny>) -> Result<()> {
 		let node = to_node(node)?;
-		inner!(self).update_root(node);
+		self.inner().update_root(node);
 		Ok(())
 	}
 
@@ -562,61 +562,61 @@ impl PyTree {
 	/// polarity (left child becomes the right child and visa versa).
 	fn swap_parents(&self, a: Bound<PyAny>, b: Bound<PyAny>) -> Result<()> {
 		let (a, b) = (to_node(a)?, to_node(b)?);
-		inner!(self).swap_parents(a, b);
+		self.inner().swap_parents(a, b);
 		Ok(())
 	}
 
 	/// The total number of nodes in the tree.
 	#[getter]
 	fn num_nodes(&self) -> usize {
-		inner!(self).num_nodes()
+		self.inner().num_nodes()
 	}
 
 	/// The number of internal nodes (those with children).
 	#[getter]
 	fn num_internals(&self) -> usize {
-		inner!(self).num_internals()
+		self.inner().num_internals()
 	}
 
 	/// The number of leaves (leaf nodes, those with data).
 	#[getter]
 	fn num_leaves(&self) -> usize {
-		inner!(self).num_leaves()
+		self.inner().num_leaves()
 	}
 
 	/// Returns `True` if `node` is internal.
 	fn is_internal(&self, node: Bound<PyAny>) -> Result<bool> {
 		let node = to_node(node)?;
-		Ok(inner!(self).is_internal(node))
+		Ok(self.inner().is_internal(node))
 	}
 
 	/// Returns `True` if `node` is a leaf.
 	fn is_leaf(&self, node: Bound<PyAny>) -> Result<bool> {
 		let node = to_node(node)?;
-		Ok(inner!(self).is_leaf(node))
+		Ok(self.inner().is_leaf(node))
 	}
 
 	/// Converts `node` to the type `Internal` if it is internal, or returns
 	/// `None` otherwise.
 	fn as_internal(&self, node: Node) -> Option<Internal> {
-		inner!(self).as_internal(node)
+		self.inner().as_internal(node)
 	}
 
 	/// Converts `node` to the type `Leaf` if it is a leaf, or returns
 	/// `None` otherwise.
 	fn as_leaf(&self, node: Node) -> Option<Leaf> {
-		inner!(self).as_leaf(node)
+		self.inner().as_leaf(node)
 	}
 
 	/// Returns the root node.
 	fn root(&self) -> Internal {
-		inner!(self).root()
+		self.inner().root()
 	}
 
 	/// Returns the weight of a node.
 	fn weight_of(&self, node: Bound<PyAny>) -> Result<f64> {
 		let node = to_node(node)?;
-		Ok(inner!(self).weight_of(node))
+		Ok(self.inner().weight_of(node))
 	}
 
 	/// Returns the `(left, right)` children of a node.
@@ -625,19 +625,19 @@ impl PyTree {
 	/// guaranteed to always return the children.  See `as_internal` for
 	/// converting general nodes to internal ones.
 	fn children_of(&self, node: Internal) -> (Node, Node) {
-		inner!(self).children_of(node)
+		self.inner().children_of(node)
 	}
 
 	/// Returns the index of an edge from `child` to its parent.
 	fn edge_index(&self, child: Bound<PyAny>) -> Result<usize> {
 		let child = to_node(child)?;
-		Ok(inner!(self).edge_index(child))
+		Ok(self.inner().edge_index(child))
 	}
 
 	/// Returns the length of `edge` (distance between the child and the
 	/// parent on that edge).
 	fn edge_distance(&self, edge: usize) -> f64 {
-		inner!(self).edge_distance(edge)
+		self.inner().edge_distance(edge)
 	}
 
 	/// Returns the parent of `node`, or `None` if the node is the root of
@@ -645,22 +645,22 @@ impl PyTree {
 	fn parent_of(&self, node: Bound<PyAny>) -> Result<Option<Internal>> {
 		let node = to_node(node)?;
 
-		Ok(inner!(self).parent_of(node))
+		Ok(self.inner().parent_of(node))
 	}
 
 	/// Samples a random node from the tree.
 	fn random_node(&self, rng: &mut Rng) -> Node {
-		inner!(self).random_node(rng)
+		self.inner().random_node(rng)
 	}
 
 	/// Samples a random internal node from a tree.
 	fn random_internal(&self, rng: &mut Rng) -> Internal {
-		inner!(self).random_internal(rng)
+		self.inner().random_internal(rng)
 	}
 
 	/// Samples a random leaf node from a tree.
 	fn random_leaf(&self, rng: &mut Rng) -> Leaf {
-		inner!(self).random_leaf(rng)
+		self.inner().random_leaf(rng)
 	}
 }
 
