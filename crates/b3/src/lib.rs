@@ -17,7 +17,6 @@ mod py_parameter;
 // pub use distribution::Distribution;
 // pub use parameter::Parameter;
 pub use py_parameter::PyParameter;
-pub use state::State;
 // pub use transitions::Transitions;
 pub use tree::Tree;
 

@@ -13,7 +13,7 @@ use std::{
 	sync::{Arc, Mutex, MutexGuard},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Parameter {
 	Real(Vec<f64>),
 	Integer(Vec<i64>),
@@ -104,6 +104,14 @@ impl PyParameter {
 		self.inner.lock().map_err(|_| {
 			anyhow!("Fatal error, parameter mutex got poisoned")
 		})
+	}
+
+	pub fn deep_copy(&self) -> PyParameter {
+		let inner = &*self.inner().unwrap();
+
+		Self {
+			inner: Arc::new(Mutex::new(inner.clone())),
+		}
 	}
 }
 

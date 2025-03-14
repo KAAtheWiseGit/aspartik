@@ -12,7 +12,7 @@ use crate::{rng::PyRng, tree::PyTree, PyParameter};
 #[derive(Debug)]
 pub struct State {
 	/// TODO: parameter serialization
-	old_params: HashMap<String, PyParameter>,
+	backup_params: HashMap<String, PyParameter>,
 	/// Current set of parameters by name.
 	params: HashMap<String, PyParameter>,
 
@@ -27,7 +27,7 @@ pub struct State {
 impl State {
 	pub fn new(tree: PyTree, params: HashMap<String, PyParameter>) -> Self {
 		Self {
-			old_params: HashMap::new(),
+			backup_params: HashMap::new(),
 			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
@@ -37,13 +37,17 @@ impl State {
 
 	/// Accept the current proposal
 	pub fn accept(&mut self) {
-		self.old_params = self.params.clone();
+		self.backup_params = self.params.clone();
 
 		self.tree.inner().accept();
 	}
 
 	pub fn reject(&mut self) {
-		self.params = self.old_params.clone();
+		// deep copy
+		self.params.clear();
+		for (key, value) in &self.backup_params {
+			self.params.insert(key.to_owned(), value.deep_copy());
+		}
 
 		self.tree.inner().reject();
 	}
@@ -56,7 +60,7 @@ pub struct PyState {
 }
 
 impl PyState {
-	fn inner(&self) -> MutexGuard<State> {
+	pub fn inner(&self) -> MutexGuard<State> {
 		self.inner.lock().unwrap()
 	}
 }
