@@ -670,7 +670,6 @@ pub fn submodule(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
 	m.add_class::<Node>()?;
 	m.add_class::<Leaf>()?;
 	m.add_class::<Internal>()?;
-	m.add_class::<PyTree>()?;
 
 	Ok(m)
 }

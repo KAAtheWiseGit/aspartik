@@ -12,7 +12,7 @@ use std::{
 pub type Rng = Pcg64;
 
 #[derive(Debug, Clone)]
-#[pyclass(frozen)]
+#[pyclass(name = "Rng", frozen)]
 pub struct PyRng {
 	inner: Arc<Mutex<Rng>>,
 }

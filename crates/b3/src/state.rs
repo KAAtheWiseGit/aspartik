@@ -54,7 +54,7 @@ impl State {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass]
+#[pyclass(name = "State")]
 pub struct PyState {
 	inner: Arc<Mutex<State>>,
 }

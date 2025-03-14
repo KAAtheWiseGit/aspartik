@@ -41,6 +41,8 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
 	m.add_class::<py_parameter::PyParameter>()?;
 	m.add_class::<rng::PyRng>()?;
+	m.add_class::<state::PyState>()?;
+	m.add_class::<tree::PyTree>()?;
 
 	Ok(())
 }
