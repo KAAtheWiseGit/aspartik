@@ -1,138 +1,99 @@
-use anyhow::{anyhow, bail, Result};
-use serde::{Deserialize, Serialize};
+use anyhow::Result;
+use pyo3::exceptions::PyKeyError;
+use pyo3::prelude::*;
 
-use std::collections::HashMap;
-
-use crate::{
-	Rng,
-	parameter::{BooleanParam, IntegerParam, Parameter, RealParam},
-	tree::Tree,
+use std::{
+	collections::HashMap,
+	sync::{Arc, Mutex, MutexGuard},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct State {
-	/// Proposal parameters
-	#[serde(rename = "parameters")]
-	old_params: HashMap<String, Parameter>,
-	/// Current set of parameters by name.
-	#[serde(skip)]
-	params: HashMap<String, Parameter>,
+use crate::{rng::PyRng, tree::PyTree, PyParameter};
 
-	/// The phylogenetic tree, which also contains the genetic data.
-	pub(crate) tree: Tree,
+#[derive(Debug)]
+pub struct State {
+	/// TODO: parameter serialization
+	old_params: HashMap<String, PyParameter>,
+	/// Current set of parameters by name.
+	params: HashMap<String, PyParameter>,
+
+	pub(crate) tree: PyTree,
 
 	/// Current likelihood, for caching purposes.
 	pub(crate) likelihood: f64,
 
-	pub(crate) rng: Rng,
-}
-
-macro_rules! cast {
-	($value:expr, $func:ident, $name:expr, $typ:expr) => {{
-		let param = $value;
-		let t = param.type_name();
-		param.$func().ok_or_else(|| {
-			anyhow!("Expected parameter '{}' to be {}, got {} instead", $name, $typ, t)
-		})
-	}};
-}
-
-macro_rules! expect_one {
-	($cast:expr, $name:expr) => {{
-		let p = $cast;
-		if p.len() == 1 {
-			Ok(p[0])
-		} else {
-			bail!(
-				"Expected parameter {} to have one dimension",
-				$name
-			)
-		}
-	}};
+	pub(crate) rng: PyRng,
 }
 
 impl State {
-	pub fn new(tree: Tree, params: HashMap<String, Parameter>) -> Self {
+	pub fn new(tree: PyTree, params: HashMap<String, PyParameter>) -> Self {
 		Self {
 			old_params: HashMap::new(),
 			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
-			rng: Rng::new(4),
+			rng: PyRng::new(4),
 		}
 	}
 
 	/// Accept the current proposal
-	pub(crate) fn accept(&mut self) {
+	pub fn accept(&mut self) {
 		self.old_params = self.params.clone();
 
-		self.tree.accept();
+		self.tree.inner().accept();
 	}
 
-	pub(crate) fn reject(&mut self) {
+	pub fn reject(&mut self) {
 		self.params = self.old_params.clone();
 
-		self.tree.reject();
+		self.tree.inner().reject();
+	}
+}
+
+#[derive(Debug, Clone)]
+#[pyclass]
+pub struct PyState {
+	inner: Arc<Mutex<State>>,
+}
+
+impl PyState {
+	fn inner(&self) -> MutexGuard<State> {
+		self.inner.lock().unwrap()
+	}
+}
+
+#[pymethods]
+impl PyState {
+	#[new]
+	fn new(tree: PyTree, params: HashMap<String, PyParameter>) -> Self {
+		let state = State::new(tree, params);
+
+		Self {
+			inner: Arc::new(Mutex::new(state)),
+		}
 	}
 
-	// Parameter API
-
-	/// Returns true if the parameter `name` is present in the state.
-	pub fn has_parameter(&self, name: &str) -> bool {
-		self.params.contains_key(name)
+	fn __getitem__(&self, name: &str) -> Result<PyParameter> {
+		let inner = self.inner();
+		let param = inner
+			.params
+			.get(name)
+			.ok_or_else(|| {
+				let msg = format!(
+					"No parameter with the name {name}"
+				);
+				PyKeyError::new_err(msg)
+			})?
+			.clone();
+		Ok(param)
 	}
 
-	pub fn param(&self, name: &str) -> Result<&Parameter> {
-		self.params.get(name).ok_or_else(|| {
-			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
-		})
+	#[getter]
+	fn tree(&self) -> PyTree {
+		self.inner().tree.clone()
 	}
 
-	pub fn real_param(&self, name: &str) -> Result<&RealParam> {
-		cast!(self.param(name)?, as_real, name, "real")
-	}
-
-	pub fn integer_param(&self, name: &str) -> Result<&IntegerParam> {
-		cast!(self.param(name)?, as_integer, name, "integer")
-	}
-
-	pub fn boolean_param(&self, name: &str) -> Result<&BooleanParam> {
-		cast!(self.param(name)?, as_boolean, name, "boolean")
-	}
-
-	pub fn mut_param(&mut self, name: &str) -> Result<&mut Parameter> {
-		self.params.get_mut(name).ok_or_else(|| {
-			anyhow!("Tried to get the parameter '{name}', which is not present in the state")
-		})
-	}
-
-	pub fn mut_real_param(&mut self, name: &str) -> Result<&mut RealParam> {
-		cast!(self.mut_param(name)?, as_mut_real, name, "real")
-	}
-
-	pub fn mut_integer_param(
-		&mut self,
-		name: &str,
-	) -> Result<&mut IntegerParam> {
-		cast!(self.mut_param(name)?, as_mut_integer, name, "integer")
-	}
-
-	pub fn mut_boolean_param(
-		&mut self,
-		name: &str,
-	) -> Result<&mut BooleanParam> {
-		cast!(self.mut_param(name)?, as_mut_boolean, name, "boolean")
-	}
-
-	pub fn one_real_param(&self, name: &str) -> Result<f64> {
-		expect_one!(self.real_param(name)?, name)
-	}
-
-	pub fn one_integer_param(&self, name: &str) -> Result<i64> {
-		expect_one!(self.integer_param(name)?, name)
-	}
-
-	pub fn one_boolean_param(&self, name: &str) -> Result<bool> {
-		expect_one!(self.boolean_param(name)?, name)
+	#[getter]
+	fn rng(&self) -> PyRng {
+		self.inner().rng.clone()
 	}
 }

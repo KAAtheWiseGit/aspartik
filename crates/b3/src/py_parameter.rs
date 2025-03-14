@@ -82,7 +82,7 @@ impl Display for Parameter {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[pyclass(name = "Parameter", sequence, frozen)]
 /// Represents dimensional parameters which can hold arbitrary numbers.
 ///
