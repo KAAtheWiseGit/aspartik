@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use pyo3::prelude::*;
 use pyo3::{
 	conversion::FromPyObjectBound,
@@ -8,29 +8,47 @@ use pyo3::{
 	types::PyTuple,
 };
 
-use std::fmt::{self, Display};
+use std::{
+	fmt::{self, Display},
+	sync::{Arc, Mutex, MutexGuard},
+};
 
 #[derive(Debug)]
-enum Param {
+enum Parameter {
 	Real(Vec<f64>),
 	Integer(Vec<i64>),
 	Boolean(Vec<bool>),
 }
 
-impl Param {
+impl Parameter {
 	fn len(&self) -> usize {
 		match self {
-			Param::Real(p) => p.len(),
-			Param::Integer(p) => p.len(),
-			Param::Boolean(p) => p.len(),
+			Parameter::Real(p) => p.len(),
+			Parameter::Integer(p) => p.len(),
+			Parameter::Boolean(p) => p.len(),
+		}
+	}
+
+	fn check_index(&self, i: usize) -> Result<()> {
+		if i >= self.len() {
+			let dimension = if self.len() % 10 == 1 {
+				"dimension"
+			} else {
+				"dimensions"
+			};
+			Err(PyIndexError::new_err(
+				format!("Parameter has {} {}, index {} is out of bounds", self.len(), dimension, i)
+			).into())
+		} else {
+			Ok(())
 		}
 	}
 }
 
-impl Display for Param {
+impl Display for Parameter {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			Param::Real(p) => {
+			Parameter::Real(p) => {
 				for (i, value) in p.iter().enumerate() {
 					value.fmt(f)?;
 					if i < p.len() - 1 {
@@ -38,7 +56,7 @@ impl Display for Param {
 					}
 				}
 			}
-			Param::Integer(p) => {
+			Parameter::Integer(p) => {
 				for (i, value) in p.iter().enumerate() {
 					value.fmt(f)?;
 					if i < p.len() - 1 {
@@ -46,7 +64,7 @@ impl Display for Param {
 					}
 				}
 			}
-			Param::Boolean(p) => {
+			Parameter::Boolean(p) => {
 				for (i, value) in p.iter().enumerate() {
 					if *value {
 						f.write_str("True")?;
@@ -65,7 +83,7 @@ impl Display for Param {
 }
 
 #[derive(Debug)]
-#[pyclass(name = "Parameter", sequence)]
+#[pyclass(name = "Parameter", sequence, frozen)]
 /// Represents dimensional parameters which can hold arbitrary numbers.
 ///
 /// This class has no constructor.  Instead, it's static methods `Real`,
@@ -78,23 +96,14 @@ impl Display for Param {
 /// zero-indexed, so `param[0]` is the first value, `param[1]` is the second,
 /// and so on.
 pub struct PyParameter {
-	inner: Param,
+	inner: Arc<Mutex<Parameter>>,
 }
 
 impl PyParameter {
-	fn check_index(&self, i: usize) -> Result<()> {
-		if i >= self.inner.len() {
-			let dimension = if self.inner.len() % 10 == 1 {
-				"dimension"
-			} else {
-				"dimensions"
-			};
-			Err(PyIndexError::new_err(
-				format!("Parameter has {} {}, index {} is out of bounds", self.inner.len(), dimension, i)
-			).into())
-		} else {
-			Ok(())
-		}
+	fn inner(&self) -> Result<MutexGuard<Parameter>> {
+		self.inner.lock().map_err(|_| {
+			anyhow!("Fatal error, parameter mutex got poisoned")
+		})
 	}
 }
 
@@ -121,12 +130,13 @@ impl PyParameter {
 	/// with values `[0.0, 1.0]`.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
-	pub fn Real(values: &Bound<PyTuple>) -> Result<Self> {
+	fn Real(values: &Bound<PyTuple>) -> Result<Self> {
 		check_empty(values)?;
 
 		let values: Vec<f64> = extract(values)?;
+		let parameter = Parameter::Real(values);
 		Ok(Self {
-			inner: Param::Real(values),
+			inner: Arc::new(Mutex::new(parameter)),
 		})
 	}
 
@@ -137,60 +147,60 @@ impl PyParameter {
 	/// parameter with values `[0, 1]`.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
-	pub fn Integer(values: &Bound<PyTuple>) -> Result<Self> {
+	fn Integer(values: &Bound<PyTuple>) -> Result<Self> {
 		check_empty(values)?;
 
 		let values: Vec<i64> = extract(values)?;
+		let parameter = Parameter::Integer(values);
 		Ok(Self {
-			inner: Param::Integer(values),
+			inner: Arc::new(Mutex::new(parameter)),
 		})
 	}
 
 	/// Create a new boolean parameter.
 	#[staticmethod]
 	#[pyo3(signature = (*values))]
-	pub fn Boolean(values: &Bound<PyTuple>) -> Result<Self> {
+	fn Boolean(values: &Bound<PyTuple>) -> Result<Self> {
 		check_empty(values)?;
 
 		let values: Vec<bool> = extract(values)?;
+		let parameter = Parameter::Boolean(values);
 		Ok(Self {
-			inner: Param::Boolean(values),
+			inner: Arc::new(Mutex::new(parameter)),
 		})
 	}
 
-	pub fn __len__(&self) -> usize {
-		self.inner.len()
+	fn __len__(&self) -> Result<usize> {
+		Ok(self.inner()?.len())
 	}
 
-	pub fn __getitem__(&self, py: Python, i: usize) -> Result<PyObject> {
-		self.check_index(i)?;
+	fn __getitem__(&self, py: Python, i: usize) -> Result<PyObject> {
+		let inner = &*self.inner()?;
+		inner.check_index(i)?;
 
-		Ok(match &self.inner {
-			Param::Real(p) => p[i].into_pyobject(py)?.into(),
-			Param::Integer(p) => p[i].into_pyobject(py)?.into(),
-			Param::Boolean(p) => {
+		Ok(match inner {
+			Parameter::Real(p) => p[i].into_pyobject(py)?.into(),
+			Parameter::Integer(p) => p[i].into_pyobject(py)?.into(),
+			Parameter::Boolean(p) => {
 				p[i].into_pyobject(py)?.to_owned().into()
 			}
 		})
 	}
 
-	pub fn __setitem__(
-		&mut self,
-		i: usize,
-		value: Bound<PyAny>,
-	) -> PyResult<()> {
-		self.check_index(i)?;
+	fn __setitem__(&self, i: usize, value: Bound<PyAny>) -> Result<()> {
+		let inner = &mut *self.inner()?;
+		inner.check_index(i)?;
 
-		match &mut self.inner {
-			Param::Real(p) => {
+		match inner {
+			Parameter::Real(p) => {
 				let value = value.extract::<f64>()?;
 				p[i] = value;
 			}
-			Param::Integer(p) => {
+			Parameter::Integer(p) => {
 				let value = value.extract::<i64>()?;
 				p[i] = value;
 			}
-			Param::Boolean(p) => {
+			Parameter::Boolean(p) => {
 				let value = value.extract::<bool>()?;
 				p[i] = value;
 			}
@@ -199,18 +209,20 @@ impl PyParameter {
 		Ok(())
 	}
 
-	pub fn __repr__(&self) -> String {
-		let subtype = match &self.inner {
-			Param::Real(..) => "Real",
-			Param::Integer(..) => "Integer",
-			Param::Boolean(..) => "Boolean",
+	fn __repr__(&self) -> Result<String> {
+		let inner = &*self.inner()?;
+
+		let subtype = match inner {
+			Parameter::Real(..) => "Real",
+			Parameter::Integer(..) => "Integer",
+			Parameter::Boolean(..) => "Boolean",
 		};
 
-		format!("Parameter.{}({})", subtype, self.inner)
+		Ok(format!("Parameter.{}({})", subtype, inner))
 	}
 
-	pub fn __str__(&self) -> String {
-		format!("[{}]", self.inner)
+	fn __str__(&self) -> Result<String> {
+		Ok(format!("[{}]", self.inner()?))
 	}
 }
 
