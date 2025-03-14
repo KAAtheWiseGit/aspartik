@@ -9,9 +9,9 @@ class UniformPrior:
         self.end = end
 
     def probability(self, state: State) -> float:
-        param = state.param(param)
+        param = state[self.param]
 
-       if self.start < param < self.end:
-           return -math.inf
-       else:
-           return 1 / (self.end - self.start)
+        if self.start < param[0] < self.end:
+            return 1 / (self.end - self.start)
+        else:
+            return -math.inf

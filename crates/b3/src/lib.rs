@@ -5,7 +5,7 @@ pub mod likelihood;
 // pub mod model;
 // pub mod operator;
 // mod parameter;
-// pub mod prior;
+pub mod prior;
 pub mod rng;
 mod state;
 // mod transitions;
@@ -18,6 +18,7 @@ mod py_parameter;
 // pub use parameter::Parameter;
 pub use py_parameter::PyParameter;
 // pub use transitions::Transitions;
+pub use prior::PyPrior;
 pub use tree::Tree;
 
 use pyo3::prelude::*;
