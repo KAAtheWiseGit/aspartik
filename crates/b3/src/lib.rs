@@ -4,7 +4,7 @@ pub mod likelihood;
 // pub mod mcmc;
 // pub mod model;
 // pub mod operator;
-// mod parameter;
+mod parameter;
 pub mod prior;
 pub mod rng;
 mod state;
@@ -12,11 +12,8 @@ mod state;
 mod tree;
 pub mod util;
 
-mod py_parameter;
-
 // pub use distribution::Distribution;
-// pub use parameter::Parameter;
-pub use py_parameter::PyParameter;
+pub use parameter::PyParameter;
 // pub use transitions::Transitions;
 pub use prior::PyPrior;
 pub use tree::Tree;
@@ -40,7 +37,7 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	// 	.getattr("modules")?
 	// 	.set_item("b3.log", log)?;
 
-	m.add_class::<py_parameter::PyParameter>()?;
+	m.add_class::<parameter::PyParameter>()?;
 	m.add_class::<rng::PyRng>()?;
 	m.add_class::<state::PyState>()?;
 	m.add_class::<tree::PyTree>()?;

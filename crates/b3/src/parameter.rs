@@ -1,117 +1,27 @@
-use anyhow::{bail, Result};
-use serde::{Deserialize, Serialize};
+#![allow(dead_code)]
 
-use std::ops::{Index, IndexMut};
+use anyhow::{anyhow, Result};
+use pyo3::prelude::*;
+use pyo3::{
+	conversion::FromPyObjectBound,
+	exceptions::{PyIndexError, PyTypeError},
+	types::PyTuple,
+};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Param<T: Copy + PartialOrd> {
-	pub values: Vec<T>,
-	pub min: Option<T>,
-	pub max: Option<T>,
+use std::{
+	fmt::{self, Display},
+	sync::{Arc, Mutex, MutexGuard},
+};
+
+#[derive(Debug, Clone)]
+enum Parameter {
+	Real(Vec<f64>),
+	Integer(Vec<i64>),
+	Boolean(Vec<bool>),
 }
 
-pub type RealParam = Param<f64>;
-pub type IntegerParam = Param<i64>;
-pub type BooleanParam = Param<bool>;
-
-impl<T: Copy + PartialOrd> Param<T> {
-	pub fn new<I>(values: I) -> Result<Self>
-	where
-		I: IntoIterator<Item = T>,
-	{
-		let values = values.into_iter().collect::<Vec<_>>();
-		if values.is_empty() {
-			bail!("Parameter must have at least one dimension")
-		}
-		Ok(Self {
-			values,
-			min: None,
-			max: None,
-		})
-	}
-
-	/// Returns `false` if any value inside the parameter is out of bounds.
-	pub fn is_valid(&self) -> bool {
-		self.values.iter().all(|val| {
-			let lower =
-				self.min.map(|min| min <= *val).unwrap_or(true);
-			let upper =
-				self.max.map(|max| *val <= max).unwrap_or(true);
-
-			// Both the upper and the lower bounds are either
-			// satisfied or not present
-			lower && upper
-		})
-	}
-
-	/// Get the first value of the parameter.
-	pub fn first(&self) -> T {
-		*self.values
-			.first()
-			.expect("Parameters must have at least one dimension")
-	}
-
-	pub fn len(&self) -> usize {
-		self.values.len()
-	}
-}
-
-impl<T: Copy + PartialOrd> Index<usize> for Param<T> {
-	type Output = T;
-
-	fn index(&self, index: usize) -> &Self::Output {
-		&self.values[index]
-	}
-}
-
-impl<T: Copy + PartialOrd> IndexMut<usize> for Param<T> {
-	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-		&mut self.values[index]
-	}
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Parameter {
-	Real(RealParam),
-	Integer(IntegerParam),
-	Boolean(BooleanParam),
-}
-
-// Doesn't make sense, since a parameter mustn't be empty
-#[allow(clippy::len_without_is_empty)]
 impl Parameter {
-	pub fn real<I>(values: I) -> Result<Self>
-	where
-		I: IntoIterator<Item = f64>,
-	{
-		Ok(Self::Real(RealParam::new(values)?))
-	}
-
-	pub fn integer<I>(values: I) -> Result<Self>
-	where
-		I: IntoIterator<Item = i64>,
-	{
-		Ok(Self::Integer(IntegerParam::new(values)?))
-	}
-
-	pub fn boolean<I>(values: I) -> Result<Self>
-	where
-		I: IntoIterator<Item = bool>,
-	{
-		Ok(Self::Boolean(BooleanParam::new(values)?))
-	}
-
-	/// Checks that the parameter is valid: all of its values must lie
-	/// within bounds.
-	pub fn is_valid(&self) -> bool {
-		match self {
-			Parameter::Real(p) => p.is_valid(),
-			Parameter::Integer(p) => p.is_valid(),
-			Parameter::Boolean(p) => p.is_valid(),
-		}
-	}
-
-	pub fn len(&self) -> usize {
+	fn len(&self) -> usize {
 		match self {
 			Parameter::Real(p) => p.len(),
 			Parameter::Integer(p) => p.len(),
@@ -119,53 +29,215 @@ impl Parameter {
 		}
 	}
 
-	pub fn type_name(&self) -> &'static str {
-		match self {
-			Parameter::Real(..) => "real",
-			Parameter::Integer(..) => "integer",
-			Parameter::Boolean(..) => "boolean",
+	fn check_index(&self, i: usize) -> Result<()> {
+		if i >= self.len() {
+			let dimension = if self.len() % 10 == 1 {
+				"dimension"
+			} else {
+				"dimensions"
+			};
+			Err(PyIndexError::new_err(
+				format!("Parameter has {} {}, index {} is out of bounds", self.len(), dimension, i)
+			).into())
+		} else {
+			Ok(())
 		}
+	}
+}
+
+impl Display for Parameter {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			Parameter::Real(p) => {
+				for (i, value) in p.iter().enumerate() {
+					value.fmt(f)?;
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
+					}
+				}
+			}
+			Parameter::Integer(p) => {
+				for (i, value) in p.iter().enumerate() {
+					value.fmt(f)?;
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
+					}
+				}
+			}
+			Parameter::Boolean(p) => {
+				for (i, value) in p.iter().enumerate() {
+					if *value {
+						f.write_str("True")?;
+					} else {
+						f.write_str("False")?;
+					}
+					if i < p.len() - 1 {
+						f.write_str(", ")?;
+					}
+				}
+			}
+		}
+
+		Ok(())
+	}
+}
+
+#[derive(Debug, Clone)]
+#[pyclass(name = "Parameter", sequence, frozen)]
+/// Represents dimensional parameters which can hold arbitrary numbers.
+///
+/// This class has no constructor.  Instead, it's static methods `Real`,
+/// `Integer`, and `Boolean` can be used to create parameters made up of
+/// doubles, 64-bit signed integers, or booleans respectively.  A parameter can
+/// only hold one type: it cannot mix integers and floats, for example.  It also
+/// cannot change the number of dimensions after creation.
+///
+/// The parameter values can be accessed using indexing.  Dimensions are
+/// zero-indexed, so `param[0]` is the first value, `param[1]` is the second,
+/// and so on.
+pub struct PyParameter {
+	inner: Arc<Mutex<Parameter>>,
+}
+
+impl PyParameter {
+	fn inner(&self) -> Result<MutexGuard<Parameter>> {
+		self.inner.lock().map_err(|_| {
+			anyhow!("Fatal error, parameter mutex got poisoned")
+		})
 	}
 
-	pub fn as_real(&self) -> Option<&RealParam> {
-		match self {
-			Parameter::Real(p) => Some(p),
-			_ => None,
+	pub fn deep_copy(&self) -> PyParameter {
+		let inner = &*self.inner().unwrap();
+
+		Self {
+			inner: Arc::new(Mutex::new(inner.clone())),
 		}
+	}
+}
+
+fn check_empty(values: &Bound<PyTuple>) -> Result<()> {
+	if values.is_empty() {
+		Err(PyTypeError::new_err(
+			"A parameter must have at least one value",
+		)
+		.into())
+	} else {
+		Ok(())
+	}
+}
+
+#[pymethods]
+#[allow(non_snake_case)]
+impl PyParameter {
+	/// Create a new real parameter.
+	///
+	/// The values will be coerced to a double-precision floating number.
+	///
+	/// Note that Python will coerce `True` and `False` to 0 and 1, so
+	/// `Parameter.Real(True, False)` will succeed a and return a parameter
+	/// with values `[0.0, 1.0]`.
+	#[staticmethod]
+	#[pyo3(signature = (*values))]
+	fn Real(values: &Bound<PyTuple>) -> Result<Self> {
+		check_empty(values)?;
+
+		let values: Vec<f64> = extract(values)?;
+		let parameter = Parameter::Real(values);
+		Ok(Self {
+			inner: Arc::new(Mutex::new(parameter)),
+		})
 	}
 
-	pub fn as_integer(&self) -> Option<&IntegerParam> {
-		match self {
-			Parameter::Integer(p) => Some(p),
-			_ => None,
-		}
+	/// Create a new integer parameter.
+	///
+	/// Note that Python will coerce `True` and `False` to 0 and 1, so
+	/// `Parameter.Integer(True, False)` will succeed a and return a
+	/// parameter with values `[0, 1]`.
+	#[staticmethod]
+	#[pyo3(signature = (*values))]
+	fn Integer(values: &Bound<PyTuple>) -> Result<Self> {
+		check_empty(values)?;
+
+		let values: Vec<i64> = extract(values)?;
+		let parameter = Parameter::Integer(values);
+		Ok(Self {
+			inner: Arc::new(Mutex::new(parameter)),
+		})
 	}
 
-	pub fn as_boolean(&self) -> Option<&BooleanParam> {
-		match self {
-			Parameter::Boolean(p) => Some(p),
-			_ => None,
-		}
+	/// Create a new boolean parameter.
+	#[staticmethod]
+	#[pyo3(signature = (*values))]
+	fn Boolean(values: &Bound<PyTuple>) -> Result<Self> {
+		check_empty(values)?;
+
+		let values: Vec<bool> = extract(values)?;
+		let parameter = Parameter::Boolean(values);
+		Ok(Self {
+			inner: Arc::new(Mutex::new(parameter)),
+		})
 	}
 
-	pub fn as_mut_real(&mut self) -> Option<&mut RealParam> {
-		match self {
-			Parameter::Real(p) => Some(p),
-			_ => None,
-		}
+	fn __len__(&self) -> Result<usize> {
+		Ok(self.inner()?.len())
 	}
 
-	pub fn as_mut_integer(&mut self) -> Option<&mut IntegerParam> {
-		match self {
-			Parameter::Integer(p) => Some(p),
-			_ => None,
-		}
+	fn __getitem__(&self, py: Python, i: usize) -> Result<PyObject> {
+		let inner = &*self.inner()?;
+		inner.check_index(i)?;
+
+		Ok(match inner {
+			Parameter::Real(p) => p[i].into_pyobject(py)?.into(),
+			Parameter::Integer(p) => p[i].into_pyobject(py)?.into(),
+			Parameter::Boolean(p) => {
+				p[i].into_pyobject(py)?.to_owned().into()
+			}
+		})
 	}
 
-	pub fn as_mut_boolean(&mut self) -> Option<&mut BooleanParam> {
-		match self {
-			Parameter::Boolean(p) => Some(p),
-			_ => None,
+	fn __setitem__(&self, i: usize, value: Bound<PyAny>) -> Result<()> {
+		let inner = &mut *self.inner()?;
+		inner.check_index(i)?;
+
+		match inner {
+			Parameter::Real(p) => {
+				let value = value.extract::<f64>()?;
+				p[i] = value;
+			}
+			Parameter::Integer(p) => {
+				let value = value.extract::<i64>()?;
+				p[i] = value;
+			}
+			Parameter::Boolean(p) => {
+				let value = value.extract::<bool>()?;
+				p[i] = value;
+			}
 		}
+
+		Ok(())
 	}
+
+	fn __repr__(&self) -> Result<String> {
+		let inner = &*self.inner()?;
+
+		let subtype = match inner {
+			Parameter::Real(..) => "Real",
+			Parameter::Integer(..) => "Integer",
+			Parameter::Boolean(..) => "Boolean",
+		};
+
+		Ok(format!("Parameter.{}({})", subtype, inner))
+	}
+
+	fn __str__(&self) -> Result<String> {
+		Ok(format!("[{}]", self.inner()?))
+	}
+}
+
+fn extract<T: for<'a> FromPyObjectBound<'a, 'a>>(
+	tuple: &Bound<PyTuple>,
+) -> Result<Vec<T>> {
+	Ok(tuple.into_iter()
+		.map(|v| v.extract::<T>())
+		.collect::<PyResult<Vec<T>>>()?)
 }
