@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use std::{fs::File, io::Write, path::PathBuf};
 
@@ -17,6 +18,23 @@ pub trait Logger: Send {
 	/// Thus, the logger itself is responsible for implementing sampling and
 	/// flushing the output.
 	fn log(&mut self, state: PyState, index: usize) -> Result<()>;
+}
+
+pub struct PyLogger {
+	inner: PyObject,
+}
+
+impl Logger for PyLogger {
+	fn log(&mut self, state: PyState, index: usize) -> Result<()> {
+		Python::with_gil(|py| -> Result<()> {
+			let args = (state.clone(), index).into_pyobject(py)?;
+			let args = PyTuple::new(py, args)?;
+			self.inner.bind(py).call_method1("log", args)?;
+
+			Ok(())
+		})?;
+		Ok(())
+	}
 }
 
 /// Serializes the simulation state to allow pausing inference.
