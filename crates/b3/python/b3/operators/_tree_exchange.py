@@ -1,10 +1,12 @@
 import math
 
-from b3 import State
-from b3.operators import Proposal
-from b3.tree import Tree, Node, Internal
+from b3 import State, Tree, Proposal
+from b3.tree import Node, Internal
 
 class NarrowExchange:
+    def __init__(self, weight):
+        self.weight = weight
+
     def propose(self, state: State) -> Proposal:
         tree = state.tree
 
@@ -20,7 +22,7 @@ class NarrowExchange:
         left, right = tree.children_of(grandparent)
         if tree.weight_of(left) > tree.weight_of(right):
             parent, uncle = left, right
-        else if tree.weight_of(right) > tree.weight_of(left):
+        elif tree.weight_of(right) > tree.weight_of(left):
             parent, uncle = right, left
         else:
             return Proposal.Reject
