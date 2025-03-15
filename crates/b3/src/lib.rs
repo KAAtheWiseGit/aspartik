@@ -4,7 +4,7 @@ pub mod log;
 // pub mod mcmc;
 pub mod mcmc2;
 // pub mod model;
-// pub mod operator;
+pub mod operator;
 pub mod parameter;
 pub mod prior;
 pub mod rng;
