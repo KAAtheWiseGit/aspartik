@@ -2,6 +2,7 @@
 pub mod likelihood;
 pub mod log;
 // pub mod mcmc;
+pub mod mcmc2;
 // pub mod model;
 // pub mod operator;
 pub mod parameter;
@@ -40,6 +41,8 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	m.add_class::<rng::PyRng>()?;
 	m.add_class::<state::PyState>()?;
 	m.add_class::<tree::PyTree>()?;
+
+	m.add_function(wrap_pyfunction!(mcmc2::run, m)?)?;
 
 	Ok(())
 }
