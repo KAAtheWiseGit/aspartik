@@ -513,6 +513,46 @@ impl<'de> Deserialize<'de> for Tree {
 	}
 }
 
+macro_rules! make_iterator {
+	($name: ident, $t: tt) => {
+		#[pyclass]
+		struct $name {
+			current: usize,
+			end: usize,
+		}
+
+		impl $name {
+			fn new(start: usize, end: usize) -> Self {
+				Self {
+					current: start,
+					end,
+				}
+			}
+		}
+
+		#[pymethods]
+		impl $name {
+			fn __iter__(this: PyRef<Self>) -> PyRef<Self> {
+				this
+			}
+
+			fn __next__(&mut self) -> Option<$t> {
+				if self.current == self.end {
+					return None;
+				}
+
+				let out = self.current;
+				self.current += 1;
+				Some($t(out))
+			}
+		}
+	};
+}
+
+make_iterator!(NodesIter, Node);
+make_iterator!(InternalsIter, Internal);
+make_iterator!(LeavesIter, Leaf);
+
 #[derive(Debug, Clone)]
 #[pyclass(name = "Tree", frozen)]
 /// A phylogenetic bifurcating tree.
@@ -679,6 +719,24 @@ impl PyTree {
 		let node = to_node(node)?;
 
 		Ok(self.inner().parent_of(node))
+	}
+
+	/// Returns an iterator over all of the nodes.
+	fn nodes(&self) -> NodesIter {
+		let inner = self.inner();
+		NodesIter::new(0, inner.num_nodes())
+	}
+
+	/// Returns an iterator over internal nodes.
+	fn internals(&self) -> InternalsIter {
+		let inner = self.inner();
+		InternalsIter::new(inner.num_leaves(), inner.num_nodes())
+	}
+
+	/// Returns an iterator over all leaves.
+	fn leaves(&self) -> LeavesIter {
+		let inner = self.inner();
+		LeavesIter::new(0, inner.num_leaves())
 	}
 
 	/// Samples a random node from the tree.
