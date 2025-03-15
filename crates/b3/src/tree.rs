@@ -31,13 +31,26 @@ pub struct Tree {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(frozen, eq)]
+#[pyclass(frozen)]
 pub struct Node(usize);
 
 #[pymethods]
 impl Node {
 	fn __repr__(&self) -> String {
 		format!("Node({})", self.0)
+	}
+
+	fn __eq__(&self, other: Bound<PyAny>) -> bool {
+		if let Ok(node) = other.extract::<Node>() {
+			self.0 == node.0
+		} else if let Ok(internal) = other.extract::<Internal>() {
+			self.0 == internal.0
+		} else if let Ok(leaf) = other.extract::<Leaf>() {
+			self.0 == leaf.0
+		} else {
+			// XXX: should this throw an error?
+			false
+		}
 	}
 }
 
@@ -54,7 +67,7 @@ impl From<Leaf> for Node {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(frozen, eq)]
+#[pyclass(frozen)]
 pub struct Internal(usize);
 
 #[pymethods]
@@ -62,16 +75,36 @@ impl Internal {
 	fn __repr__(&self) -> String {
 		format!("Internal({})", self.0)
 	}
+
+	fn __eq__(&self, other: Bound<PyAny>) -> bool {
+		if let Ok(node) = other.extract::<Node>() {
+			self.0 == node.0
+		} else if let Ok(leaf) = other.extract::<Leaf>() {
+			self.0 == leaf.0
+		} else {
+			false
+		}
+	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[pyclass(frozen, eq)]
+#[pyclass(frozen)]
 pub struct Leaf(usize);
 
 #[pymethods]
 impl Leaf {
 	fn __repr__(&self) -> String {
 		format!("Leaf({})", self.0)
+	}
+
+	fn __eq__(&self, other: Bound<PyAny>) -> bool {
+		if let Ok(node) = other.extract::<Node>() {
+			self.0 == node.0
+		} else if let Ok(internal) = other.extract::<Internal>() {
+			self.0 == internal.0
+		} else {
+			false
+		}
 	}
 }
 
