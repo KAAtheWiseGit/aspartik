@@ -1,4 +1,6 @@
-from .b3 import *
+# ruff: noqa: F405
+
+from .b3 import *  # noqa: F403
 
 
 __doc__ = b3.__doc__

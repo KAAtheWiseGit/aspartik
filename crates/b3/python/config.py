@@ -76,7 +76,7 @@ operators = [
         name="Tree narrow exchange",
         tree=tree,
         weight=15.0,
-    )
+    ),
 ]
 
 loggers = [
@@ -96,11 +96,9 @@ loggers = [
     ),
     b3.loggers.StdoutLogger(
         every=500,
-
         posterior=True,
         likelihood=True,
         prior=True,
-
         priors=[yule],
     ),
 ]
@@ -124,7 +122,6 @@ state = b3.State(
 b3.mcmc.run(
     burnin=100_000,
     length=1_000_000,
-
     state=state,
     priors=priors,
     likelihoods=likelihoods,

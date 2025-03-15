@@ -1,7 +1,7 @@
 import math
 
 from b3 import State, Tree, Proposal
-from b3.tree import Node, Internal
+from b3.tree import Internal
 
 
 class NarrowExchange:
@@ -10,6 +10,7 @@ class NarrowExchange:
 
     def propose(self, state: State) -> Proposal:
         tree = state.tree
+        rng = state.rng
 
         if tree.num_internals < 2:
             return Proposal.Reject()
@@ -47,7 +48,7 @@ class NarrowExchange:
 
         tree.swap_parents(uncle, child)
 
-        aftter = int(is_grandparent(tree, parent)) + int(is_grandparent(tree, uncle))
+        after = int(is_grandparent(tree, parent)) + int(is_grandparent(tree, uncle))
         num_grandparents_after = num_grandparents_before - before + after
         ratio = math.log(num_grandparents_before / num_grandparents_after)
 
