@@ -1,9 +1,9 @@
 use anyhow::Result;
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
+use pyo3::{exceptions::PyTypeError, types::PyTuple};
 use rand::distr::{weighted::WeightedIndex, Distribution};
 
-use crate::rng::Rng;
+use crate::{rng::Rng, state::PyState};
 
 #[derive(Debug, Clone)]
 #[pyclass(frozen)]
@@ -31,6 +31,16 @@ impl<'py> FromPyObject<'py> for PyOperator {
 		Ok(Self {
 			inner: obj.clone().unbind(),
 		})
+	}
+}
+
+impl PyOperator {
+	pub fn propose(&self, py: Python, state: &PyState) -> Result<Proposal> {
+		let args = PyTuple::new(py, [state.clone()])?;
+		let proposal = self.inner.call_method1(py, "propose", args)?;
+		let proposal = proposal.extract::<Proposal>(py)?;
+
+		Ok(proposal)
 	}
 }
 
