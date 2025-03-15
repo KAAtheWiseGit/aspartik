@@ -1,6 +1,6 @@
 // mod distribution;
 pub mod likelihood;
-// pub mod log;
+pub mod log;
 // pub mod mcmc;
 // pub mod model;
 // pub mod operator;
@@ -30,11 +30,11 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 		.getattr("modules")?
 		.set_item("b3.tree", tree)?;
 
-	// let log = log::submodule(py)?;
-	// m.add_submodule(&log)?;
-	// py.import("sys")?
-	// 	.getattr("modules")?
-	// 	.set_item("b3.log", log)?;
+	let log = log::submodule(py)?;
+	m.add_submodule(&log)?;
+	py.import("sys")?
+		.getattr("modules")?
+		.set_item("b3.log", log)?;
 
 	m.add_class::<parameter::PyParameter>()?;
 	m.add_class::<rng::PyRng>()?;
