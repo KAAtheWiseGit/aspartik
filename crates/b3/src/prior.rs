@@ -1,6 +1,6 @@
 use anyhow::Result;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::{conversion::FromPyObject, exceptions::PyTypeError, types::PyTuple};
 
 use crate::state::PyState;
 
@@ -27,5 +27,17 @@ impl PyPrior {
 		let out: f64 = Ok::<f64, PyErr>(out)?;
 
 		Ok(out)
+	}
+}
+
+impl<'py> FromPyObject<'py> for PyPrior {
+	fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
+		if !obj.getattr("probability")?.is_callable() {
+			return Err(PyTypeError::new_err("Prior objects must have a `probability` method, which takes `State` and returns a real number"));
+		}
+
+		Ok(Self {
+			inner: obj.clone().unbind(),
+		})
 	}
 }
