@@ -15,7 +15,7 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-enum Parameter {
+pub enum Parameter {
 	Real(Vec<f64>),
 	Integer(Vec<i64>),
 	Boolean(Vec<bool>),
@@ -112,7 +112,7 @@ pub struct PyParameter {
 }
 
 impl PyParameter {
-	fn inner(&self) -> Result<MutexGuard<Parameter>> {
+	pub fn inner(&self) -> Result<MutexGuard<Parameter>> {
 		self.inner.lock().map_err(|_| {
 			anyhow!("Fatal error, parameter mutex got poisoned")
 		})

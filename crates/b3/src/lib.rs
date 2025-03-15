@@ -4,7 +4,7 @@ pub mod likelihood;
 // pub mod mcmc;
 // pub mod model;
 // pub mod operator;
-mod parameter;
+pub mod parameter;
 pub mod prior;
 pub mod rng;
 mod state;
@@ -13,7 +13,6 @@ mod tree;
 pub mod util;
 
 // pub use distribution::Distribution;
-pub use parameter::PyParameter;
 // pub use transitions::Transitions;
 pub use prior::PyPrior;
 pub use tree::Tree;

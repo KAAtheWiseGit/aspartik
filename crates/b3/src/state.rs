@@ -1,20 +1,20 @@
 use anyhow::Result;
-use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
 
-use std::{
-	collections::HashMap,
-	sync::{Arc, Mutex, MutexGuard},
-};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::{rng::PyRng, tree::PyTree, PyParameter};
+use crate::{
+	parameter::{Parameter, PyParameter},
+	rng::PyRng,
+	tree::PyTree,
+};
 
 #[derive(Debug)]
 pub struct State {
 	/// TODO: parameter serialization
-	backup_params: HashMap<String, PyParameter>,
+	backup_params: Vec<Parameter>,
 	/// Current set of parameters by name.
-	params: HashMap<String, PyParameter>,
+	params: Vec<PyParameter>,
 
 	pub(crate) tree: PyTree,
 
@@ -25,31 +25,41 @@ pub struct State {
 }
 
 impl State {
-	pub fn new(tree: PyTree, params: HashMap<String, PyParameter>) -> Self {
-		Self {
-			backup_params: HashMap::new(),
+	pub fn new(tree: PyTree, params: Vec<PyParameter>) -> Result<Self> {
+		let mut backup_params = Vec::with_capacity(params.len());
+		for param in &params {
+			backup_params.push(param.inner()?.clone());
+		}
+
+		Ok(Self {
+			backup_params,
 			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
 			rng: PyRng::new(4),
-		}
+		})
 	}
 
 	/// Accept the current proposal
-	pub fn accept(&mut self) {
-		self.backup_params = self.params.clone();
+	pub fn accept(&mut self) -> Result<()> {
+		for i in 0..self.params.len() {
+			self.backup_params[i] = self.params[i].inner()?.clone();
+		}
 
 		self.tree.inner().accept();
+
+		Ok(())
 	}
 
-	pub fn reject(&mut self) {
-		// deep copy
-		self.params.clear();
-		for (key, value) in &self.backup_params {
-			self.params.insert(key.to_owned(), value.deep_copy());
+	pub fn reject(&mut self) -> Result<()> {
+		for i in 0..self.params.len() {
+			*self.params[i].inner()? =
+				self.backup_params[i].clone();
 		}
 
 		self.tree.inner().reject();
+
+		Ok(())
 	}
 }
 
@@ -68,27 +78,12 @@ impl PyState {
 #[pymethods]
 impl PyState {
 	#[new]
-	fn new(tree: PyTree, params: HashMap<String, PyParameter>) -> Self {
-		let state = State::new(tree, params);
+	fn new(tree: PyTree, params: Vec<PyParameter>) -> Result<Self> {
+		let state = State::new(tree, params)?;
 
-		Self {
+		Ok(Self {
 			inner: Arc::new(Mutex::new(state)),
-		}
-	}
-
-	fn __getitem__(&self, name: &str) -> Result<PyParameter> {
-		let inner = self.inner();
-		let param = inner
-			.params
-			.get(name)
-			.ok_or_else(|| {
-				let msg = format!(
-					"No parameter with the name {name}"
-				);
-				PyKeyError::new_err(msg)
-			})?
-			.clone();
-		Ok(param)
+		})
 	}
 
 	#[getter]
