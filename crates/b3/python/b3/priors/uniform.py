@@ -1,6 +1,7 @@
+from b3 import State
+
 import math
 
-from b3 import State
 
 class UniformPrior:
     def __init__(self, param: str, start, end):
