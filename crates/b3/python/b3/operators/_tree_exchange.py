@@ -3,6 +3,7 @@ import math
 from b3 import State, Tree, Proposal
 from b3.tree import Node, Internal
 
+
 class NarrowExchange:
     def __init__(self, weight):
         self.weight = weight
@@ -10,8 +11,8 @@ class NarrowExchange:
     def propose(self, state: State) -> Proposal:
         tree = state.tree
 
-        if tree.num_internals() < 2:
-            return Proposal.Reject
+        if tree.num_internals < 2:
+            return Proposal.Reject()
 
         grandparent = None
         while grandparent is None:
@@ -25,12 +26,12 @@ class NarrowExchange:
         elif tree.weight_of(right) > tree.weight_of(left):
             parent, uncle = right, left
         else:
-            return Proposal.Reject
+            return Proposal.Reject()
 
         parent, uncle = tree.as_internal(parent), tree.as_internal(uncle)
         # If the lower child isn't internal, abort.
         if parent is None:
-            return Proposal.Reject
+            return Proposal.Reject()
 
         num_grandparents_before = 0
         for node in tree.internals():
@@ -56,3 +57,36 @@ class NarrowExchange:
 def is_grandparent(tree: Tree, node: Internal) -> bool:
     left, right = tree.children_of(node)
     tree.is_internal(left) and tree.is_internal(right)
+
+
+class WideExchange:
+    def __init__(self, weight):
+        self.weight = weight
+
+    def propose(self, state: State) -> Proposal:
+        tree = state.tree
+        rng = state.rng
+
+        i = tree.random_node(rng)
+        j = None
+        while j != i:
+            j = tree.random_node(rng)
+
+        i_parent = tree.parent_of(i)
+        if i_parent is None:
+            return Proposal.Reject()
+        j_parent = tree.parent_of(j)
+        if j_parent is None:
+            return Proposal.Reject()
+
+        # TODO: custom `eq` implementation for node types
+        if (
+            j != i_parent
+            and tree.weight_of(j) < tree.weight_of(i_parent)
+            and tree.weight_of(i) < tree.weight_of(j_parent)
+        ):
+            tree.swap_parents(i, j)
+
+            return Proposal.Hastings(0.0)
+        else:
+            return Proposal.Reject()

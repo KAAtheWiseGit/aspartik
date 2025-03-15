@@ -1,1 +1,1 @@
-from ._tree_exchange import NarrowExchange
+from ._tree_exchange import NarrowExchange, WideExchange
