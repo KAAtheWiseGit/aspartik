@@ -14,7 +14,8 @@ class TreeScale:
         tree = state.tree
         generator = state.rng.generator()
 
-        scale = sample_range(factor, 1/factor, self.distribution, generator)
+        low, high = self.factor, 1 / self.factor
+        scale = sample_range(low, high, self.distribution, generator)
 
         for node in tree.node():
             new_weight = tree.weight_of(node) * scale
