@@ -23,3 +23,25 @@ export def flame [
 
 	rm --permanent --force **/perf.data*
 }
+
+# Run all checks on the repository
+export def check [] {
+	try {
+		ruff format --check
+		ruff check
+	} catch {
+		error make --unspanned {msg: "Python linting failed"}
+	}
+
+	try {
+		cargo clippy --workspace -- -D warnings
+	} catch {
+		error make --unspanned {msg: "Rust linting failed"}
+	}
+
+	try {
+		cargo test --workspace
+	} catch {
+		error make --unspanned {msg: "Rust tests failed"}
+	}
+}
