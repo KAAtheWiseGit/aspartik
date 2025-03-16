@@ -1,4 +1,5 @@
 from scipy.stats import rv_continuous
+from math import log
 
 from ._util import sample_range
 from b3 import State, Proposal
@@ -21,5 +22,5 @@ class TreeScale:
             new_weight = tree.weight_of(node) * scale
             tree.update_weight(node, new_weight)
 
-        ratio = scale.ln() * (tree.num_internals - 2)
+        ratio = log(scale) * (tree.num_internals - 2)
         return Proposal.Hastings(ratio)
