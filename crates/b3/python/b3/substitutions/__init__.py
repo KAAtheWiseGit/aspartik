@@ -15,7 +15,7 @@ class JC:
 
         self.matrix /= -3
 
-    def update(self, _):
+    def update(self):
         return self.matrix
 
 
@@ -23,7 +23,7 @@ class K80:
     def __init__(self, kappa: Parameter):
         self.kappa = kappa
 
-    def update(self, _):
+    def update(self):
         k = self.kappa
         s = np.array(
             [
@@ -51,7 +51,7 @@ class F81:
         )
         self.matrix /= 1 - a**2 - c**2 - g**2 - t**2
 
-    def update(self, _):
+    def update(self):
         return self.matrix
 
 
@@ -70,7 +70,7 @@ class HKY:
         self.frequencies = frequencies
         self.kappa = kappa
 
-    def update(self, _):
+    def update(self):
         k = self.kappa[0]
         a, c, g, t = self.frequencies
         s = np.array(

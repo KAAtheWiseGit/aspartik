@@ -12,7 +12,7 @@ pub type Substitution = RowMatrix<f64, 4, 4>;
 impl<'py> FromPyObject<'py> for PySubstitution {
 	fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
 		if !obj.getattr("update")?.is_callable() {
-			return Err(PyTypeError::new_err("Substitution model objects must have an `update` method, which takes a list of edges and returns a substitution matrix"));
+			return Err(PyTypeError::new_err("Substitution model objects must have an `update` method which returns a substitution matrix"));
 		}
 
 		Ok(Self {
@@ -22,13 +22,8 @@ impl<'py> FromPyObject<'py> for PySubstitution {
 }
 
 impl PySubstitution {
-	pub fn update(
-		&self,
-		py: Python,
-		edges: Vec<usize>,
-	) -> Result<Substitution> {
-		let args = (edges,).into_pyobject(py)?;
-		let matrix = self.inner.call_method1(py, "update", args)?;
+	pub fn update(&self, py: Python) -> Result<Substitution> {
+		let matrix = self.inner.call_method0(py, "update")?;
 
 		// TODO: conversion errors
 		// XXX: dimension parametrism
