@@ -8,6 +8,7 @@ pub mod parameter;
 pub mod prior;
 pub mod rng;
 mod state;
+pub mod substitution;
 // mod transitions;
 mod tree;
 pub mod util;
