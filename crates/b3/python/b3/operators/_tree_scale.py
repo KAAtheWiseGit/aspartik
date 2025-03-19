@@ -6,10 +6,11 @@ from b3 import State, Proposal
 
 
 class TreeScale:
-    def __init__(self, factor: float, distribution: rv_continuous, weight: float):
+    def __init__(self, factor: float, distribution: rv_continuous):
         if not 0 < factor < 1:
             raise ValueError(f"factor must be between 0 and 1, got {factor}")
-        self.weight = weight
+        self.factor = factor
+        self.distribution = distribution
 
     def propose(self, state: State) -> Proposal:
         tree = state.tree
