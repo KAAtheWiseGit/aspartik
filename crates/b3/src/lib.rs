@@ -1,4 +1,3 @@
-// mod distribution;
 pub mod likelihood;
 pub mod log;
 // pub mod mcmc;
@@ -13,7 +12,6 @@ mod state;
 mod tree;
 pub mod util;
 
-// pub use distribution::Distribution;
 // pub use transitions::Transitions;
 pub use prior::PyPrior;
 pub use tree::Tree;
