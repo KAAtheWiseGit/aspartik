@@ -1,3 +1,4 @@
+pub mod clock;
 pub mod likelihood;
 pub mod log;
 // pub mod mcmc;
