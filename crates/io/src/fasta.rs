@@ -24,6 +24,14 @@ impl<C: Character> Sequence<C> {
 		// with an ASCII character '>'.
 		&self.description[1..]
 	}
+
+	pub fn sequence(&self) -> &Seq<C> {
+		&self.seq
+	}
+
+	pub fn into_sequence(self) -> Seq<C> {
+		self.seq
+	}
 }
 
 impl<C: Character> From<Sequence<C>> for Seq<C> {
