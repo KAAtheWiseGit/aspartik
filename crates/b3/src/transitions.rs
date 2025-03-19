@@ -1,8 +1,8 @@
-use base::substitution::Substitution;
+use crate::substitution::Substitution;
 use linalg::RowMatrix;
 use shchurvec::ShchurVec;
 
-use crate::State;
+use crate::tree::Tree;
 
 pub struct Transitions<const N: usize> {
 	current: Substitution<N>,
@@ -14,6 +14,7 @@ pub struct Transitions<const N: usize> {
 	transitions: ShchurVec<RowMatrix<f64, N, N>>,
 }
 
+#[allow(dead_code)]
 impl<const N: usize> Transitions<N> {
 	pub fn new(length: usize) -> Self {
 		let transitions =
@@ -34,10 +35,8 @@ impl<const N: usize> Transitions<N> {
 	pub fn update(
 		&mut self,
 		substitution: Substitution<N>,
-		state: &State,
+		tree: &Tree,
 	) -> bool {
-		let tree = &state.tree;
-
 		let full_update = substitution != self.current;
 		if full_update {
 			self.current = substitution;

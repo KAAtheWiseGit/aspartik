@@ -1,5 +1,5 @@
 pub mod clock;
-pub mod likelihood;
+// pub mod likelihood;
 pub mod log;
 // pub mod mcmc;
 pub mod mcmc2;
@@ -10,7 +10,7 @@ pub mod prior;
 pub mod rng;
 mod state;
 pub mod substitution;
-// mod transitions;
+mod transitions;
 mod tree;
 pub mod util;
 

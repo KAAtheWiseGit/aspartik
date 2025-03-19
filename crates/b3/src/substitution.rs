@@ -7,7 +7,7 @@ pub struct PySubstitution {
 	inner: PyObject,
 }
 
-pub type Substitution = RowMatrix<f64, 4, 4>;
+pub type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
 impl<'py> FromPyObject<'py> for PySubstitution {
 	fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
@@ -22,7 +22,7 @@ impl<'py> FromPyObject<'py> for PySubstitution {
 }
 
 impl PySubstitution {
-	pub fn update(&self, py: Python) -> Result<Substitution> {
+	pub fn update(&self, py: Python) -> Result<Substitution<4>> {
 		let matrix = self.inner.call_method0(py, "update")?;
 
 		// TODO: conversion errors
