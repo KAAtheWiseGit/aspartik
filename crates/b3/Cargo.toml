@@ -21,7 +21,6 @@ rand_pcg = { workspace = true, features = ["serde"] }
 rayon = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-statrs = { workspace = true }
 vulkano = { workspace = true, features = ["macros"] }
 vulkano-shaders = { workspace = true }
 
