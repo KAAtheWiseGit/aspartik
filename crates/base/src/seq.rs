@@ -2,7 +2,7 @@ use anyhow::{Context, Error, Result};
 
 use std::{
 	fmt::Display,
-	ops::{Index, IndexMut},
+	ops::{Deref, DerefMut, Index, IndexMut},
 };
 
 use crate::bases::DnaNucleoBase;
@@ -31,6 +31,20 @@ pub type DnaSeq = Seq<DnaNucleoBase>;
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub struct Seq<C: Character> {
 	inner: Vec<C>,
+}
+
+impl<C: Character> Deref for Seq<C> {
+	type Target = [C];
+
+	fn deref(&self) -> &[C] {
+		&self.inner
+	}
+}
+
+impl<C: Character> DerefMut for Seq<C> {
+	fn deref_mut(&mut self) -> &mut [C] {
+		&mut self.inner
+	}
 }
 
 impl<C: Character> Display for Seq<C> {
