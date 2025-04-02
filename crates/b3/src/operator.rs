@@ -1,9 +1,12 @@
 use anyhow::Result;
 use pyo3::prelude::*;
-use pyo3::{exceptions::PyTypeError, types::PyTuple};
+use pyo3::{
+	exceptions::{PyTypeError, PyValueError},
+	types::PyTuple,
+};
 use rand::distr::{weighted::WeightedIndex, Distribution};
 
-use crate::{rng::Rng, state::PyState};
+use crate::{py_bail, rng::Rng, state::PyState};
 
 #[derive(Debug, Clone)]
 #[pyclass(frozen)]
@@ -60,6 +63,13 @@ impl WeightedScheduler {
 				.getattr(py, "weight")?
 				.extract::<f64>(py)?;
 			weights.push(weight);
+		}
+
+		if operators.is_empty() {
+			py_bail!(
+				PyValueError,
+				"Operator list must not be empty",
+			);
 		}
 
 		Ok(Self { operators, weights })
