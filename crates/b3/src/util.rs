@@ -160,3 +160,10 @@ pub fn slices_iter(key: Bound<PyAny>, length: usize) -> Result<SlicesIter> {
 		curr_index: start,
 	})
 }
+
+#[macro_export]
+macro_rules! py_bail {
+	($type:ident, $($arg:tt)*) => {
+		return Err($type::new_err(format!($($arg)*)));
+	}
+}

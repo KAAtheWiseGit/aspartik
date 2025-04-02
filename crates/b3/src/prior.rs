@@ -2,7 +2,7 @@ use anyhow::Result;
 use pyo3::prelude::*;
 use pyo3::{conversion::FromPyObject, exceptions::PyTypeError, types::PyTuple};
 
-use crate::state::PyState;
+use crate::{py_bail, state::PyState};
 
 pub struct PyPrior {
 	/// INVARIANT: the type has a `probability` method
@@ -24,7 +24,11 @@ impl PyPrior {
 impl<'py> FromPyObject<'py> for PyPrior {
 	fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
 		if !obj.getattr("probability")?.is_callable() {
-			return Err(PyTypeError::new_err("Prior objects must have a `probability` method, which takes `State` and returns a real number"));
+			py_bail!(
+				PyTypeError,
+				"Prior objects must have a `probability` method, \
+				which takes `State` and returns a real number",
+			);
 		}
 
 		Ok(Self {
