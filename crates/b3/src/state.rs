@@ -86,6 +86,10 @@ impl PyState {
 		})
 	}
 
+	fn __repr__(&self) -> String {
+		format!("<b3.State>")
+	}
+
 	#[getter]
 	fn tree(&self) -> PyTree {
 		self.inner().tree.clone()
