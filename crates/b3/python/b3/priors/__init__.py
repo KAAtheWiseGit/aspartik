@@ -1,1 +1,1 @@
-from .uniform import UniformPrior as UniformPrior
+from ._uniform import UniformPrior as UniformPrior
