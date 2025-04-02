@@ -164,6 +164,6 @@ pub fn slices_iter(key: Bound<PyAny>, length: usize) -> Result<SlicesIter> {
 #[macro_export]
 macro_rules! py_bail {
 	($type:ident, $($arg:tt)*) => {
-		return Err($type::new_err(format!($($arg)*)));
+		return Err($type::new_err(format!($($arg)*)).into());
 	}
 }
