@@ -34,14 +34,11 @@ fn step(
 	priors: &[PyPrior],
 	scheduler: &mut WeightedScheduler,
 ) -> Result<()> {
-	// TODO: select operator
 	let operator =
 		scheduler.select_operator(&mut state.inner().rng.inner());
 
 	let hastings = match operator.propose(py, state)? {
 		Proposal::Accept() => {
-			// TODO: propose
-
 			accept(state)?;
 			return Ok(());
 		}
@@ -50,27 +47,27 @@ fn step(
 		}
 		Proposal::Hastings(ratio) => ratio,
 	};
-	// TODO: apply proposal
-
-	// TODO: get tree likelihood
-	let likelihood = 0.0;
 
 	let mut prior: f64 = 0.0;
 	for py_prior in priors {
 		prior += py_prior.probability(py, state)?;
 
 		// short-circuit on a rejection by any prior
-		if prior.is_infinite() {
-			break;
+		if prior == f64::NEG_INFINITY {
+			reject(state)?;
+			return Ok(());
 		}
 	}
+
+	// TODO: calculate tree likelihood
+	let likelihood = 0.0;
 
 	let posterior = likelihood + prior;
 
 	let ratio = posterior - state.inner().likelihood + hastings;
 
-	let random_0_1 = state.inner().rng.inner().random::<f64>().ln();
-	if ratio > random_0_1 {
+	let random_0_1 = state.inner().rng.inner().random::<f64>();
+	if ratio > random_0_1.ln() {
 		state.inner().likelihood = posterior;
 
 		accept(state)?;
