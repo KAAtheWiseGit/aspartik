@@ -5,7 +5,7 @@ from b3.tree import Internal
 
 
 class NarrowExchange:
-    def __init__(self, weight):
+    def __init__(self, weight=1):
         self.weight = weight
 
     def propose(self, state: State) -> Proposal:
@@ -61,7 +61,7 @@ def is_grandparent(tree: Tree, node: Internal) -> bool:
 
 
 class WideExchange:
-    def __init__(self, weight):
+    def __init__(self, weight=1):
         self.weight = weight
 
     def propose(self, state: State) -> Proposal:

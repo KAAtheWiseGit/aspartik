@@ -12,7 +12,8 @@ class ParamScale:
         param: Parameter,
         factor: float,
         distribution: rv_continuous,
-        dimensions: bool = "one" | "all" | "independent",
+        dimensions: "one" | "all" | "independent",
+        wegith=1,
     ):
         if not 0 < factor < 1:
             raise ValueError(f"factor must be between 0 and 1, got {factor}")

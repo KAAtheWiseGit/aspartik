@@ -7,11 +7,11 @@ from b3 import State, Proposal
 class TreeSlide:
     def __init__(
         self,
-        weight: float,
         distribution: rv_continuous,
+        weight=1,
     ):
-        self.weight = weight
         self.distribution = distribution
+        self.weight = weight
 
     def propose(self, state: State) -> Proposal:
         tree = state.tree
