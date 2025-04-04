@@ -47,6 +47,8 @@
 
 mod debug;
 mod eq;
+#[cfg(feature = "serde")]
+mod serde;
 
 use std::{mem::MaybeUninit, ops::Index};
 
