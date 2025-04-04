@@ -137,6 +137,36 @@ impl<T> ShchurVec<T> {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
 
+	fn first_item(&self, index: usize) -> Option<&T> {
+		// first item is either active, or the element has been edited
+		// and the second item is active
+		if self.mask[index] == 0
+			|| (self.mask[index] == 1 && self.edited[index])
+		{
+			let item = &self.inner[index * 2];
+			// SAFETY: we know from the condition that this field
+			// is either active or inactive, but edited, meaning it
+			// was initialized when the epoch started.
+			let item = unsafe { item.assume_init_ref() };
+			Some(item)
+		} else {
+			None
+		}
+	}
+
+	fn second_item(&self, index: usize) -> Option<&T> {
+		if self.mask[index] == 1
+			|| (self.mask[index] == 0 && self.edited[index])
+		{
+			let item = &self.inner[index * 2 + 1];
+			// SAFETY: same as `first_item`
+			let item = unsafe { item.assume_init_ref() };
+			Some(item)
+		} else {
+			None
+		}
+	}
+
 	/// Accept all of the changes made since the creation of the vector or
 	/// the last call to `accept` or [`reject`][ShchurVec::reject].
 	///
