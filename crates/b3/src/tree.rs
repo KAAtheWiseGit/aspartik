@@ -159,9 +159,9 @@ impl Tree {
 		}
 
 		Self {
-			children: children.as_slice().into(),
-			parents: parents.as_slice().into(),
-			weights: weights.as_slice().into(),
+			children: children.into(),
+			parents: parents.into(),
+			weights: weights.into(),
 
 			updated_edges: Vec::new(),
 			updated_nodes: Vec::new(),

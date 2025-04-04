@@ -483,6 +483,12 @@ impl<T: Clone> From<&[T]> for ShchurVec<T> {
 	}
 }
 
+impl<T: Clone> From<Vec<T>> for ShchurVec<T> {
+	fn from(value: Vec<T>) -> Self {
+		value.as_slice().into()
+	}
+}
+
 impl<T: Clone, const N: usize> From<[T; N]> for ShchurVec<T> {
 	fn from(values: [T; N]) -> Self {
 		let mut out = Self::with_capacity(values.len());
