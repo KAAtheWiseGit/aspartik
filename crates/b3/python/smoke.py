@@ -5,8 +5,8 @@ from b3 import Tree, State, Rng, Parameter
 from b3.priors import UniformPrior
 from b3.operators import TreeScale
 
-tree = Tree(["a", "b"], [1.0, 2.0, 3.0], [0, 1])
 rng = Rng(4)
+tree = Tree(30, rng)
 params = [
     Parameter.Real(0.5),
     Parameter.Integer(0, 1, 2, 3),

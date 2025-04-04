@@ -2,6 +2,7 @@ use anyhow::Result;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use rand::distr::{Distribution, Uniform};
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -19,9 +20,6 @@ const ROOT: usize = usize::MAX;
 
 #[derive(Debug)]
 pub struct Tree {
-	#[allow(dead_code)]
-	names: Vec<String>,
-
 	children: ShchurVec<usize>,
 	parents: ShchurVec<usize>,
 	weights: ShchurVec<f64>,
@@ -109,25 +107,65 @@ impl Leaf {
 }
 
 impl Tree {
-	pub(crate) fn new(
-		names: Vec<String>,
-		weights: &[f64],
-		children: &[usize],
-	) -> Self {
-		let mut out = Self {
-			names,
+	pub fn new(num_leaves: usize, rng: &mut Rng) -> Self {
+		// Here we create a Prüfer sequence, which encodes a binary tree
+		// with the root in the last node with the ID `2l - 2`.  To do
+		// that we create a sequence in which all internal nodes appear
+		// twice.  Except the last node, which only appears once.
+		let internals = num_leaves..(2 * num_leaves - 1);
+		let mut prüfer: Vec<usize> =
+			internals.clone().chain(internals).collect();
+		prüfer.pop(); // remove the last node
+		prüfer.shuffle(rng); // random shuffle
 
-			children: children.into(),
-			parents: ShchurVec::repeat(ROOT, weights.len()),
-			weights: weights.into(),
+		// With that, the parents array is just the Prüfer sequence with
+		// the last node and the ROOT terminal at the end.
+		prüfer.push(2 * num_leaves - 2);
+		prüfer.push(ROOT);
+		let parents = prüfer;
+
+		let mut children = vec![ROOT; 2 * (num_leaves - 1)];
+		for (child, parent) in parents.iter().copied().enumerate() {
+			if parent == ROOT {
+				continue;
+			}
+			let idx = (parent - num_leaves) * 2;
+			// first encountered child goes in the left slot, second
+			// one goes in the right
+			if children[idx] == ROOT {
+				children[idx] = child;
+			} else {
+				children[idx + 1] = child;
+			}
+		}
+
+		// Walks the tree starting from the root
+		let mut weights = vec![0.0; parents.len()];
+		let mut walk = VecDeque::from([2 * num_leaves - 2]);
+		while let Some(node) = walk.pop_front() {
+			let new_weight = weights[node] + 0.1;
+			let idx = 2 * (node - num_leaves);
+			weights[children[idx]] = new_weight;
+			weights[children[idx + 1]] = new_weight;
+
+			// Add left and right to the queue if they are also
+			// internals
+			if children[idx] >= num_leaves {
+				walk.push_front(children[idx]);
+			}
+			if children[idx + 1] >= num_leaves {
+				walk.push_front(children[idx + 1]);
+			}
+		}
+
+		Self {
+			children: children.as_slice().into(),
+			parents: parents.as_slice().into(),
+			weights: weights.as_slice().into(),
 
 			updated_edges: Vec::new(),
 			updated_nodes: Vec::new(),
-		};
-
-		out.set_all_parents();
-
-		out
+		}
 	}
 
 	pub(crate) fn accept(&mut self) {
@@ -281,21 +319,6 @@ impl Tree {
 
 		self.update_edge(edge_a, b);
 		self.update_edge(edge_b, a);
-	}
-
-	fn set_all_parents(&mut self) {
-		let num_leaves = self.num_leaves();
-
-		let mut iter = self.children.into_iter();
-		let mut i = 0;
-		while let (Some(left), Some(right)) = (iter.next(), iter.next())
-		{
-			self.parents.set(*left, i + num_leaves);
-			self.parents.set(*right, i + num_leaves);
-			i += 1;
-		}
-
-		self.parents.accept();
 	}
 
 	pub fn verify(&self) {
@@ -584,12 +607,8 @@ impl PyTree {
 #[pymethods]
 impl PyTree {
 	#[new]
-	fn new(
-		names: Vec<String>,
-		weights: Vec<f64>,
-		children: Vec<usize>,
-	) -> Self {
-		let tree = Tree::new(names, &weights, &children);
+	fn new(num_leaves: usize, rng: PyRng) -> Self {
+		let tree = Tree::new(num_leaves, &mut rng.inner());
 		Self {
 			inner: Arc::new(Mutex::new(tree)),
 		}
