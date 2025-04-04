@@ -139,6 +139,7 @@ impl<T> ShchurVec<T> {
 		self.edited.iter_mut().for_each(|v| *v = false);
 	}
 
+	#[cfg(feature = "serde")]
 	fn first_item(&self, index: usize) -> Option<&T> {
 		// first item is either active, or the element has been edited
 		// and the second item is active
@@ -156,6 +157,7 @@ impl<T> ShchurVec<T> {
 		}
 	}
 
+	#[cfg(feature = "serde")]
 	fn second_item(&self, index: usize) -> Option<&T> {
 		if self.mask[index] == 1
 			|| (self.mask[index] == 0 && self.edited[index])
