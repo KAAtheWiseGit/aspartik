@@ -267,6 +267,27 @@ impl PyParameter {
 			}
 		}
 	}
+
+	fn is_real(&self) -> Result<bool> {
+		Ok(match &*self.inner()? {
+			Parameter::Real(_) => true,
+			_ => false,
+		})
+	}
+
+	fn is_integer(&self) -> Result<bool> {
+		Ok(match &*self.inner()? {
+			Parameter::Integer(_) => true,
+			_ => false,
+		})
+	}
+
+	fn is_boolean(&self) -> Result<bool> {
+		Ok(match &*self.inner()? {
+			Parameter::Boolean(_) => true,
+			_ => false,
+		})
+	}
 }
 
 fn extract<T: for<'a> FromPyObjectBound<'a, 'a>>(

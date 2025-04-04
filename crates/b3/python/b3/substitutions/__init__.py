@@ -65,7 +65,8 @@ class HKY:
         if len(kappa) == 0:
             raise ValueError("Expected single-dimensional parameter")
 
-        # TODO: check that kappa is real
+        if not kappa.is_real():
+            raise ValueError("Expected a real parameter")
 
         self.frequencies = frequencies
         self.kappa = kappa
