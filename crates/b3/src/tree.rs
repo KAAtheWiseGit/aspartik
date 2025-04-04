@@ -196,9 +196,7 @@ impl Tree {
 	}
 
 	pub(crate) fn full_update(&self) -> Vec<Internal> {
-		let internals: Vec<Node> =
-			self.internals().map(|n| n.into()).collect();
-		self.walk_nodes(&internals)
+		self.internals().collect()
 	}
 
 	pub(crate) fn to_lists(
