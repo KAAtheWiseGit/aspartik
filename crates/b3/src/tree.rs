@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use rand::distr::{Distribution, Uniform};
@@ -319,9 +319,9 @@ impl Tree {
 		self.update_edge(edge_b, a);
 	}
 
-	pub fn verify(&self) {
+	pub fn verify(&self) -> Result<()> {
 		for (i, parent) in self.parents.iter().enumerate() {
-			assert!(
+			ensure!(
 				*parent >= self.num_leaves(),
 				"Leaf {} became a parent of {}",
 				parent,
@@ -332,7 +332,7 @@ impl Tree {
 		for node in self.internals() {
 			let (left, right) = self.children_of(node);
 
-			assert!(
+			ensure!(
 				self.weight_of(node.into()) < self.weight_of(left),
 				"Node {} ({}) is lower than it's left child {} ({})",
 				node.0,
@@ -340,7 +340,7 @@ impl Tree {
 				left.0,
 				self.weight_of(left),
 			);
-			assert!(
+			ensure!(
 				self.weight_of(node.into()) < self.weight_of(right),
 				"Node {} ({}) is lower than it's right child {} ({})",
 				node.0,
@@ -350,6 +350,18 @@ impl Tree {
 			);
 		}
 
+		let roots: Vec<usize> = self
+			.parents
+			.iter()
+			.copied()
+			.filter(|p| *p == ROOT)
+			.collect();
+		ensure!(
+			roots.len() == 1,
+			"The tree has more than one root: {:?}",
+			roots
+		);
+
 		use std::collections::HashSet;
 		let mut children = HashSet::new();
 		for node in self.internals() {
@@ -357,7 +369,9 @@ impl Tree {
 			children.insert(left);
 			children.insert(right);
 		}
-		assert_eq!(children.len(), self.num_nodes() - 1);
+		ensure!(children.len() == self.num_nodes() - 1);
+
+		Ok(())
 	}
 
 	pub fn num_nodes(&self) -> usize {
