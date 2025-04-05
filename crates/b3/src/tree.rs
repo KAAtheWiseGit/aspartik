@@ -6,7 +6,8 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use std::{
-	collections::{HashSet, VecDeque},
+	cmp::Reverse,
+	collections::{BinaryHeap, HashSet, VecDeque},
 	sync::{Arc, Mutex, MutexGuard},
 };
 
@@ -106,29 +107,36 @@ impl Leaf {
 	}
 }
 
+#[allow(unused)]
 impl Tree {
 	pub fn new(num_leaves: usize, rng: &mut Rng) -> Self {
+		let num_internals = num_leaves - 1;
+		let num_nodes = num_leaves + num_internals;
 		// Here we create a Prüfer sequence, which encodes a binary tree
 		// with the root in the last node with the ID `2l - 2`.  To do
 		// that we create a sequence in which all internal nodes appear
 		// twice.  Except the last node, which only appears once.
-		let internals = num_leaves..(2 * num_leaves - 1);
+		let internals = num_leaves..num_nodes;
 		let mut prüfer: Vec<usize> =
 			internals.clone().chain(internals).collect();
 		prüfer.pop(); // remove the last node
 		prüfer.shuffle(rng); // random shuffle
 
-		// With that, the parents array is just the Prüfer sequence with
-		// the last node and the ROOT terminal at the end.
-		prüfer.push(2 * num_leaves - 2);
-		prüfer.push(ROOT);
-		let parents = prüfer;
+		let mut parents = vec![ROOT; num_nodes];
+		let mut children = vec![ROOT; 2 * num_internals];
 
-		let mut children = vec![ROOT; 2 * (num_leaves - 1)];
-		for (child, parent) in parents.iter().copied().enumerate() {
-			if parent == ROOT {
-				continue;
-			}
+		let mut histogram = vec![2; num_internals];
+		// the last node only appears once
+		*histogram.last_mut().unwrap() = 1;
+		let mut unused =
+			BinaryHeap::from_iter((0..num_leaves).map(Reverse));
+
+		for parent in prüfer {
+			let child = unused.pop().unwrap().0;
+
+			parents[child] = parent;
+
+			// `children` update
 			let idx = (parent - num_leaves) * 2;
 			// first encountered child goes in the left slot, second
 			// one goes in the right
@@ -137,13 +145,25 @@ impl Tree {
 			} else {
 				children[idx + 1] = child;
 			}
-		}
 
-		// Walks the tree starting from the root
-		let mut weights = vec![0.0; parents.len()];
-		let mut walk = VecDeque::from([2 * num_leaves - 2]);
+			histogram[parent - num_leaves] -= 1;
+			if histogram[parent - num_leaves] == 0 {
+				unused.push(Reverse(parent));
+			}
+		}
+		// last node, which should be connected to the root
+		let child = unused.pop().unwrap().0;
+		let root = num_nodes - 1;
+		parents[child] = root;
+		children[(root - num_leaves) * 2 + 1] = child;
+
+		// Sets the weights by walking the tree starting from the root.
+		// Each next layer has a weight which is bigger by DIFF.
+		const DIFF: f64 = 0.1;
+		let mut weights = vec![0.0; num_nodes];
+		let mut walk = VecDeque::from([root]);
 		while let Some(node) = walk.pop_front() {
-			let new_weight = weights[node] + 0.1;
+			let new_weight = weights[node] + DIFF;
 			let idx = 2 * (node - num_leaves);
 			weights[children[idx]] = new_weight;
 			weights[children[idx + 1]] = new_weight;
@@ -787,6 +807,10 @@ impl PyTree {
 	/// Samples a random leaf node from a tree.
 	fn random_leaf(&self, rng: &PyRng) -> Leaf {
 		self.inner().random_leaf(&mut rng.inner())
+	}
+
+	fn verify(&self) -> Result<()> {
+		self.inner().verify()
 	}
 }
 

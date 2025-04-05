@@ -6,7 +6,9 @@ from b3.priors import UniformPrior
 from b3.operators import TreeScale
 
 rng = Rng(4)
-tree = Tree(30, rng)
+tree = Tree(50, rng)
+tree.verify()
+
 params = [
     Parameter.Real(0.5),
     Parameter.Integer(0, 1, 2, 3),
