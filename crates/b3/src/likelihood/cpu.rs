@@ -1,4 +1,4 @@
-use super::{Row, Likelihood, Transition};
+use super::{LikelihoodTrait, Row, Transition};
 use shchurvec::ShchurVec;
 
 pub struct CpuLikelihood<const N: usize> {
@@ -7,7 +7,7 @@ pub struct CpuLikelihood<const N: usize> {
 	updated_nodes: Vec<usize>,
 }
 
-impl<const N: usize> Likelihood<N> for CpuLikelihood<N> {
+impl<const N: usize> LikelihoodTrait<N> for CpuLikelihood<N> {
 	fn propose(
 		&mut self,
 		nodes: &[usize],

@@ -32,7 +32,7 @@ use vulkano::{
 
 use std::sync::Arc;
 
-use super::{Likelihood, Row, Transition};
+use super::{LikelihoodTrait, Row, Transition};
 
 pub struct GpuLikelihood {
 	// TODO: bench and see if allocators and such should be preserved here
@@ -70,7 +70,7 @@ mod reject {
 	}
 }
 
-impl Likelihood<4> for GpuLikelihood {
+impl LikelihoodTrait<4> for GpuLikelihood {
 	fn propose(
 		&mut self,
 		nodes: &[usize],
