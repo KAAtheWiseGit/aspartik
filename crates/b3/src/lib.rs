@@ -14,8 +14,8 @@ mod transitions;
 mod tree;
 pub mod util;
 
-// pub use transitions::Transitions;
 pub use prior::PyPrior;
+pub use transitions::Transitions;
 pub use tree::Tree;
 
 use pyo3::prelude::*;
