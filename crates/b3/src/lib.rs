@@ -14,6 +14,7 @@ mod transitions;
 mod tree;
 pub mod util;
 
+pub use likelihood::Likelihood;
 pub use prior::PyPrior;
 pub use transitions::Transitions;
 pub use tree::Tree;
