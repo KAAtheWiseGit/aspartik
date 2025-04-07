@@ -14,7 +14,6 @@ mod transitions;
 mod tree;
 pub mod util;
 
-pub use likelihood::Likelihood;
 pub use prior::PyPrior;
 pub use transitions::Transitions;
 pub use tree::Tree;
@@ -43,6 +42,7 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	m.add_class::<state::PyState>()?;
 	m.add_class::<tree::PyTree>()?;
 	m.add_class::<operator::Proposal>()?;
+	m.add_class::<likelihood::PyLikelihood>()?;
 	// XXX: submodule?
 	m.add_class::<data::PyDna>()?;
 

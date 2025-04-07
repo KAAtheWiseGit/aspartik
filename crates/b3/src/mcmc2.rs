@@ -3,11 +3,11 @@ use pyo3::prelude::*;
 use rand::Rng as _;
 
 use crate::{
+	likelihood::{Likelihood, PyLikelihood},
 	operator::{Proposal, PyOperator, WeightedScheduler},
 	state::PyState,
-	substitution::PySubstitution,
 	transitions::Transitions,
-	Likelihood, PyPrior,
+	PyPrior,
 };
 
 #[pyfunction]
@@ -16,14 +16,12 @@ pub fn run(
 	state: PyState,
 	priors: Vec<PyPrior>,
 	operators: Vec<PyOperator>,
-	substitution: PySubstitution<4>,
+	likelihood: PyLikelihood,
 ) -> Result<()> {
 	let num_edges = state.inner().tree.inner().num_internals() * 2;
 	let mut transitions = Transitions::<4>::new(num_edges);
 
-	// TODO: how do we init it?  Theoretically `run` should take a list of
-	// likelihoods, but dimensions are tricky
-	let mut likelihood = Likelihood::<4>::cpu(vec![vec![]]);
+	let likelihood = &mut *likelihood.inner();
 
 	// We acquire the lock for the full duration of the program so that we
 	// don't spend time locking and unlocking
@@ -35,9 +33,8 @@ pub fn run(
 				py,
 				&state,
 				&priors,
-				&substitution,
 				&mut transitions,
-				&mut likelihood,
+				likelihood,
 				&mut scheduler,
 			)?;
 			// TODO: logging
@@ -50,9 +47,8 @@ fn step(
 	py: Python,
 	state: &PyState,
 	priors: &[PyPrior],
-	substitution: &PySubstitution<4>,
 	transitions: &mut Transitions<4>,
-	likelihood: &mut Likelihood<4>,
+	likelihood: &mut Likelihood,
 	scheduler: &mut WeightedScheduler,
 ) -> Result<()> {
 	let operator =
@@ -81,8 +77,7 @@ fn step(
 	}
 
 	// calculate tree likelihood
-	let likelihood =
-		propose(py, state, substitution, transitions, likelihood)?;
+	let likelihood = likelihood.propose(py, state, transitions)?;
 
 	let posterior = likelihood + prior;
 
@@ -98,31 +93,6 @@ fn step(
 	}
 
 	Ok(())
-}
-
-fn propose(
-	py: Python,
-	state: &PyState,
-	substitution: &PySubstitution<4>,
-	transitions: &mut Transitions<4>,
-	likelihood: &mut Likelihood<4>,
-) -> Result<f64> {
-	// update the transitions
-	let substitution_matrix = substitution.get_matrix(py)?;
-	let inner_state = state.inner();
-	let tree = &*inner_state.tree.inner();
-	let full_update = transitions.update(substitution_matrix, tree);
-	let nodes = if full_update {
-		tree.full_update()
-	} else {
-		tree.nodes_to_update()
-	};
-
-	let (nodes, edges, children) = tree.to_lists(&nodes);
-
-	let transitions = transitions.matrices(&edges);
-
-	Ok(likelihood.propose(&nodes, &transitions, &children))
 }
 
 fn accept(state: &PyState) -> Result<()> {
