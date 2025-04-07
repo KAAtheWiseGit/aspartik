@@ -1,5 +1,4 @@
-use super::{Likelihood, Row};
-use base::substitution::Substitution;
+use super::{Row, Likelihood, Transition};
 use shchurvec::ShchurVec;
 
 pub struct CpuLikelihood<const N: usize> {
@@ -8,26 +7,23 @@ pub struct CpuLikelihood<const N: usize> {
 	updated_nodes: Vec<usize>,
 }
 
-impl<const N: usize> Likelihood for CpuLikelihood<N> {
-	type Row = Row<N>;
-	type Substitution = Substitution<N>;
-
+impl<const N: usize> Likelihood<N> for CpuLikelihood<N> {
 	fn propose(
 		&mut self,
 		nodes: &[usize],
-		substitutions: &[Self::Substitution],
+		transitions: &[Transition<N>],
 		children: &[usize],
 	) -> f64 {
-		assert_eq!(nodes.len() * 2, substitutions.len());
+		assert_eq!(nodes.len() * 2, transitions.len());
 		assert_eq!(nodes.len() * 2, children.len());
 
 		self.updated_nodes = nodes.to_vec();
 
 		for probability in &mut self.probabilities {
 			for i in 0..nodes.len() {
-				let left = substitutions[i * 2]
+				let left = transitions[i * 2]
 					* probability[children[i * 2]];
-				let right = substitutions[i * 2 + 1]
+				let right = transitions[i * 2 + 1]
 					* probability[children[i * 2 + 1]];
 				probability.set(nodes[i], left * right);
 			}

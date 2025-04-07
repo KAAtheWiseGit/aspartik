@@ -32,8 +32,7 @@ use vulkano::{
 
 use std::sync::Arc;
 
-use super::{Likelihood, Row};
-use base::substitution::Substitution;
+use super::{Likelihood, Row, Transition};
 
 pub struct GpuLikelihood {
 	// TODO: bench and see if allocators and such should be preserved here
@@ -60,25 +59,22 @@ pub struct GpuLikelihood {
 mod propose {
 	vulkano_shaders::shader! {
 		ty: "compute",
-		path: "src/likelihood/propose.glsl",
+		path: "src/likelihood/gpu/propose.glsl",
 	}
 }
 
 mod reject {
 	vulkano_shaders::shader! {
 		ty: "compute",
-		path: "src/likelihood/reject.glsl",
+		path: "src/likelihood/gpu/reject.glsl",
 	}
 }
 
-impl Likelihood for GpuLikelihood {
-	type Row = Row<4>;
-	type Substitution = Substitution<4>;
-
+impl Likelihood<4> for GpuLikelihood {
 	fn propose(
 		&mut self,
 		nodes: &[usize],
-		substitutions: &[Self::Substitution],
+		transitions: &[Transition<4>],
 		children: &[usize],
 	) -> f64 {
 		let pipeline_layout = self.propose_pipeline.layout();
@@ -109,7 +105,7 @@ impl Likelihood for GpuLikelihood {
 				..Default::default()
 			},
 			// Shader matrices are column-major
-			substitutions.iter().map(|v| v.transpose()),
+			transitions.iter().map(|v| v.transpose()),
 		).unwrap();
 		let children_buffer = Buffer::from_iter(
 			self.memory_allocator.clone(),

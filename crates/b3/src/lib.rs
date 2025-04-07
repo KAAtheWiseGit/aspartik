@@ -1,6 +1,6 @@
 pub mod clock;
 pub mod data;
-// pub mod likelihood;
+pub mod likelihood;
 pub mod log;
 // pub mod mcmc;
 pub mod mcmc2;

@@ -1,22 +1,20 @@
+use linalg::{RowMatrix, Vector};
+
 mod cpu;
 mod gpu;
 // mod thread;
 
-pub use cpu::CpuLikelihood;
-pub use gpu::GpuLikelihood;
 // #[allow(unused)] // TODO: use dynamically in `State`
 // pub use thread::ThreadedLikelihood;
 
-pub type Row<const N: usize> = linalg::Vector<f64, N>;
+type Row<const N: usize> = Vector<f64, N>;
+type Transition<const N: usize> = RowMatrix<f64, N, N>;
 
-pub trait Likelihood {
-	type Row: Default;
-	type Substitution;
-
+pub trait Likelihood<const N: usize> {
 	fn propose(
 		&mut self,
 		nodes: &[usize],
-		substitutions: &[Self::Substitution],
+		transitions: &[Transition<N>],
 		children: &[usize],
 	) -> f64;
 
