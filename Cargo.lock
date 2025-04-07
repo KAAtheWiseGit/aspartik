@@ -376,6 +376,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "lapack-sys",
+ "netlib-src",
  "num-traits",
 ]
 
@@ -415,6 +416,15 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
+name = "netlib-src"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39f41f36bb4d46906d5a72da5b73a804d9de1a7282eb7c89617201acda7b8212"
+dependencies = [
+ "cmake",
+]
 
 [[package]]
 name = "nom"
