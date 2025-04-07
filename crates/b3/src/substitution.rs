@@ -1,18 +1,26 @@
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use linalg::RowMatrix;
 use pyo3::prelude::*;
 use pyo3::{conversion::FromPyObject, exceptions::PyTypeError};
 
-pub struct PySubstitution {
+use crate::py_bail;
+
+pub struct PySubstitution<const N: usize> {
 	inner: PyObject,
 }
 
 pub type Substitution<const N: usize> = RowMatrix<f64, N, N>;
 
-impl<'py> FromPyObject<'py> for PySubstitution {
+impl<'py, const N: usize> FromPyObject<'py> for PySubstitution<N> {
 	fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
-		if !obj.getattr("update")?.is_callable() {
-			return Err(PyTypeError::new_err("Substitution model objects must have an `update` method which returns a substitution matrix"));
+		if !obj.getattr("get_matrix")?.is_callable() {
+			py_bail!(PyTypeError, "Substitution model objects must have an `get_matrix` method which returns a substitution matrix");
+		}
+
+		let dimensions =
+			obj.getattr("dimensions")?.extract::<usize>()?;
+		if dimensions != N {
+			py_bail!(PyTypeError, "Expected the substitution model to have {N} dimensions, got {dimensions}");
 		}
 
 		Ok(Self {
@@ -21,15 +29,16 @@ impl<'py> FromPyObject<'py> for PySubstitution {
 	}
 }
 
-impl PySubstitution {
-	pub fn update(&self, py: Python) -> Result<Substitution<4>> {
-		let matrix = self.inner.call_method0(py, "update")?;
+impl<const N: usize> PySubstitution<N> {
+	pub fn get_matrix(&self, py: Python) -> Result<Substitution<N>> {
+		let matrix = self.inner.call_method0(py, "get_matrix")?;
 
-		// TODO: conversion errors
-		// XXX: dimension parametrism
-		type Matrix = [[f64; 4]; 4];
+		type Matrix<const N: usize> = [[f64; N]; N];
 
-		let matrix = matrix.extract::<Matrix>(py)?;
+		let matrix =
+			matrix.extract::<Matrix<N>>(py).with_context(|| {
+				anyhow!("Expected the substitution model to return a matrix {0}x{0}.", N)
+			})?;
 		let matrix = RowMatrix::from(matrix);
 
 		Ok(matrix)
