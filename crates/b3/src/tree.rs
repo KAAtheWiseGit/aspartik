@@ -647,7 +647,7 @@ impl PyTree {
 	}
 
 	fn __repr__(&self) -> String {
-		format!("<b3.Tree>")
+		"<b3.Tree>".to_string()
 	}
 
 	/// Points `edge` to `node`.

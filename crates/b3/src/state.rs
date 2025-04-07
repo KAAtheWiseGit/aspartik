@@ -87,7 +87,7 @@ impl PyState {
 	}
 
 	fn __repr__(&self) -> String {
-		format!("<b3.State>")
+		"<b3.State>".to_string()
 	}
 
 	#[getter]
