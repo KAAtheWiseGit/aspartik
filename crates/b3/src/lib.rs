@@ -23,7 +23,7 @@ use pyo3::prelude::*;
 /// Short title.
 ///
 /// Description.
-#[pymodule]
+#[pymodule(name = "_b3_rust_impl")]
 fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	let tree = tree::submodule(py)?;
 	m.add_submodule(&tree)?;

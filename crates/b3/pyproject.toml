@@ -14,4 +14,5 @@ build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
+module-name = "b3._b3_rust_impl"
 features = ["pyo3/extension-module"]
