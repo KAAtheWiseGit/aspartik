@@ -6,10 +6,11 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
+build = "build.rs"
+
 [dependencies]
 bytemuck = { workspace = true, optional = true }
 lapack-sys = { workspace = true }
-netlib-src = { workspace = true, default-features = false, features = ["static"] }
 num-traits = { workspace = true }
 
 [features]
