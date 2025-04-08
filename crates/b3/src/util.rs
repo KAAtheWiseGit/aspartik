@@ -4,10 +4,14 @@ use anyhow::{bail, Result};
 use pyo3::prelude::*;
 use pyo3::types::{PySlice, PySliceIndices, PyTuple};
 
+use std::fs::File;
+
+use crate::likelihood::Row;
 use base::{seq::DnaSeq, DnaNucleoBase};
+use io::fasta::FastaReader;
 use linalg::Vector;
 
-pub fn dna_to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Vector<f64, 4>>> {
+pub fn dna_to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Row<4>>> {
 	let width = seqs[0].len();
 	let height = seqs.len();
 
@@ -113,4 +117,19 @@ macro_rules! py_bail {
 	($type:ident, $($arg:tt)*) => {
 		return Err($type::new_err(format!($($arg)*)).into());
 	}
+}
+
+pub fn read_fasta(path: &str) -> Result<Vec<Vec<Row<4>>>> {
+	let file = File::open(path)?;
+	let fasta = FastaReader::<DnaNucleoBase, _>::new(file);
+	let mut seqs = Vec::new();
+	let mut names = Vec::new();
+
+	for record in fasta {
+		let record = record?;
+		names.push(record.description().to_owned());
+		seqs.push(record.into_sequence());
+	}
+
+	Ok(dna_to_rows(&seqs))
 }

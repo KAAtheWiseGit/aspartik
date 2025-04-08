@@ -17,7 +17,7 @@ class NarrowExchange:
 
         grandparent = None
         while grandparent is None:
-            internal = state.tree.sample_internal(state.rng)
+            internal = state.tree.random_internal(state.rng)
             if is_grandparent(tree, internal):
                 grandparent = internal
 
@@ -57,7 +57,7 @@ class NarrowExchange:
 
 def is_grandparent(tree: Tree, node: Internal) -> bool:
     left, right = tree.children_of(node)
-    tree.is_internal(left) and tree.is_internal(right)
+    return tree.is_internal(left) and tree.is_internal(right)
 
 
 class WideExchange:

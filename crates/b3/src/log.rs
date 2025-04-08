@@ -41,6 +41,7 @@ impl Logger for PyLogger {
 #[pyclass]
 pub struct StateLogger {
 	every: usize,
+	#[allow(unused)]
 	file: File,
 }
 

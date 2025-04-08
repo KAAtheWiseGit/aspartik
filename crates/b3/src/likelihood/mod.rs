@@ -3,7 +3,10 @@ use pyo3::prelude::*;
 
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::{state::PyState, substitution::PySubstitution, Transitions};
+use crate::{
+	state::PyState, substitution::PySubstitution, util::read_fasta,
+	Transitions,
+};
 use linalg::{RowMatrix, Vector};
 
 mod cpu;
@@ -17,7 +20,7 @@ use gpu::GpuLikelihood;
 // #[allow(unused)] // TODO: use dynamically in `State`
 // pub use thread::ThreadedLikelihood;
 
-type Row<const N: usize> = Vector<f64, N>;
+pub type Row<const N: usize> = Vector<f64, N>;
 type Transition<const N: usize> = RowMatrix<f64, N, N>;
 
 trait LikelihoodTrait<const N: usize> {
@@ -99,21 +102,15 @@ impl PyLikelihood {
 #[pymethods]
 impl PyLikelihood {
 	#[new]
-	fn new(
-		#[expect(unused)]
-		sites: Vec<Vec<[f64; 4]>>,
-		substitution: PySubstitution<4>,
-	) -> Self {
-		// TODO: a proper way to pass sites
+	fn new(data: &str, substitution: PySubstitution<4>) -> Result<Self> {
+		let sites = read_fasta(data)?;
 		let likelihood = Likelihood {
 			substitution,
-			calculator: Box::new(CpuLikelihood::<4>::new(vec![
-				vec![],
-			])),
+			calculator: Box::new(CpuLikelihood::<4>::new(sites)),
 		};
 
-		PyLikelihood {
+		Ok(PyLikelihood {
 			inner: Arc::new(Mutex::new(likelihood)),
-		}
+		})
 	}
 }
