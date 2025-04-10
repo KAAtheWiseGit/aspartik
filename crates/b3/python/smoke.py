@@ -1,14 +1,14 @@
-from scipy.stats import uniform
 import os
+# TODO: find a proper fix
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+from scipy.stats import uniform
 
 import b3
 from b3 import Tree, State, Rng, Parameter, Likelihood
 from b3.priors import UniformPrior
 from b3.operators import TreeScale, NarrowExchange, WideExchange, TreeSlide
 from b3.substitutions import JC
-
-# TODO: find a proper fix
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 rng = Rng(4)
 tree = Tree(50, rng)
@@ -19,7 +19,7 @@ params = [
     Parameter.Integer(0, 1, 2, 3),
     Parameter.Boolean(True, False),
 ]
-state = State(tree, params)
+state = State(tree, params, rng)
 priors = [UniformPrior(params[0], 0, 1)]
 operators = [
     NarrowExchange(weight=25.0),

@@ -11,10 +11,20 @@ use std::{
 
 pub type Rng = Pcg64;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[pyclass(name = "Rng", frozen)]
 pub struct PyRng {
 	inner: Arc<Mutex<Rng>>,
+	scipy: PyObject,
+}
+
+impl Clone for PyRng {
+	fn clone(&self) -> Self {
+		Python::with_gil(|py| Self {
+			inner: self.inner.clone(),
+			scipy: self.scipy.clone_ref(py),
+		})
+	}
 }
 
 impl PyRng {
@@ -29,29 +39,30 @@ import numpy.random
 rng = numpy.random.default_rng(seed)
 "#);
 
+fn make_scipy_genrator(rng: &mut Rng, py: Python) -> Result<PyObject> {
+	let seed: u64 = rng.random();
+
+	let locals = PyDict::new(py);
+	locals.set_item("seed", seed)?;
+	py.run(NEW_GENERATOR, None, Some(&locals))?;
+	let rng = locals.get_item("rng")?.unwrap();
+
+	Ok(rng.into())
+}
+
 #[pymethods]
 impl PyRng {
 	#[new]
-	pub fn new(seed: u64) -> Self {
-		let inner = Pcg64::seed_from_u64(seed);
-		PyRng {
+	fn new(py: Python, seed: u64) -> Result<Self> {
+		let mut inner = Pcg64::seed_from_u64(seed);
+		let scipy = make_scipy_genrator(&mut inner, py)?;
+		Ok(PyRng {
 			inner: Arc::new(Mutex::new(inner)),
-		}
+			scipy,
+		})
 	}
 
-	/// Creates a new NumPy `Generator`.
-	///
-	/// This method should always be used to create random samplers for
-	/// operators, since `Rng` is seeded and its internal state is tracked
-	/// in the simulation state.
-	fn generator(&self, py: Python) -> Result<PyObject> {
-		let seed: u64 = self.inner().random();
-
-		let locals = PyDict::new(py);
-		locals.set_item("seed", seed)?;
-		py.run(NEW_GENERATOR, None, Some(&locals))?;
-		let rng = locals.get_item("rng")?.unwrap();
-
-		Ok(rng.into())
+	fn generator(&self, py: Python) -> PyObject {
+		self.scipy.clone_ref(py)
 	}
 }

@@ -25,7 +25,11 @@ pub struct State {
 }
 
 impl State {
-	pub fn new(tree: PyTree, params: Vec<PyParameter>) -> Result<Self> {
+	pub fn new(
+		tree: PyTree,
+		params: Vec<PyParameter>,
+		rng: PyRng,
+	) -> Result<Self> {
 		let mut backup_params = Vec::with_capacity(params.len());
 		for param in &params {
 			backup_params.push(param.inner()?.clone());
@@ -36,7 +40,7 @@ impl State {
 			params,
 			tree,
 			likelihood: f64::NEG_INFINITY,
-			rng: PyRng::new(4),
+			rng,
 		})
 	}
 
@@ -78,8 +82,12 @@ impl PyState {
 #[pymethods]
 impl PyState {
 	#[new]
-	fn new(tree: PyTree, params: Vec<PyParameter>) -> Result<Self> {
-		let state = State::new(tree, params)?;
+	fn new(
+		tree: PyTree,
+		params: Vec<PyParameter>,
+		rng: PyRng,
+	) -> Result<Self> {
+		let state = State::new(tree, params, rng)?;
 
 		Ok(Self {
 			inner: Arc::new(Mutex::new(state)),
