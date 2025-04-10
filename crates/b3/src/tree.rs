@@ -107,7 +107,6 @@ impl Leaf {
 	}
 }
 
-#[allow(unused)]
 impl Tree {
 	pub fn new(num_leaves: usize, rng: &mut Rng) -> Self {
 		let num_internals = num_leaves - 1;

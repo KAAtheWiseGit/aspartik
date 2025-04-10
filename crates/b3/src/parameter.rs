@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use anyhow::{anyhow, Result};
 use pyo3::prelude::*;
 use pyo3::{
@@ -139,7 +137,7 @@ fn check_empty(values: &Bound<PyTuple>) -> Result<()> {
 }
 
 #[pymethods]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl PyParameter {
 	/// Create a new real parameter.
 	///

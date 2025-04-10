@@ -1,5 +1,3 @@
-#![allow(clippy::new_ret_no_self)]
-
 use anyhow::Result;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -41,7 +39,7 @@ impl Logger for PyLogger {
 #[pyclass]
 pub struct StateLogger {
 	every: usize,
-	#[allow(unused)]
+	#[expect(unused)]
 	file: File,
 }
 

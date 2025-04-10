@@ -30,7 +30,7 @@ pub fn dna_to_rows(seqs: &[DnaSeq]) -> Vec<Vec<Row<4>>> {
 		.into()
 	}
 
-	#[allow(clippy::needless_range_loop)]
+	#[expect(clippy::needless_range_loop)]
 	for i in 0..width {
 		for j in 0..height {
 			out[i][j] = to_row(&seqs[j][i])

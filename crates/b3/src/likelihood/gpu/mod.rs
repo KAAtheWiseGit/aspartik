@@ -444,7 +444,7 @@ impl GpuLikelihood {
 
 		let pipeline_layout = propose_pipeline.layout();
 		let descriptor_set_layouts = pipeline_layout.set_layouts();
-		#[allow(clippy::get_first)]
+		#[expect(clippy::get_first)]
 		let descriptor_set_layout_0 = descriptor_set_layouts.get(0).unwrap();
 		let descriptor_set_0 = DescriptorSet::new(
 			descriptor_set_allocator.clone(),

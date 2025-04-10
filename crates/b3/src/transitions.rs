@@ -14,7 +14,6 @@ pub struct Transitions<const N: usize> {
 	transitions: ShchurVec<RowMatrix<f64, N, N>>,
 }
 
-#[allow(dead_code)]
 impl<const N: usize> Transitions<N> {
 	pub fn new(length: usize) -> Self {
 		let transitions =
