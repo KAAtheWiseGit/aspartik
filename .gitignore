@@ -11,3 +11,8 @@ __pycache__/
 # Python virtual environment
 # TODO: commit the list of installed packages (i.e. maturin)
 .venv/
+
+# perf
+perf.data
+perf.data.old
+flamegraph.svg
