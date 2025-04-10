@@ -1,10 +1,14 @@
 from scipy.stats import uniform
+import os
 
 import b3
 from b3 import Tree, State, Rng, Parameter, Likelihood
 from b3.priors import UniformPrior
 from b3.operators import TreeScale, NarrowExchange, WideExchange, TreeSlide
 from b3.substitutions import JC
+
+# TODO: find a proper fix
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 rng = Rng(4)
 tree = Tree(50, rng)
