@@ -1,5 +1,6 @@
 from scipy.stats import rv_continuous
 from math import log
+from typing import Literal
 
 from ._util import sample_range
 from b3 import State, Proposal, Parameter
@@ -12,7 +13,7 @@ class ParamScale:
         param: Parameter,
         factor: float,
         distribution: rv_continuous,
-        dimensions: "one" | "all" | "independent",
+        dimensions: Literal["one", "all", "independent"],
         wegith=1,
     ):
         if not 0 < factor < 1:
