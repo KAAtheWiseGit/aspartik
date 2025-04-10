@@ -1,159 +1,108 @@
 use anyhow::Result;
-use rand::Rng;
+use pyo3::prelude::*;
+use rand::Rng as _;
 
 use crate::{
-	likelihood::{Likelihood, Row},
-	log,
-	model::Model,
-	operator::{scheduler::WeightedScheduler, Proposal},
-	prior::{Prior, Probability},
-	State, Transitions,
+	likelihood::{Likelihood, PyLikelihood},
+	operator::{Proposal, PyOperator, WeightedScheduler},
+	state::PyState,
+	transitions::Transitions,
+	PyPrior,
 };
-use base::substitution::Substitution;
 
-pub struct Config {
-	pub burnin: usize,
-	pub length: usize,
-
-	pub save_state_every: usize,
-}
-
-pub type DynLikelihood<const N: usize> =
-	Box<dyn Likelihood<Row = Row<N>, Substitution = Substitution<N>>>;
-pub type DynModel<const N: usize> =
-	Box<dyn Model<Substitution = Substitution<N>>>;
-
-// TODO: interrupt handler, saving the state
-pub fn run<const N: usize>(
-	config: Config,
-	state: &mut State,
-	prior: Prior,
-	scheduler: &mut WeightedScheduler,
-	mut likelihoods: Vec<DynLikelihood<N>>,
-	mut transitions: Transitions<N>,
-	mut model: DynModel<N>,
+#[pyfunction]
+pub fn run(
+	length: usize,
+	state: PyState,
+	priors: Vec<PyPrior>,
+	operators: Vec<PyOperator>,
+	likelihood: PyLikelihood,
 ) -> Result<()> {
-	// TODO: burnin
-	for i in 0..(config.burnin + config.length) {
-		step(
-			i,
-			state,
-			&prior,
-			scheduler,
-			&mut likelihoods,
-			&mut transitions,
-			&mut model,
-		)?;
-		if i >= config.burnin {
-			log::write(state, i)?;
+	let num_edges = state.inner().tree.inner().num_internals() * 2;
+	let mut transitions = Transitions::<4>::new(num_edges);
+
+	let likelihood = &mut *likelihood.inner();
+
+	// We acquire the lock for the full duration of the program so that we
+	// don't spend time locking and unlocking
+	Python::with_gil(|py| -> Result<()> {
+		let mut scheduler = WeightedScheduler::new(py, operators)?;
+
+		for _ in 0..length {
+			step(
+				py,
+				&state,
+				&priors,
+				&mut transitions,
+				likelihood,
+				&mut scheduler,
+			)?;
+			// TODO: logging
 		}
-	}
-
-	Ok(())
+		Ok(())
+	})
 }
 
-// Too many arguments, I'll have to think what to do about it.  There needs to
-// be a unified place for all of the runtime objects
-fn step<const N: usize>(
-	i: usize,
-	state: &mut State,
-	prior: &Prior,
+fn step(
+	py: Python,
+	state: &PyState,
+	priors: &[PyPrior],
+	transitions: &mut Transitions<4>,
+	likelihood: &mut Likelihood,
 	scheduler: &mut WeightedScheduler,
-	likelihoods: &mut [DynLikelihood<N>],
-	transitions: &mut Transitions<N>,
-	model: &mut DynModel<N>,
 ) -> Result<()> {
-	let operator = scheduler.get_operator(&mut state.rng);
+	let operator =
+		scheduler.select_operator(&mut state.inner().rng.inner());
 
-	// TODO: proper logging
-	if i % 2_000 == 0 {
-		// println!("{:>8}: {:>8.0}", i, state.likelihood);
-	}
-
-	let hastings = match operator.propose(state)? {
-		Proposal::Accept => {
-			propose(state, likelihoods, transitions, model);
-
-			accept(state, likelihoods, transitions);
-
+	let hastings = match operator.propose(py, state)? {
+		Proposal::Accept() => {
+			accept(state)?;
 			return Ok(());
 		}
-		Proposal::Reject => {
+		Proposal::Reject() => {
 			return Ok(());
 		}
 		Proposal::Hastings(ratio) => ratio,
 	};
 
-	let tree_likelihood = propose(state, likelihoods, transitions, model);
+	let mut prior: f64 = 0.0;
+	for py_prior in priors {
+		prior += py_prior.probability(py, state)?;
 
-	let new_likelihood = tree_likelihood + prior.probability(state)?;
+		// short-circuit on a rejection by any prior
+		if prior == f64::NEG_INFINITY {
+			reject(state)?;
+			return Ok(());
+		}
+	}
 
-	let ratio = new_likelihood - state.likelihood + hastings;
+	// calculate tree likelihood
+	let likelihood = likelihood.propose(py, state, transitions)?;
 
-	if ratio > state.rng.random::<f64>().ln() {
-		state.likelihood = new_likelihood;
+	let posterior = likelihood + prior;
 
-		accept(state, likelihoods, transitions);
+	let ratio = posterior - state.inner().likelihood + hastings;
+
+	let random_0_1 = state.inner().rng.inner().random::<f64>();
+	if ratio > random_0_1.ln() {
+		state.inner().likelihood = posterior;
+
+		accept(state)?;
 	} else {
-		reject(state, likelihoods, transitions);
+		reject(state)?;
 	}
 
 	Ok(())
 }
 
-fn propose<const N: usize>(
-	state: &mut State,
-	likelihoods: &mut [DynLikelihood<N>],
-	transitions: &mut Transitions<N>,
-	model: &mut DynModel<N>,
-) -> f64 {
-	// Update the substitution matrix
-	let substitution = model.get_matrix(state);
-	// If the matrix has changed, `full` is true
-	let full = transitions.update(substitution, state);
+fn accept(state: &PyState) -> Result<()> {
+	state.inner().accept()?;
 
-	let nodes = if full {
-		// Full update, as matrices impact likelihoods
-		state.tree.full_update()
-	} else {
-		state.tree.nodes_to_update()
-	};
-
-	let (nodes, edges, children) = state.tree.to_lists(&nodes);
-
-	let transitions = transitions.matrices(&edges);
-
-	likelihoods
-		.iter_mut()
-		.map(|likelihood| {
-			likelihood.propose(&nodes, &transitions, &children)
-		})
-		.sum()
+	Ok(())
 }
 
-fn accept<const N: usize>(
-	state: &mut State,
-	likelihoods: &mut [DynLikelihood<N>],
-	transitions: &mut Transitions<N>,
-) {
-	state.tree.verify();
-	state.accept();
-	transitions.accept();
+fn reject(state: &PyState) -> Result<()> {
+	state.inner().reject()?;
 
-	for likelihood in likelihoods {
-		likelihood.accept();
-	}
-}
-
-fn reject<const N: usize>(
-	state: &mut State,
-	likelihoods: &mut [DynLikelihood<N>],
-	transitions: &mut Transitions<N>,
-) {
-	state.reject();
-	transitions.reject();
-
-	for likelihood in likelihoods {
-		likelihood.reject();
-	}
+	Ok(())
 }
