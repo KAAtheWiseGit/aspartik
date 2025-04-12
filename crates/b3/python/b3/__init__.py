@@ -8,4 +8,4 @@ __doc__ = _b3_rust_impl.__doc__
 
 __all__ = ["operators", "priors", "substitutions"]
 if hasattr(_b3_rust_impl, "__all__"):
-    __all__.append(_b3_rust_impl.__all__)
+    __all__.extend(_b3_rust_impl.__all__)
