@@ -1,6 +1,6 @@
 use anyhow::Result;
 use pyo3::prelude::*;
-use pyo3::{conversion::FromPyObject, exceptions::PyTypeError, types::PyTuple};
+use pyo3::{conversion::FromPyObject, exceptions::PyTypeError};
 
 use crate::{py_bail, state::PyState};
 
@@ -11,7 +11,7 @@ pub struct PyPrior {
 
 impl PyPrior {
 	pub fn probability(&self, py: Python, state: &PyState) -> Result<f64> {
-		let args = PyTuple::new(py, [state.clone()])?;
+		let args = (state.clone(),);
 		let out = self
 			.inner
 			.bind(py)

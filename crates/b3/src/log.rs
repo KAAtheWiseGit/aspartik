@@ -1,6 +1,6 @@
 use anyhow::Result;
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::{exceptions::PyTypeError, types::PyTuple};
 
 use crate::{py_bail, state::PyState};
 
@@ -34,8 +34,7 @@ impl PyLogger {
 		}
 
 		Python::with_gil(|py| -> Result<()> {
-			let args = (state.clone(), index).into_pyobject(py)?;
-			let args = PyTuple::new(py, args)?;
+			let args = (state.clone(), index);
 			self.inner.bind(py).call_method1("log", args)?;
 
 			Ok(())

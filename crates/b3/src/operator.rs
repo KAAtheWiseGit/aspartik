@@ -1,9 +1,6 @@
 use anyhow::Result;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::{
-	exceptions::{PyTypeError, PyValueError},
-	types::PyTuple,
-};
 use rand::distr::{weighted::WeightedIndex, Distribution};
 
 use crate::{py_bail, rng::Rng, state::PyState};
@@ -39,7 +36,7 @@ impl<'py> FromPyObject<'py> for PyOperator {
 
 impl PyOperator {
 	pub fn propose(&self, py: Python, state: &PyState) -> Result<Proposal> {
-		let args = PyTuple::new(py, [state.clone()])?;
+		let args = (state.clone(),);
 		let proposal = self.inner.call_method1(py, "propose", args)?;
 		let proposal = proposal.extract::<Proposal>(py)?;
 

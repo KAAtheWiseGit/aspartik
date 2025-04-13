@@ -106,7 +106,7 @@ impl PyLikelihood {
 		let sites = read_fasta(data)?;
 		let likelihood = Likelihood {
 			substitution,
-			calculator: Box::new(CpuLikelihood::<4>::new(sites)),
+			calculator: Box::new(CpuLikelihood::new(sites)),
 		};
 
 		Ok(PyLikelihood {

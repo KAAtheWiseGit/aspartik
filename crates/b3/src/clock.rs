@@ -30,7 +30,7 @@ impl PyClock {
 		state: PyState,
 		edges: Vec<usize>,
 	) -> Result<Vec<f64>> {
-		let args = (state, edges).into_pyobject(py)?;
+		let args = (state, edges);
 		let rates = self.inner.call_method1(py, "update", args)?;
 		let rates = rates.extract::<Vec<f64>>(py)?;
 
