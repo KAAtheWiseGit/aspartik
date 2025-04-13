@@ -7,7 +7,7 @@ use crate::{
 	operator::{Proposal, PyOperator, WeightedScheduler},
 	state::PyState,
 	transitions::Transitions,
-	PyPrior,
+	PyLogger, PyPrior,
 };
 
 #[pyfunction]
@@ -17,6 +17,7 @@ pub fn run(
 	priors: Vec<PyPrior>,
 	operators: Vec<PyOperator>,
 	likelihood: PyLikelihood,
+	mut loggers: Vec<PyLogger>,
 ) -> Result<()> {
 	let num_edges = state.inner().tree.inner().num_internals() * 2;
 	let mut transitions = Transitions::<4>::new(num_edges);
@@ -28,7 +29,7 @@ pub fn run(
 	Python::with_gil(|py| -> Result<()> {
 		let mut scheduler = WeightedScheduler::new(py, operators)?;
 
-		for _ in 0..length {
+		for index in 0..length {
 			step(
 				py,
 				&state,
@@ -37,6 +38,10 @@ pub fn run(
 				likelihood,
 				&mut scheduler,
 			)?;
+
+			for logger in &mut loggers {
+				logger.log(state.clone(), index)?;
+			}
 			// TODO: logging
 		}
 		Ok(())

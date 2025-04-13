@@ -43,4 +43,4 @@ loggers = [
     TreeLogger(path="b3.trees", every=1_000),
 ]
 
-b3.run(10_000, state, priors, operators, likelihood)
+b3.run(10_000, state, priors, operators, likelihood, loggers)
