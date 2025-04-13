@@ -16,7 +16,7 @@ class JC:
             dtype=float,
         )
 
-        self.matrix /= -3
+        self.matrix /= 3
 
     def get_matrix(self):
         return self.matrix

@@ -13,7 +13,7 @@ from b3.priors import Bound, Distribution
 from b3.substitutions import JC
 
 rng = Rng(4)
-tree = Tree(50, rng)
+tree = Tree(100, rng)
 tree.verify()
 
 params = [
