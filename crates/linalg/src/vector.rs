@@ -9,12 +9,12 @@ use std::{
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(C)]
-pub struct Vector<T: Copy, const N: usize> {
+pub struct Vector<T, const N: usize> {
 	v: [T; N],
 }
 
 // `From` conversions
-impl<T: Copy, const N: usize> From<[T; N]> for Vector<T, N> {
+impl<T, const N: usize> From<[T; N]> for Vector<T, N> {
 	fn from(value: [T; N]) -> Self {
 		Self { v: value }
 	}
@@ -26,7 +26,7 @@ impl<T: Copy, const N: usize> Vector<T, N> {
 	}
 }
 
-impl<T: Copy + Debug, const N: usize> Debug for Vector<T, N> {
+impl<T: Debug, const N: usize> Debug for Vector<T, N> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str("[")?;
 
@@ -43,7 +43,7 @@ impl<T: Copy + Debug, const N: usize> Debug for Vector<T, N> {
 	}
 }
 
-impl<T: Copy + Display, const N: usize> Display for Vector<T, N> {
+impl<T: Display, const N: usize> Display for Vector<T, N> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str("[")?;
 
@@ -88,7 +88,7 @@ impl<T: Copy + Num, const N: usize> Vector<T, N> {
 }
 
 // Operators and overloading in general.
-impl<T: Copy, const N: usize> Index<usize> for Vector<T, N> {
+impl<T, const N: usize> Index<usize> for Vector<T, N> {
 	type Output = T;
 
 	fn index(&self, index: usize) -> &Self::Output {
@@ -96,7 +96,7 @@ impl<T: Copy, const N: usize> Index<usize> for Vector<T, N> {
 	}
 }
 
-impl<T: Copy, const N: usize> IndexMut<usize> for Vector<T, N> {
+impl<T, const N: usize> IndexMut<usize> for Vector<T, N> {
 	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
 		&mut self.v[index]
 	}
@@ -210,7 +210,7 @@ impl<T: Copy + PartialEq, const N: usize> PartialEq<Vector<T, N>> for [T; N] {
 }
 
 // Type-agnostic implementations.
-impl<T: Copy, const N: usize> Vector<T, N> {
+impl<T, const N: usize> Vector<T, N> {
 	pub const LENGTH: usize = N;
 
 	pub fn as_ptr(&self) -> *const T {
@@ -232,11 +232,15 @@ impl<T: Copy, const N: usize> Vector<T, N> {
 	where
 		U: Copy,
 		F: Fn(T) -> U,
+		T: Copy,
 	{
 		self.v.map(f).into()
 	}
 
-	pub fn truncate<const M: usize>(&self) -> Vector<T, M> {
+	pub fn truncate<const M: usize>(&self) -> Vector<T, M>
+	where
+		T: Copy,
+	{
 		assert!(M < N, "New length must be smaller");
 
 		let subslice: &[T; M] = self.v.first_chunk().unwrap();
