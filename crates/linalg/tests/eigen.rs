@@ -1,6 +1,6 @@
 use linalg::RowMatrix;
 
-const EPSILON: f64 = 1e-8;
+const EPSILON: f64 = 1e-15;
 
 macro_rules! assert_vector_eq {
 	($left:expr, $right:expr) => {
@@ -21,11 +21,12 @@ fn basic_eigenvalues() {
 	let m = RowMatrix::from([[4.0, 1.0], [2.0, -1.0]]);
 	assert_eq!([4.372281323269014, -1.3722813232690143], m.eigenvalues());
 
+	let one_third = 1.0 / 3.0;
 	let m = RowMatrix::from([
-		[1., -0.33333333, -0.33333333, -0.33333333],
-		[-0.33333333, 1., -0.33333333, -0.33333333],
-		[-0.33333333, -0.33333333, 1., -0.33333333],
-		[-0.33333333, -0.33333333, -0.33333333, 1.],
+		[1.0, -one_third, -one_third, -one_third],
+		[-one_third, 1.0, -one_third, -one_third],
+		[-one_third, -one_third, 1.0, -one_third],
+		[-one_third, -one_third, -one_third, 1.0],
 	]);
 	let ff = 4.0 / 3.0;
 	assert_vector_eq!([0.0, ff, ff, ff], m.eigenvalues());
