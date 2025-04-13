@@ -30,12 +30,6 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 		.getattr("modules")?
 		.set_item("b3.tree", tree)?;
 
-	let log = log::submodule(py)?;
-	m.add_submodule(&log)?;
-	py.import("sys")?
-		.getattr("modules")?
-		.set_item("b3.log", log)?;
-
 	m.add_class::<parameter::PyParameter>()?;
 	m.add_class::<rng::PyRng>()?;
 	m.add_class::<state::PyState>()?;
