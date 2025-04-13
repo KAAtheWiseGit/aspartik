@@ -7,7 +7,7 @@ use std::{
 	},
 };
 
-#[derive(Clone, Copy, PartialEq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct Vector<T: Copy, const N: usize> {
 	v: [T; N],
@@ -189,6 +189,23 @@ impl<T: Copy + DivAssign, const N: usize> Div<T> for Vector<T, N> {
 			self[i] /= rhs;
 		}
 		self
+	}
+}
+
+impl<T: Copy + PartialEq, const N: usize> PartialEq<[T; N]> for Vector<T, N> {
+	fn eq(&self, other: &[T; N]) -> bool {
+		for i in 0..N {
+			if self[i] != other[i] {
+				return false;
+			}
+		}
+		true
+	}
+}
+
+impl<T: Copy + PartialEq, const N: usize> PartialEq<Vector<T, N>> for [T; N] {
+	fn eq(&self, other: &Vector<T, N>) -> bool {
+		other == self
 	}
 }
 
