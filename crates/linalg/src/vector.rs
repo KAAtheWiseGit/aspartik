@@ -221,6 +221,18 @@ impl<T, const N: usize> Vector<T, N> {
 		self.v.as_mut_ptr()
 	}
 
+	pub fn as_array(&self) -> &[T; N] {
+		&self.v
+	}
+
+	pub fn as_mut_array(&mut self) -> &mut [T; N] {
+		&mut self.v
+	}
+
+	pub fn to_array(self) -> [T; N] {
+		self.v
+	}
+
 	pub fn apply<F>(&mut self, f: F)
 	where
 		F: Fn(&mut T),
