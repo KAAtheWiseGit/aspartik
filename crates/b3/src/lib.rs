@@ -1,5 +1,4 @@
 pub mod clock;
-pub mod data;
 pub mod likelihood;
 pub mod log;
 pub mod mcmc;
@@ -37,8 +36,6 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 	m.add_class::<tree::PyTree>()?;
 	m.add_class::<operator::Proposal>()?;
 	m.add_class::<likelihood::PyLikelihood>()?;
-	// XXX: submodule?
-	m.add_class::<data::PyDna>()?;
 
 	m.add_function(wrap_pyfunction!(mcmc::run, m)?)?;
 
