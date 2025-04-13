@@ -43,7 +43,7 @@ impl<const N: usize> Transitions<N> {
 			self.diag = RowMatrix::from_diagonal(
 				substitution.eigenvalues(),
 			);
-			self.p = substitution.eigenvectors().transpose();
+			self.p = substitution.eigenvectors();
 			self.inv_p = self.p.inverse();
 		}
 
@@ -69,7 +69,7 @@ impl<const N: usize> Transitions<N> {
 				.diag
 				.map_diagonal(|v| (v * distance).exp());
 
-			let transition = self.p * diag * self.inv_p;
+			let transition = self.inv_p * diag * self.p;
 
 			self.transitions.set(*edge, transition);
 		}
