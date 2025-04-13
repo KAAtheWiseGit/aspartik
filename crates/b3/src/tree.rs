@@ -516,7 +516,7 @@ impl Tree {
 		(0..self.num_leaves()).map(Leaf)
 	}
 
-	pub(crate) fn to_newick(&self) -> String {
+	pub fn to_newick(&self) -> String {
 		let mut tree = NewickTree::new();
 
 		use std::collections::HashMap;
@@ -810,6 +810,10 @@ impl PyTree {
 
 	fn verify(&self) -> Result<()> {
 		self.inner().verify()
+	}
+
+	fn newick(&self) -> String {
+		self.inner().to_newick()
 	}
 }
 

@@ -7,8 +7,9 @@ from scipy.stats import uniform, gamma, poisson
 
 import b3
 from b3 import Tree, State, Rng, Parameter, Likelihood
-from b3.priors import Bound, Distribution
+from b3.loggers import TreeLogger
 from b3.operators import TreeScale, NarrowExchange, WideExchange, TreeSlide
+from b3.priors import Bound, Distribution
 from b3.substitutions import JC
 
 rng = Rng(4)
@@ -37,5 +38,9 @@ operators = [
 ]
 
 likelihood = Likelihood(data="data/100.fasta", substitution=JC())
+
+loggers = [
+    TreeLogger(path="b3.trees", every=1_000),
+]
 
 b3.run(10_000, state, priors, operators, likelihood)
