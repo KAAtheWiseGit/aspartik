@@ -36,7 +36,7 @@ class NarrowExchange:
 
         num_grandparents_before = 0
         for node in tree.internals():
-            if is_grandparent(node):
+            if is_grandparent(tree, node):
                 num_grandparents_before += 1
 
         before = int(is_grandparent(tree, parent)) + int(is_grandparent(tree, uncle))

@@ -62,6 +62,10 @@ impl PyRng {
 		})
 	}
 
+	fn random_bool(&self, ratio: f64) -> bool {
+		self.inner().random_bool(ratio)
+	}
+
 	fn generator(&self, py: Python) -> PyObject {
 		self.scipy.clone_ref(py)
 	}
