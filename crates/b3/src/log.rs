@@ -29,7 +29,7 @@ impl<'py> FromPyObject<'py> for PyLogger {
 
 impl PyLogger {
 	pub fn log(&mut self, state: PyState, index: usize) -> Result<()> {
-		if !self.every.is_some_and(|every| index % every == 0) {
+		if self.every.is_some_and(|every| index % every != 0) {
 			return Ok(());
 		}
 
