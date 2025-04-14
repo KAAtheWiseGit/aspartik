@@ -213,10 +213,6 @@ impl<T: Copy + PartialEq, const N: usize> PartialEq<Vector<T, N>> for [T; N] {
 impl<T, const N: usize> Vector<T, N> {
 	pub const LENGTH: usize = N;
 
-	pub fn len(&self) -> usize {
-		N
-	}
-
 	pub fn as_ptr(&self) -> *const T {
 		self.v.as_ptr()
 	}
