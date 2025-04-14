@@ -3,7 +3,7 @@ use linalg::RowMatrix;
 use pyo3::prelude::*;
 use pyo3::{conversion::FromPyObject, exceptions::PyTypeError};
 
-use crate::py_bail;
+use crate::{py_call_method, py_bail};
 
 pub struct PySubstitution<const N: usize> {
 	inner: PyObject,
@@ -31,7 +31,7 @@ impl<'py, const N: usize> FromPyObject<'py> for PySubstitution<N> {
 
 impl<const N: usize> PySubstitution<N> {
 	pub fn get_matrix(&self, py: Python) -> Result<Substitution<N>> {
-		let matrix = self.inner.call_method0(py, "get_matrix")?;
+		let matrix = py_call_method!(py, self.inner, "get_matrix")?;
 
 		type Matrix<const N: usize> = [[f64; N]; N];
 

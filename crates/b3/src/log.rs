@@ -2,7 +2,7 @@ use anyhow::Result;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 
-use crate::{py_bail, state::PyState};
+use crate::{py_bail, py_call_method, state::PyState};
 
 pub struct PyLogger {
 	inner: PyObject,
@@ -35,7 +35,7 @@ impl PyLogger {
 
 		Python::with_gil(|py| -> Result<()> {
 			let args = (state.clone(), index);
-			self.inner.bind(py).call_method1("log", args)?;
+			py_call_method!(py, self.inner, "log", args)?;
 
 			Ok(())
 		})?;

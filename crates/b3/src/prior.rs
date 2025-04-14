@@ -2,7 +2,7 @@ use anyhow::Result;
 use pyo3::prelude::*;
 use pyo3::{conversion::FromPyObject, exceptions::PyTypeError};
 
-use crate::{py_bail, state::PyState};
+use crate::{py_bail, py_call_method, state::PyState};
 
 pub struct PyPrior {
 	/// INVARIANT: the type has a `probability` method
@@ -12,12 +12,8 @@ pub struct PyPrior {
 impl PyPrior {
 	pub fn probability(&self, py: Python, state: &PyState) -> Result<f64> {
 		let args = (state.clone(),);
-		let out = self
-			.inner
-			.bind(py)
-			.call_method1("probability", args)?
-			.extract::<f64>()?;
-		Ok(out)
+		let out = py_call_method!(py, self.inner, "probability", args)?;
+		Ok(out.extract::<f64>(py)?)
 	}
 }
 

@@ -3,7 +3,7 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use rand::distr::{weighted::WeightedIndex, Distribution};
 
-use crate::{py_bail, rng::Rng, state::PyState};
+use crate::{py_bail, py_call_method, rng::Rng, state::PyState};
 
 #[derive(Debug, Clone)]
 #[pyclass(frozen)]
@@ -37,7 +37,7 @@ impl<'py> FromPyObject<'py> for PyOperator {
 impl PyOperator {
 	pub fn propose(&self, py: Python, state: &PyState) -> Result<Proposal> {
 		let args = (state.clone(),);
-		let proposal = self.inner.call_method1(py, "propose", args)?;
+		let proposal = py_call_method!(py, self.inner, "propose", args)?;
 		let proposal = proposal.extract::<Proposal>(py)?;
 
 		Ok(proposal)

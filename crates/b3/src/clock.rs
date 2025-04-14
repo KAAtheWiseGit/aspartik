@@ -3,7 +3,7 @@ use linalg::RowMatrix;
 use pyo3::prelude::*;
 use pyo3::{conversion::FromPyObject, exceptions::PyTypeError};
 
-use crate::state::PyState;
+use crate::{py_call_method, state::PyState};
 
 pub struct PyClock {
 	inner: PyObject,
@@ -31,7 +31,7 @@ impl PyClock {
 		edges: Vec<usize>,
 	) -> Result<Vec<f64>> {
 		let args = (state, edges);
-		let rates = self.inner.call_method1(py, "update", args)?;
+		let rates = py_call_method!(py, self.inner, "update", args)?;
 		let rates = rates.extract::<Vec<f64>>(py)?;
 
 		Ok(rates)
