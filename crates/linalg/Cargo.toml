@@ -12,6 +12,12 @@ build = "build.rs"
 bytemuck = { workspace = true, optional = true }
 lapack-sys = { workspace = true }
 num-traits = { workspace = true }
+approx = { workspace = true, optional = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+proptest-derive = { workspace = true }
 
 [features]
 bytemuck = ["dep:bytemuck"]
+approx = ["dep:approx"]
