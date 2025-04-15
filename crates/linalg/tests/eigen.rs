@@ -1,55 +1,7 @@
-use linalg::{RowMatrix, Vector};
+use approx::assert_relative_eq;
+use proptest::prelude::*;
 
-const EPSILON: f64 = 1e-15;
-
-fn assert_vector_eq<const N: usize>(
-	left: Vector<f64, N>,
-	right: Vector<f64, N>,
-) {
-	for i in 0..N {
-		let diff = (left[i] - right[i]).abs();
-		if diff > EPSILON {
-			panic!(
-				"Vectors are not equal:\n\t{:?}\n\t{:?}\n",
-				left, right
-			);
-		}
-	}
-}
-
-fn assert_matrix_eq<const N: usize, const M: usize>(
-	left: RowMatrix<f64, N, M>,
-	right: RowMatrix<f64, N, M>,
-) {
-	for i in 0..N {
-		for j in 0..M {
-			let diff = (left[i][j] - right[i][j]).abs();
-			if diff > EPSILON {
-				panic!(
-					"Matrices are not equal:\n\t{:?}\n\t{:?}\n",
-					left, right
-				);
-			}
-		}
-	}
-}
-
-#[test]
-fn basic_eigenvalues() {
-	let m = RowMatrix::from([[4.0, 1.0], [2.0, -1.0]]);
-	assert_eq!([4.372281323269014, -1.3722813232690143], m.eigenvalues());
-
-	let m = RowMatrix::from([
-		[1.0, -1.0 / 3.0, -1.0 / 3.0, -1.0 / 3.0],
-		[-1.0 / 3.0, 1.0, -1.0 / 3.0, -1.0 / 3.0],
-		[-1.0 / 3.0, -1.0 / 3.0, 1.0, -1.0 / 3.0],
-		[-1.0 / 3.0, -1.0 / 3.0, -1.0 / 3.0, 1.0],
-	]);
-	assert_vector_eq(
-		[0.0, 4.0 / 3.0, 4.0 / 3.0, 4.0 / 3.0].into(),
-		m.eigenvalues(),
-	);
-}
+use linalg::RowMatrix;
 
 #[test]
 fn roundtrip() {
@@ -64,6 +16,52 @@ fn roundtrip() {
 	let eigenvectors = jc.eigenvectors();
 	let inverse = eigenvectors.inverse();
 
-	assert_matrix_eq(jc, inverse * diag * eigenvectors);
-	assert_matrix_eq(jc * 0.1, inverse * (diag * 0.1) * eigenvectors);
+	assert_relative_eq!(jc, inverse * diag * eigenvectors);
+	assert_relative_eq!(jc * 0.1, inverse * (diag * 0.1) * eigenvectors);
+}
+
+proptest! {
+	// XXX: proper generation strategy which doesn't create large
+	// overflowing values
+	#[test]
+	fn eigen_2(
+		a in 0.0..100.0, b in 0.0..100.0,
+		c in 0.0..100.0, d in 0.0..100.0,
+	) {
+		let m = RowMatrix::from([[a, b], [c, d]]);
+
+		let eigenvalues = m.eigenvalues();
+		let eigenvectors = m.eigenvectors();
+
+		for i in 0..2 {
+			assert_relative_eq!(
+				m * eigenvectors[i],
+				eigenvectors[i] * eigenvalues[i],
+				max_relative = 1e-10,
+			);
+		}
+	}
+
+	// XXX: diagonal matrix strategy
+	#[test]
+	fn inverse_2(
+		a in 0.1..100.0, b in 0.1..100.0,
+		c in 0.1..100.0,
+	) {
+		let m = RowMatrix::from([[a, b], [b, c]]);
+
+		let diag = RowMatrix::from_diagonal(m.eigenvalues());
+		let eigenvectors = m.eigenvectors();
+		let inverse = eigenvectors.inverse();
+
+		println!("diag = {diag}");
+		println!("eigenvectors = {eigenvectors}");
+		println!("inverse = {inverse}");
+
+		assert_relative_eq!(
+			m,
+			inverse * diag * eigenvectors,
+			max_relative = 1e-10
+		);
+	}
 }

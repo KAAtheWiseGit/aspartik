@@ -1,4 +1,6 @@
 use num_traits::{Float, Num, NumAssign};
+#[cfg(feature = "proptest")]
+use proptest_derive::Arbitrary;
 
 use std::{
 	fmt::{self, Debug, Display},
@@ -7,6 +9,7 @@ use std::{
 	},
 };
 
+#[cfg_attr(feature = "proptest", derive(Arbitrary))]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct Vector<T, const N: usize> {

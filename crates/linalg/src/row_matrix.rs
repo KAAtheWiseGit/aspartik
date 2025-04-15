@@ -1,4 +1,6 @@
 use num_traits::{Num, NumAssign};
+#[cfg(feature = "proptest")]
+use proptest_derive::Arbitrary;
 
 use std::{
 	fmt::{self, Display},
@@ -7,6 +9,7 @@ use std::{
 
 use crate::vector::Vector;
 
+#[cfg_attr(feature = "proptest", derive(Arbitrary))]
 #[derive(Debug, Clone, Copy, PartialEq, Hash)]
 #[repr(C)]
 pub struct RowMatrix<T: Copy, const N: usize, const M: usize> {

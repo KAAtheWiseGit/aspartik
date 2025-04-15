@@ -1,7 +1,7 @@
-#[cfg(feature = "bytemuck")]
-mod bytemuck;
 #[cfg(feature = "approx")]
 mod approx;
+#[cfg(feature = "bytemuck")]
+mod bytemuck;
 mod lapack;
 mod math;
 mod row_matrix;
