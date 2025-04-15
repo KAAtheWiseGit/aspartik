@@ -4,6 +4,8 @@ mod approx;
 mod bytemuck;
 mod lapack;
 mod math;
+#[cfg(feature = "proptest")]
+pub mod proptest;
 mod row_matrix;
 mod vector;
 

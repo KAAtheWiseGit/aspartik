@@ -1,7 +1,7 @@
 use approx::assert_relative_eq;
 use proptest::prelude::*;
 
-use linalg::RowMatrix;
+use linalg::{proptest::symmetric, RowMatrix};
 
 #[test]
 fn roundtrip() {
@@ -21,15 +21,8 @@ fn roundtrip() {
 }
 
 proptest! {
-	// XXX: proper generation strategy which doesn't create large
-	// overflowing values
 	#[test]
-	fn eigen_2(
-		a in 0.0..100.0, b in 0.0..100.0,
-		c in 0.0..100.0, d in 0.0..100.0,
-	) {
-		let m = RowMatrix::from([[a, b], [c, d]]);
-
+	fn symmetric_eigen_2(m in symmetric::<2>()) {
 		let eigenvalues = m.eigenvalues();
 		let eigenvectors = m.eigenvectors();
 
@@ -37,31 +30,23 @@ proptest! {
 			assert_relative_eq!(
 				m * eigenvectors[i],
 				eigenvectors[i] * eigenvalues[i],
-				max_relative = 1e-10,
+				max_relative = 1e-12,
 			);
 		}
 	}
 
-	// XXX: diagonal matrix strategy
-	#[test]
-	fn inverse_2(
-		a in 0.1..100.0, b in 0.1..100.0,
-		c in 0.1..100.0,
-	) {
-		let m = RowMatrix::from([[a, b], [b, c]]);
+	// TODO: hermetic matrices
 
+	#[test]
+	fn inverse_2(m in symmetric::<2>()) {
 		let diag = RowMatrix::from_diagonal(m.eigenvalues());
 		let eigenvectors = m.eigenvectors();
 		let inverse = eigenvectors.inverse();
 
-		println!("diag = {diag}");
-		println!("eigenvectors = {eigenvectors}");
-		println!("inverse = {inverse}");
-
 		assert_relative_eq!(
 			m,
 			inverse * diag * eigenvectors,
-			max_relative = 1e-10
+			max_relative = 1e-12,
 		);
 	}
 }

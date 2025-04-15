@@ -31,7 +31,6 @@ nom = "8.0"
 num-traits = "0.2"
 petgraph = { version = "0.8", default-features = false }
 proptest = "1.6"
-proptest-derive = "0.5"
 pyo3 = "0.24"
 rand = "0.9"
 rand_distr = "0.5"
