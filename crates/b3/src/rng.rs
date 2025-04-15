@@ -18,12 +18,12 @@ pub struct PyRng {
 	scipy: PyObject,
 }
 
-impl Clone for PyRng {
-	fn clone(&self) -> Self {
-		Python::with_gil(|py| Self {
+impl PyRng {
+	pub fn clone_with(&self, py: Python) -> Self {
+		Self {
 			inner: self.inner.clone(),
 			scipy: self.scipy.clone_ref(py),
-		})
+		}
 	}
 }
 

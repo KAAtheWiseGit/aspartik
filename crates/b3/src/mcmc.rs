@@ -12,6 +12,7 @@ use crate::{
 
 #[pyfunction]
 pub fn run(
+	py: Python,
 	length: usize,
 	state: PyState,
 	priors: Vec<PyPrior>,
@@ -26,26 +27,24 @@ pub fn run(
 
 	// We acquire the lock for the full duration of the program so that we
 	// don't spend time locking and unlocking
-	Python::with_gil(|py| -> Result<()> {
-		let mut scheduler = WeightedScheduler::new(py, operators)?;
+	let mut scheduler = WeightedScheduler::new(py, operators)?;
 
-		for index in 0..length {
-			step(
-				py,
-				&state,
-				&priors,
-				&mut transitions,
-				likelihood,
-				&mut scheduler,
-			)?;
+	for index in 0..length {
+		step(
+			py,
+			&state,
+			&priors,
+			&mut transitions,
+			likelihood,
+			&mut scheduler,
+		)?;
 
-			for logger in &mut loggers {
-				logger.log(state.clone(), index)?;
-			}
-			// TODO: logging
+		for logger in &mut loggers {
+			logger.log(py, state.clone(), index)?;
 		}
-		Ok(())
-	})
+	}
+
+	Ok(())
 }
 
 fn step(

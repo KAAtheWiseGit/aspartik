@@ -83,11 +83,12 @@ impl PyState {
 impl PyState {
 	#[new]
 	fn new(
+		py: Python,
 		tree: PyTree,
 		params: Vec<PyParameter>,
-		rng: PyRng,
+		rng: &PyRng,
 	) -> Result<Self> {
-		let state = State::new(tree, params, rng)?;
+		let state = State::new(tree, params, rng.clone_with(py))?;
 
 		Ok(Self {
 			inner: Arc::new(Mutex::new(state)),
@@ -104,7 +105,7 @@ impl PyState {
 	}
 
 	#[getter]
-	fn rng(&self) -> PyRng {
-		self.inner().rng.clone()
+	fn rng(&self, py: Python) -> PyRng {
+		self.inner().rng.clone_with(py)
 	}
 }

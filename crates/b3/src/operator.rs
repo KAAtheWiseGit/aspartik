@@ -37,7 +37,8 @@ impl<'py> FromPyObject<'py> for PyOperator {
 impl PyOperator {
 	pub fn propose(&self, py: Python, state: &PyState) -> Result<Proposal> {
 		let args = (state.clone(),);
-		let proposal = py_call_method!(py, self.inner, "propose", args)?;
+		let proposal =
+			py_call_method!(py, self.inner, "propose", args)?;
 		let proposal = proposal.extract::<Proposal>(py)?;
 
 		Ok(proposal)

@@ -28,17 +28,18 @@ impl<'py> FromPyObject<'py> for PyLogger {
 }
 
 impl PyLogger {
-	pub fn log(&mut self, state: PyState, index: usize) -> Result<()> {
+	pub fn log(
+		&mut self,
+		py: Python,
+		state: PyState,
+		index: usize,
+	) -> Result<()> {
 		if self.every.is_some_and(|every| index % every != 0) {
 			return Ok(());
 		}
 
-		Python::with_gil(|py| -> Result<()> {
-			let args = (state.clone(), index);
-			py_call_method!(py, self.inner, "log", args)?;
-
-			Ok(())
-		})?;
+		let args = (state.clone(), index);
+		py_call_method!(py, self.inner, "log", args)?;
 
 		Ok(())
 	}
