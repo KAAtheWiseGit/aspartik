@@ -46,7 +46,6 @@ impl PyOperator {
 }
 
 #[derive(Debug)]
-#[pyclass]
 pub struct WeightedScheduler {
 	operators: Vec<PyOperator>,
 	weights: Vec<f64>,
