@@ -6,7 +6,7 @@ use pyo3::types::{PySlice, PySliceIndices, PyTuple};
 use std::fs::File;
 
 use crate::likelihood::Row;
-use base::{seq::DnaSeq, DnaNucleoBase};
+use data::{seq::DnaSeq, DnaNucleoBase};
 use io::fasta::FastaReader;
 use linalg::Vector;
 

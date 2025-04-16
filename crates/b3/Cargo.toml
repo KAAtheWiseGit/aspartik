@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-base = { path = "../base" }
+data = { path = "../data" }
 io = { path = "../io" }
 linalg = { path = "../linalg", features = ["bytemuck"] }
 shchurvec = { path = "../shchurvec" }

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Error, Result};
 
 use std::io::{BufRead, BufReader, Lines, Read};
 
-use base::seq::{Character, Seq};
+use data::seq::{Character, Seq};
 
 #[derive(Debug, Clone)]
 pub struct Sequence<C: Character> {
