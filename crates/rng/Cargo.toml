@@ -1,0 +1,16 @@
+[package]
+name = "rng"
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+pyo3 = { workspace = true }
+rand = { workspace = true, features = ["os_rng"] }
+rand_pcg = { workspace = true, features = ["serde"] }
+
+[lib]
+name = "rng"
+crate-type = ["cdylib", "lib"]

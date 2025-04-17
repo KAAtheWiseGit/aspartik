@@ -4,6 +4,7 @@ members = [
 	"crates/data",
 	"crates/io",
 	"crates/linalg",
+	"crates/rng",
 	"crates/shchurvec",
 ]
 
