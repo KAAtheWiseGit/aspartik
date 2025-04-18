@@ -8,6 +8,7 @@ pub type Rng = Pcg64;
 
 #[derive(Debug, Clone)]
 #[pyclass(name = "Rng", frozen, module = "rng")]
+#[repr(transparent)]
 pub struct PyRng {
 	inner: Arc<Mutex<Rng>>,
 }
@@ -20,6 +21,11 @@ impl PyRng {
 	/// Panics if the mutex holding the inner rng struct has been poisoned.
 	pub fn inner(&self) -> MutexGuard<Pcg64> {
 		self.inner.lock().unwrap()
+	}
+
+	pub fn downcast(any: Bound<'_, PyAny>) -> Bound<'_, Self> {
+		// SAFETY: TODO.  This is not actually safe in general
+		unsafe { any.downcast_into_unchecked::<PyRng>() }
 	}
 }
 
