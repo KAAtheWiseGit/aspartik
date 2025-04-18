@@ -38,6 +38,7 @@ impl PyRng {
 		})
 	}
 
+	#[pyo3(signature = (ratio = 0.5))]
 	fn random_bool(&self, ratio: f64) -> bool {
 		self.inner().random_bool(ratio)
 	}
