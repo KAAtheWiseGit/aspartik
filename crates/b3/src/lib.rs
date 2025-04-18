@@ -5,7 +5,6 @@ pub mod mcmc;
 pub mod operator;
 pub mod parameter;
 pub mod prior;
-pub mod rng;
 mod state;
 pub mod substitution;
 mod transitions;
@@ -31,7 +30,6 @@ fn b3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 		.set_item("b3.tree", tree)?;
 
 	m.add_class::<parameter::PyParameter>()?;
-	m.add_class::<rng::PyRng>()?;
 	m.add_class::<state::PyState>()?;
 	m.add_class::<tree::PyTree>()?;
 	m.add_class::<operator::Proposal>()?;

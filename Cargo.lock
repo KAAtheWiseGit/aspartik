@@ -59,6 +59,7 @@ dependencies = [
  "rand_distr",
  "rand_pcg",
  "rayon",
+ "rng",
  "serde",
  "serde_json",
  "shchurvec",

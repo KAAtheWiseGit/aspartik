@@ -1,6 +1,7 @@
 use anyhow::{ensure, Result};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use rand::distr::{Distribution, Uniform};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
@@ -11,10 +12,10 @@ use std::{
 	sync::{Arc, Mutex, MutexGuard},
 };
 
-use crate::rng::{PyRng, Rng};
 use io::newick::{
 	Node as NewickNode, NodeIndex as NewickNodeIndex, Tree as NewickTree,
 };
+use rng::{PyRng, Rng};
 use shchurvec::ShchurVec;
 
 const ROOT: usize = usize::MAX;
@@ -638,7 +639,10 @@ impl PyTree {
 #[pymethods]
 impl PyTree {
 	#[new]
-	fn new(num_leaves: usize, rng: &PyRng) -> Self {
+	fn new(num_leaves: usize, rng: Bound<PyAny>) -> Self {
+		let rng = PyRng::downcast(rng);
+		let rng = rng.get();
+
 		let tree = Tree::new(num_leaves, &mut rng.inner());
 		Self {
 			inner: Arc::new(Mutex::new(tree)),

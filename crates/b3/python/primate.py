@@ -6,11 +6,12 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 from scipy.stats import uniform, gamma, expon, lognorm
 
 import b3
-from b3 import Tree, State, Rng, Parameter, Likelihood
+from b3 import Tree, State, Parameter, Likelihood
 from b3.loggers import TreeLogger
 from b3.operators import TreeScale, NarrowExchange, WideExchange, TreeSlide
 from b3.priors import Bound, Distribution
 from b3.substitutions import JC
+from rng import Rng
 
 rng = Rng(4)
 tree = Tree(12, rng)

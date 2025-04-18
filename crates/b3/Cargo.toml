@@ -10,6 +10,7 @@ authors.workspace = true
 data = { path = "../data" }
 io = { path = "../io" }
 linalg = { path = "../linalg", features = ["bytemuck"] }
+rng = { path = "../rng" }
 shchurvec = { path = "../shchurvec" }
 
 anyhow = { workspace = true }

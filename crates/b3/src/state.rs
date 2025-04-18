@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::{
 	parameter::{Parameter, PyParameter},
-	rng::PyRng,
 	tree::PyTree,
 };
+use rng::PyRng;
 
 #[derive(Debug)]
 pub struct State {
@@ -83,12 +83,14 @@ impl PyState {
 impl PyState {
 	#[new]
 	fn new(
-		py: Python,
 		tree: PyTree,
 		params: Vec<PyParameter>,
-		rng: &PyRng,
+		rng: Bound<PyAny>,
 	) -> Result<Self> {
-		let state = State::new(tree, params, rng.clone_with(py))?;
+		let rng = PyRng::downcast(rng);
+		let rng = rng.get().clone();
+
+		let state = State::new(tree, params, rng)?;
 
 		Ok(Self {
 			inner: Arc::new(Mutex::new(state)),
@@ -105,7 +107,7 @@ impl PyState {
 	}
 
 	#[getter]
-	fn rng(&self, py: Python) -> PyRng {
-		self.inner().rng.clone_with(py)
+	fn rng(&self) -> PyRng {
+		self.inner().rng.clone()
 	}
 }
